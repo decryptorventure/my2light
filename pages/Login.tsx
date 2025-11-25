@@ -4,44 +4,68 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Button } from '../components/ui/Button';
 import { PageTransition } from '../components/Layout/PageTransition';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Mail, Lock, Loader2, AlertCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 export const Login: React.FC = () => {
   const navigate = useNavigate();
+  const [mode, setMode] = useState<'signin' | 'signup'>('signin');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
-  const handleLogin = async () => {
+  const handleAuth = async () => {
     setIsLoading(true);
+    setErrorMsg('');
+
     try {
-      // Sign in anonymously for MVP friction-free entry
-      const { data, error } = await supabase.auth.signInAnonymously();
-      
-      if (error) throw error;
-
-      // Check if profile exists, if not create one
-      if (data.user) {
-         const { data: profile } = await supabase
-            .from('profiles')
-            .select('id')
-            .eq('id', data.user.id)
-            .single();
-         
-         if (!profile) {
-            // Create default profile
-            await supabase.from('profiles').insert({
+      if (mode === 'signup') {
+        // 1. Đăng ký tài khoản Auth
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+        });
+        
+        if (error) throw error;
+        
+        if (data.user) {
+            // 2. Tạo Profile (Dùng upsert để tránh lỗi nếu user đã tồn tại)
+            const name = email.split('@')[0];
+            const { error: profileError } = await supabase.from('profiles').upsert({
                 id: data.user.id,
-                name: `Người chơi ${data.user.id.slice(0, 4)}`,
+                name: name.charAt(0).toUpperCase() + name.slice(1), // Capitalize
                 avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${data.user.id}`,
-                credits: 200000 // Tặng tiền trải nghiệm
+                credits: 200000, // Tiền thưởng tân thủ
+                membership_tier: 'free',
+                total_highlights: 0
             });
-         }
-      }
 
-      navigate('/home');
-    } catch (error) {
-      console.error("Login failed:", error);
-      alert("Đăng nhập thất bại. Vui lòng kiểm tra kết nối mạng.");
+            if (profileError) {
+                console.error("Lỗi tạo profile:", profileError);
+                // Không throw error ở đây để user vẫn vào được app (API sẽ handle fallback)
+            }
+
+            // Tự động đăng nhập ngay sau khi đăng ký (nếu Supabase không yêu cầu verify email)
+            navigate('/home');
+        } else {
+            // Trường hợp cần verify email
+            alert('Vui lòng kiểm tra email để xác thực tài khoản!');
+        }
+      } else {
+        // Đăng nhập
+        const { error } = await supabase.auth.signInWithPassword({
+          email,
+          password
+        });
+        if (error) throw error;
+        navigate('/home');
+      }
+    } catch (error: any) {
+      console.error("Auth error:", error);
+      setErrorMsg(error.message === "Invalid login credentials" 
+        ? "Sai email hoặc mật khẩu" 
+        : error.message || "Có lỗi xảy ra, vui lòng thử lại.");
     } finally {
       setIsLoading(false);
     }
@@ -49,71 +73,104 @@ export const Login: React.FC = () => {
 
   return (
     <PageTransition>
-      <div className="min-h-screen flex flex-col p-6 relative overflow-hidden bg-slate-900">
+      <div className="min-h-screen flex flex-col p-6 relative overflow-hidden bg-slate-900 justify-center">
         {/* Background blobs */}
         <div className="absolute top-[-20%] left-[-20%] w-[300px] h-[300px] bg-blue-600/20 rounded-full blur-[100px]" />
         <div className="absolute bottom-[-10%] right-[-10%] w-[250px] h-[250px] bg-lime-400/10 rounded-full blur-[80px]" />
 
-        <div className="flex-1 flex flex-col justify-end pb-12 z-10">
+        <div className="z-10 w-full max-w-md mx-auto">
           <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.2 }}
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-10 text-center"
           >
-            <h1 className="text-5xl font-black text-white leading-[0.9] mb-4">
-              BẮT TRỌN<br/>
-              TỪNG KHOẢNH KHẮC<br/>
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-lime-400 to-blue-500">
-                ĐỈNH CAO
-              </span>
+            <h1 className="text-4xl font-black text-white mb-2">
+              my<span className="text-lime-400">2</span>light
             </h1>
-            <p className="text-slate-400 text-lg mb-10 max-w-[90%]">
-              Kết nối sân thông minh, ghi lại highlight và chia sẻ đam mê với thế giới.
+            <p className="text-slate-400">
+              {mode === 'signin' ? 'Đăng nhập để ra sân ngay' : 'Tạo tài khoản miễn phí'}
             </p>
           </motion.div>
 
-          <div className="space-y-4">
-            <div className="bg-slate-800/50 rounded-xl p-1 border border-white/5 flex items-center">
-              <div className="pl-4 pr-3 text-slate-400 border-r border-slate-700">
-                +84
+          <div className="bg-slate-800/50 backdrop-blur-md rounded-2xl p-6 border border-white/10 shadow-xl">
+            <div className="space-y-4">
+              {errorMsg && (
+                <div className="bg-red-500/10 border border-red-500/50 text-red-500 text-sm p-3 rounded-lg flex items-center gap-2">
+                  <AlertCircle size={16} />
+                  <span>{errorMsg}</span>
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-300 ml-1">Email</label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+                  <input 
+                    type="email" 
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="name@example.com"
+                    className="w-full bg-slate-900/80 border border-slate-700 rounded-xl py-3 pl-10 pr-4 text-white focus:outline-none focus:border-lime-400 transition-colors"
+                    onKeyDown={(e) => e.key === 'Enter' && handleAuth()}
+                  />
+                </div>
               </div>
-              <input 
-                type="tel" 
-                placeholder="Nhập số điện thoại (Demo bỏ qua)" 
-                className="bg-transparent w-full p-3 text-white placeholder-slate-500 focus:outline-none"
-                disabled
-              />
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-300 ml-1">Mật khẩu</label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+                  <input 
+                    type="password" 
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="w-full bg-slate-900/80 border border-slate-700 rounded-xl py-3 pl-10 pr-4 text-white focus:outline-none focus:border-lime-400 transition-colors"
+                    onKeyDown={(e) => e.key === 'Enter' && handleAuth()}
+                  />
+                </div>
+              </div>
+
+              <Button 
+                variant="primary" 
+                size="lg" 
+                onClick={handleAuth}
+                disabled={isLoading || !email || !password}
+                className="w-full mt-6 flex justify-center gap-2"
+              >
+                {isLoading ? (
+                    <>
+                        <Loader2 className="animate-spin" size={20} />
+                        <span>Đang xử lý...</span>
+                    </>
+                ) : (
+                    <>
+                        <span>{mode === 'signin' ? 'Đăng Nhập' : 'Đăng Ký'}</span>
+                        <ArrowRight size={20} />
+                    </>
+                )}
+              </Button>
             </div>
 
-            <Button 
-              variant="primary" 
-              size="xl" 
-              onClick={handleLogin}
-              isLoading={isLoading}
-              className="w-full flex justify-between items-center group"
-            >
-              <span>Vào Ngay (Khách)</span>
-              <ArrowRight className="group-hover:translate-x-1 transition-transform" />
-            </Button>
-
-            <div className="relative py-4">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-slate-800"></div>
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-slate-900 text-slate-500">Hoặc tiếp tục với</span>
-              </div>
+            <div className="mt-6 text-center">
+              <p className="text-slate-400 text-sm">
+                {mode === 'signin' ? 'Chưa có tài khoản?' : 'Đã có tài khoản?'}
+                <button 
+                  onClick={() => {
+                      setMode(mode === 'signin' ? 'signup' : 'signin');
+                      setErrorMsg('');
+                  }}
+                  className="text-lime-400 font-bold ml-1 hover:underline"
+                >
+                  {mode === 'signin' ? 'Đăng ký ngay' : 'Đăng nhập'}
+                </button>
+              </p>
             </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <Button variant="secondary" className="w-full">Google</Button>
-              <Button variant="secondary" className="w-full">Facebook</Button>
-            </div>
-            
-            <p className="text-center text-[10px] text-slate-600 mt-4">
-              Lưu ý: Bạn cần cấu hình Supabase và biến môi trường để chức năng này hoạt động.
-            </p>
           </div>
+          
+          <p className="text-center text-xs text-slate-600 mt-8">
+            v1.0.2 MVP • Powered by Supabase
+          </p>
         </div>
       </div>
     </PageTransition>

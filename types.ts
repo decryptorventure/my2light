@@ -55,6 +55,8 @@ export interface Booking {
   endTime: number; // timestamp
   status: 'pending' | 'active' | 'completed' | 'cancelled';
   totalAmount: number;
+  courtName?: string; // Expanded for UI
+  packageName?: string; // Expanded for UI
 }
 
 export interface ApiResponse<T> {

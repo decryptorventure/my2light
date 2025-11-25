@@ -20,14 +20,16 @@ export const Home: React.FC = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        // Chạy song song các API request để tối ưu tốc độ
-        const [userRes, courtsRes, highlightsRes] = await Promise.all([
-          ApiService.getCurrentUser(),
+        // Load user first to ensure auth context
+        const userRes = await ApiService.getCurrentUser();
+        if (userRes.success) setUser(userRes.data);
+
+        // Load content
+        const [courtsRes, highlightsRes] = await Promise.all([
           ApiService.getCourts(),
           ApiService.getHighlights(5)
         ]);
 
-        if (userRes.success) setUser(userRes.data);
         if (courtsRes.success) setCourts(courtsRes.data);
         if (highlightsRes.success) setHighlights(highlightsRes.data);
       } catch (error) {
@@ -41,7 +43,13 @@ export const Home: React.FC = () => {
   }, []);
 
   if (loading) return <LoadingSpinner fullScreen />;
-  if (!user) return null;
+  
+  // Safe fallback if user load fails completely
+  const displayUser = user || { 
+      name: 'Khách', 
+      credits: 0, 
+      avatar: 'https://cdn-icons-png.flaticon.com/512/3307/3307873.png' 
+  };
 
   const getStatusLabel = (status: string) => {
     switch(status) {
@@ -59,14 +67,14 @@ export const Home: React.FC = () => {
         <div className="flex justify-between items-center">
           <div>
             <p className="text-slate-400 text-sm mb-1">Chào mừng trở lại,</p>
-            <h2 className="text-2xl font-bold">{user.name}</h2>
+            <h2 className="text-2xl font-bold">{displayUser.name}</h2>
           </div>
           <div className="flex items-center gap-3">
             <div className="bg-slate-800 px-3 py-1 rounded-full border border-slate-700">
-                <span className="text-lime-400 font-bold text-xs">{user.credits.toLocaleString()}đ</span>
+                <span className="text-lime-400 font-bold text-xs">{displayUser.credits?.toLocaleString() || 0}đ</span>
             </div>
             <div className="h-12 w-12 rounded-full overflow-hidden border-2 border-slate-700 cursor-pointer" onClick={() => navigate('/profile')}>
-                <img src={user.avatar} alt="Profile" className="h-full w-full object-cover" />
+                <img src={displayUser.avatar} alt="Profile" className="h-full w-full object-cover" />
             </div>
           </div>
         </div>
