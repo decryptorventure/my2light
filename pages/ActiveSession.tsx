@@ -1,10 +1,11 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { StopCircle, Zap, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '../components/ui/Button';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
-import { ApiService } from '../services/mockDb';
+import { ApiService } from '../services/api';
 import { Booking } from '../types';
 
 export const ActiveSession: React.FC = () => {
@@ -23,15 +24,14 @@ export const ActiveSession: React.FC = () => {
         if (res.success && res.data) {
             setBooking(res.data);
         } else {
-            // Fallback for demo flow if user navigates directly
-            // In real app, redirect to home
-            const newBooking = await ApiService.createBooking('p1', 'c1');
-            setBooking(newBooking.data);
+            // No active booking found, redirect home
+            console.log("No active booking");
+            navigate('/home');
         }
         setLoading(false);
     };
     initSession();
-  }, []);
+  }, [navigate]);
 
   useEffect(() => {
     if (!booking) return;

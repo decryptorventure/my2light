@@ -1,7 +1,8 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
+import { supabase } from './lib/supabase';
 
 // Pages
 import { Splash } from './pages/Splash';
@@ -36,6 +37,13 @@ const AnimatedRoutes = () => {
 };
 
 const App: React.FC = () => {
+  useEffect(() => {
+    // Check auth state
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log("Auth Session:", session ? "Logged In" : "Guest");
+    });
+  }, []);
+
   return (
     <HashRouter>
       <div className="bg-slate-900 min-h-screen text-slate-100 font-sans selection:bg-lime-400/30 pt-safe-top pb-safe-bottom">

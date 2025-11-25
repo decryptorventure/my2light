@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { QrCode, MapPin, Activity, ChevronRight, Play } from 'lucide-react';
@@ -5,7 +6,7 @@ import { PageTransition } from '../components/Layout/PageTransition';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
-import { ApiService } from '../services/mockDb';
+import { ApiService } from '../services/api';
 import { User, Court, Highlight } from '../types';
 
 export const Home: React.FC = () => {
@@ -21,7 +22,7 @@ export const Home: React.FC = () => {
         setLoading(true);
         // Chạy song song các API request để tối ưu tốc độ
         const [userRes, courtsRes, highlightsRes] = await Promise.all([
-          ApiService.getUserProfile(),
+          ApiService.getCurrentUser(),
           ApiService.getCourts(),
           ApiService.getHighlights(5)
         ]);

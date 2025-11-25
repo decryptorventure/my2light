@@ -1,10 +1,11 @@
+
 import React, { useState, useEffect } from 'react';
 import { Heart, Share2, Download, Play, Pause, ChevronLeft } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { PageTransition } from '../components/Layout/PageTransition';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
-import { ApiService } from '../services/mockDb';
+import { ApiService } from '../services/api';
 import { Highlight } from '../types';
 
 export const Gallery: React.FC = () => {
@@ -34,9 +35,15 @@ export const Gallery: React.FC = () => {
         </button>
       </div>
       <div className="h-screen bg-black overflow-y-scroll snap-y snap-mandatory no-scrollbar pb-[calc(env(safe-area-inset-bottom)+5rem)]">
-        {highlights.map((highlight, index) => (
-          <VideoItem key={highlight.id} highlight={highlight} />
-        ))}
+        {highlights.length === 0 ? (
+          <div className="flex h-full items-center justify-center text-slate-500">
+             Chưa có highlight nào.
+          </div>
+        ) : (
+          highlights.map((highlight, index) => (
+            <VideoItem key={highlight.id} highlight={highlight} />
+          ))
+        )}
       </div>
     </PageTransition>
   );
@@ -113,7 +120,7 @@ const VideoItem: React.FC<{ highlight: Highlight }> = ({ highlight }) => {
          <div className="flex items-center gap-3 mb-3 pointer-events-auto">
              <img src={highlight.userAvatar} alt="User" className="w-10 h-10 rounded-full border-2 border-white shadow-md" />
              <div>
-                 <p className="text-white font-bold drop-shadow-md text-base">@{highlight.userName?.replace(/\s/g, '').toLowerCase()}</p>
+                 <p className="text-white font-bold drop-shadow-md text-base">@{highlight.userName?.replace(/\s/g, '').toLowerCase() || 'user'}</p>
                  <div className="flex items-center gap-2">
                     <p className="text-[10px] text-slate-900 font-bold bg-lime-400 px-2 py-0.5 rounded-md backdrop-blur-sm">
                         {highlight.courtName}

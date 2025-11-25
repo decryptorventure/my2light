@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { X, ChevronRight, Check } from 'lucide-react';
@@ -5,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
-import { ApiService } from '../services/mockDb';
+import { ApiService } from '../services/api';
 import { Package, Court } from '../types';
 
 export const QRScan: React.FC = () => {
@@ -28,10 +29,11 @@ export const QRScan: React.FC = () => {
   useEffect(() => {
     if (step === 'scan') {
       const timer = setTimeout(async () => {
-        // Mock finding court c1
-        const res = await ApiService.getCourtById('c1');
-        if(res.success && res.data) {
-            setScannedCourt(res.data);
+        // Mock finding court via ID (In real app, ID comes from QR)
+        // We get the first court from DB to simulate
+        const courtsRes = await ApiService.getCourts();
+        if(courtsRes.success && courtsRes.data.length > 0) {
+            setScannedCourt(courtsRes.data[0]);
             setStep('package');
         }
       }, 2500);

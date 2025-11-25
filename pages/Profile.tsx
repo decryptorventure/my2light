@@ -1,25 +1,34 @@
+
 import React, { useEffect, useState } from 'react';
 import { Settings, LogOut, Clock, Zap, Map } from 'lucide-react';
 import { PageTransition } from '../components/Layout/PageTransition';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
-import { ApiService } from '../services/mockDb';
+import { ApiService } from '../services/api';
 import { User } from '../types';
+import { supabase } from '../lib/supabase';
+import { useNavigate } from 'react-router-dom';
 
 export const Profile: React.FC = () => {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
     const loadUser = async () => {
         setLoading(true);
-        const res = await ApiService.getUserProfile();
+        const res = await ApiService.getCurrentUser();
         if (res.success) setUser(res.data);
         setLoading(false);
     };
     loadUser();
   }, []);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate('/login');
+  };
 
   if (loading) return <LoadingSpinner fullScreen />;
   if (!user) return null;
@@ -56,7 +65,7 @@ export const Profile: React.FC = () => {
                 <span className="text-lime-400 font-bold text-xs uppercase tracking-wider bg-lime-400/10 px-2 py-1 rounded border border-lime-400/20">
                     {user.membershipTier} Member
                 </span>
-                <span className="text-slate-500 text-xs">{user.phone}</span>
+                <span className="text-slate-500 text-xs">{user.phone || 'SĐT chưa cập nhật'}</span>
             </div>
         </div>
 
@@ -96,13 +105,17 @@ export const Profile: React.FC = () => {
                  </div>
             </div>
 
-            <Button variant="ghost" className="w-full flex items-center justify-center gap-2 text-red-500 hover:text-red-400 hover:bg-red-500/10">
+            <Button 
+                variant="ghost" 
+                onClick={handleLogout}
+                className="w-full flex items-center justify-center gap-2 text-red-500 hover:text-red-400 hover:bg-red-500/10"
+            >
                 <LogOut size={18} />
                 Đăng xuất
             </Button>
             
             <p className="text-center text-[10px] text-slate-600">
-                Phiên bản MVP 1.0.0 (Build 2024)
+                Phiên bản MVP 1.0.0 (Connected)
             </p>
         </div>
       </div>
