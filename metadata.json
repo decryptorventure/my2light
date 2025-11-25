@@ -1,0 +1,7 @@
+{
+  "name": "my2light",
+  "description": "A premium, mobile-first sports highlight PWA featuring QR court connection, active game session recording, and a TikTok-style highlight gallery.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
