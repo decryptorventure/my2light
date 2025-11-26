@@ -11,6 +11,7 @@ import { Home } from './pages/Home';
 import { QRScan } from './pages/QRScan';
 import { ActiveSession } from './pages/ActiveSession';
 import { Gallery } from './pages/Gallery';
+import { MyHighlights } from './pages/MyHighlights';
 import { Profile } from './pages/Profile';
 import { SelfRecording } from './pages/SelfRecording';
 import { Onboarding } from './pages/Onboarding';
@@ -28,13 +29,14 @@ const AnimatedRoutes = () => {
       <Routes location={location} key={location.pathname}>
         <Route path="/" element={<Splash />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/onboarding" element={<Onboarding />} />
         <Route path="/home" element={<Home />} />
         <Route path="/qr" element={<QRScan />} />
         <Route path="/active-session" element={<ActiveSession />} />
         <Route path="/gallery" element={<Gallery />} />
+        <Route path="/my-highlights" element={<MyHighlights />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/self-recording" element={<SelfRecording />} />
-        <Route path="/onboarding" element={<Onboarding />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </AnimatePresence>

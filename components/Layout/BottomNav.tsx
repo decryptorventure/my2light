@@ -9,7 +9,7 @@ export const BottomNav: React.FC = () => {
 
   const navItems = [
     { icon: Home, label: 'Trang chủ', path: '/home' },
-    { icon: Play, label: 'Thư viện', path: '/gallery' },
+    { icon: Play, label: 'Thư viện', path: '/my-highlights' },
     { icon: User, label: 'Cá nhân', path: '/profile' },
   ];
 
