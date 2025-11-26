@@ -17,12 +17,12 @@ export const Onboarding: React.FC = () => {
         if (step < 3) {
             setStep(step + 1);
         } else {
-            // Finish
+            // Finish onboarding and mark user as onboarded
             setLoading(true);
             await ApiService.updateUserProfile({
                 name,
                 phone,
-                // We could store skillLevel in metadata or a new column if we had one
+                has_onboarded: true
             });
             setLoading(false);
             navigate('/home');
@@ -74,8 +74,8 @@ export const Onboarding: React.FC = () => {
                             key={level.id}
                             onClick={() => setSkillLevel(level.id)}
                             className={`p-4 rounded-xl border cursor-pointer transition-all ${skillLevel === level.id
-                                    ? 'bg-lime-400/10 border-lime-400'
-                                    : 'bg-slate-800 border-slate-700 hover:border-slate-600'
+                                ? 'bg-lime-400/10 border-lime-400'
+                                : 'bg-slate-800 border-slate-700 hover:border-slate-600'
                                 }`}
                         >
                             <div className="flex justify-between items-center">

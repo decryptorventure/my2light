@@ -59,12 +59,26 @@ export const Login: React.FC = () => {
         }
       } else {
         // Đăng nhập
-        const { error } = await supabase.auth.signInWithPassword({
+        const { data: authData, error } = await supabase.auth.signInWithPassword({
           email: cleanEmail,
           password: cleanPassword
         });
         if (error) throw error;
-        navigate('/home');
+
+        // Check if user has completed onboarding
+        if (authData.user) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('has_onboarded')
+            .eq('id', authData.user.id)
+            .single();
+
+          if (profile && !profile.has_onboarded) {
+            navigate('/onboarding');
+          } else {
+            navigate('/home');
+          }
+        }
       }
     } catch (error: any) {
       console.error("Auth error:", error);

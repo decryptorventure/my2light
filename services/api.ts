@@ -8,7 +8,7 @@ export const ApiService = {
       const { data: { session } } = await supabase.auth.getSession();
 
       if (!session?.user) {
-        return { success: false, data: null as any };
+        return { success: false, data: null as any, error: 'Not authenticated' };
       }
 
       // Try fetching profile from DB
@@ -19,21 +19,43 @@ export const ApiService = {
         .single();
 
       if (error || !data) {
-        // If profile doesn't exist, return basic info from session
+        // Profile doesn't exist - this shouldn't happen if trigger is working
+        // But if it does, create it now
         const emailName = session.user.email?.split('@')[0] || 'User';
         const displayName = emailName.charAt(0).toUpperCase() + emailName.slice(1);
 
+        const newProfile = {
+          id: session.user.id,
+          name: displayName,
+          avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${session.user.id}`,
+          phone: '',
+          credits: 200000,
+          membership_tier: 'free',
+          total_highlights: 0,
+          has_onboarded: false
+        };
+
+        const { error: insertError } = await supabase
+          .from('profiles')
+          .insert(newProfile);
+
+        if (insertError) {
+          console.error('Failed to create profile:', insertError);
+          return { success: false, data: null as any, error: 'Failed to create profile' };
+        }
+
+        // Return the newly created profile
         return {
           success: true,
           data: {
-            id: session.user.id,
-            name: displayName,
-            avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${session.user.id}`,
-            phone: '',
+            id: newProfile.id,
+            name: newProfile.name,
+            avatar: newProfile.avatar,
+            phone: newProfile.phone,
             totalHighlights: 0,
             hoursPlayed: 0,
             courtsVisited: 0,
-            credits: 0,
+            credits: newProfile.credits,
             membershipTier: 'free'
           }
         };
@@ -53,20 +75,27 @@ export const ApiService = {
 
       return { success: true, data: user };
     } catch (e) {
-      console.error(e);
-      return { success: false, data: null as any };
+      console.error('getCurrentUser error:', e);
+      return { success: false, data: null as any, error: 'Failed to fetch user' };
     }
   },
 
-  updateUserProfile: async (updates: Partial<User>): Promise<ApiResponse<boolean>> => {
+  updateUserProfile: async (updates: Partial<{
+    name: string;
+    phone: string;
+    avatar: string;
+    credits: number;
+    has_onboarded: boolean;
+  }>): Promise<ApiResponse<boolean>> => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { success: false, data: false };
 
     const dbUpdates: any = {};
-    if (updates.name) dbUpdates.name = updates.name;
-    if (updates.avatar) dbUpdates.avatar = updates.avatar;
-    if (updates.phone) dbUpdates.phone = updates.phone;
+    if (updates.name !== undefined) dbUpdates.name = updates.name;
+    if (updates.phone !== undefined) dbUpdates.phone = updates.phone;
+    if (updates.avatar !== undefined) dbUpdates.avatar = updates.avatar;
     if (updates.credits !== undefined) dbUpdates.credits = updates.credits;
+    if (updates.has_onboarded !== undefined) dbUpdates.has_onboarded = updates.has_onboarded;
 
     const { error } = await supabase
       .from('profiles')
@@ -215,6 +244,17 @@ export const ApiService = {
       throw new Error('Sân này đang có người chơi trong khung giờ này!');
     }
 
+    // Check user has sufficient credits
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('credits')
+      .eq('id', user.id)
+      .single();
+
+    if (!profile || profile.credits < pkgPrice) {
+      throw new Error(`Không đủ tiền! Bạn cần ${pkgPrice.toLocaleString()}đ nhưng chỉ có ${(profile?.credits || 0).toLocaleString()}đ`);
+    }
+
     const { data, error } = await supabase.from('bookings').insert({
       user_id: user.id,
       court_id: courtId,
@@ -230,6 +270,12 @@ export const ApiService = {
       throw error;
     }
 
+    // Deduct credits from user profile
+    await supabase
+      .from('profiles')
+      .update({ credits: profile.credits - pkgPrice })
+      .eq('id', user.id);
+
     return {
       success: true,
       data: {
@@ -239,7 +285,7 @@ export const ApiService = {
         packageId: data.package_id,
         startTime: new Date(data.start_time).getTime(),
         endTime: new Date(data.end_time).getTime(),
-        status: data.status,
+        status: data.status as any,
         totalAmount: data.total_amount,
         packageType: pkgType
       }
