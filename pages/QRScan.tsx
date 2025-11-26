@@ -1,56 +1,58 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { X, ChevronRight, Check } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 import { ApiService } from '../services/api';
 import { Package, Court } from '../types';
+import { QRScanner } from '../components/QRScanner';
+import { useToast } from '../components/ui/Toast';
 
 export const QRScan: React.FC = () => {
   const navigate = useNavigate();
+  const { showToast } = useToast();
   const [step, setStep] = useState<'scan' | 'package' | 'payment'>('scan');
   const [scannedCourt, setScannedCourt] = useState<Court | null>(null);
   const [packages, setPackages] = useState<Package[]>([]);
   const [selectedPackage, setSelectedPackage] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // Load initial data if needed
+  // Load initial data
   useEffect(() => {
-    // Preload packages
     ApiService.getPackages().then(res => {
       if (res.success) setPackages(res.data);
     });
   }, []);
 
-  // Simulate scanning success (In real app, this would be triggered by QR reader)
-  useEffect(() => {
-    if (step === 'scan') {
-      const timer = setTimeout(async () => {
-        // Mock finding court via ID (In real app, ID comes from QR)
-        const courtsRes = await ApiService.getCourts();
-        if (courtsRes.success && courtsRes.data.length > 0) {
-          setScannedCourt(courtsRes.data[0]);
+  const handleScanSuccess = async (decodedText: string) => {
+    console.log('Scanned:', decodedText);
 
-          // Check if user has an active booking for this court to check-in
-          // This is a simplified logic for MVP
-          const activeBooking = await ApiService.getActiveBooking();
-          if (activeBooking.success && activeBooking.data && activeBooking.data.courtId === courtsRes.data[0].id) {
-            // Auto check-in
-            await ApiService.checkInBooking(activeBooking.data.id);
-            alert('Check-in thành công! Chúc bạn chơi vui vẻ.');
-            navigate('/active-session');
-          } else {
-            // If no active booking, proceed to booking flow
-            setStep('package');
-          }
-        }
-      }, 2500);
-      return () => clearTimeout(timer);
+    // 1. Try to find court by ID (assuming QR code contains the ID)
+    const courtRes = await ApiService.getCourtById(decodedText);
+
+    if (courtRes.success && courtRes.data) {
+      setScannedCourt(courtRes.data);
+
+      // 2. Check for active booking
+      const activeBooking = await ApiService.getActiveBooking();
+      if (activeBooking.success && activeBooking.data && activeBooking.data.courtId === decodedText) {
+        // Auto check-in
+        await ApiService.checkInBooking(activeBooking.data.id);
+        showToast('Check-in thành công! Chúc bạn chơi vui vẻ.', 'success');
+        navigate('/active-session');
+      } else {
+        // Proceed to booking
+        showToast('Đã tìm thấy sân: ' + courtRes.data.name, 'success');
+        setStep('package');
+      }
+    } else {
+      showToast('Không tìm thấy sân với mã QR này. Vui lòng thử lại.', 'error');
+      // Scanner will stay open so user can try again
     }
-  }, [step]);
+  };
 
   const handlePayment = async () => {
     if (!selectedPackage || !scannedCourt) return;
@@ -59,52 +61,18 @@ export const QRScan: React.FC = () => {
     try {
       const res = await ApiService.createBooking(selectedPackage, scannedCourt.id);
       if (res.success) {
+        showToast('Đặt sân thành công!', 'success');
         navigate('/active-session');
       } else {
-        alert('Thanh toán thất bại: ' + (res.error || 'Lỗi không xác định'));
+        showToast('Thanh toán thất bại: ' + (res.error || 'Lỗi không xác định'), 'error');
       }
     } catch (error: any) {
       console.error('Booking error:', error);
-      alert('Lỗi đặt sân: ' + (error.message || 'Vui lòng thử lại'));
+      showToast('Lỗi đặt sân: ' + (error.message || 'Vui lòng thử lại'), 'error');
     } finally {
       setIsProcessing(false);
     }
   };
-
-  const ScanOverlay = () => (
-    <div className="fixed inset-0 bg-black z-50 flex flex-col">
-      <div className="absolute top-6 left-6 z-20">
-        <Button variant="ghost" onClick={() => navigate('/home')} className="rounded-full w-10 h-10 p-0 bg-black/40 text-white">
-          <X size={24} />
-        </Button>
-      </div>
-
-      {/* Camera Simulation */}
-      <div className="flex-1 relative overflow-hidden bg-slate-900">
-        {/* Mock Camera Feed Background */}
-        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1534438327276-14e5300c3a48?q=80&w=1470&auto=format&fit=crop')] bg-cover bg-center opacity-60 grayscale" />
-
-        <div className="absolute inset-0 flex items-center justify-center p-12">
-          <div className="relative w-full aspect-square max-w-[300px]">
-            {/* Corner Markers */}
-            <div className="absolute top-0 left-0 w-8 h-8 border-l-4 border-t-4 border-lime-400 rounded-tl-xl" />
-            <div className="absolute top-0 right-0 w-8 h-8 border-r-4 border-t-4 border-lime-400 rounded-tr-xl" />
-            <div className="absolute bottom-0 left-0 w-8 h-8 border-l-4 border-b-4 border-lime-400 rounded-bl-xl" />
-            <div className="absolute bottom-0 right-0 w-8 h-8 border-r-4 border-b-4 border-lime-400 rounded-br-xl" />
-
-            {/* Scanning Laser */}
-            <div className="absolute top-0 left-0 w-full h-1 bg-lime-400 shadow-[0_0_15px_rgba(163,230,53,0.8)] animate-scan-line" />
-          </div>
-        </div>
-
-        <div className="absolute bottom-20 left-0 right-0 text-center">
-          <p className="text-white/80 font-medium bg-black/30 backdrop-blur-md inline-block px-4 py-2 rounded-full border border-white/10">
-            Di chuyển camera vào mã QR trên sân
-          </p>
-        </div>
-      </div>
-    </div>
-  );
 
   const PackageSelection = () => (
     <div className="min-h-screen bg-slate-900 p-6 pt-12 flex flex-col">
@@ -210,7 +178,10 @@ export const QRScan: React.FC = () => {
     <AnimatePresence mode="wait">
       {step === 'scan' && (
         <motion.div key="scan" exit={{ opacity: 0 }}>
-          <ScanOverlay />
+          <QRScanner
+            onScanSuccess={handleScanSuccess}
+            onClose={() => navigate('/home')}
+          />
         </motion.div>
       )}
       {step === 'package' && (
