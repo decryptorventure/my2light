@@ -8,7 +8,7 @@ export const Splash: React.FC = () => {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      navigate('/login');
+      navigate('/welcome');
     }, 2500);
     return () => clearTimeout(timer);
   }, [navigate]);
@@ -23,7 +23,7 @@ export const Splash: React.FC = () => {
       >
         <Zap size={48} className="text-white fill-white" />
       </motion.div>
-      
+
       <motion.div
         initial={{ y: 20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}

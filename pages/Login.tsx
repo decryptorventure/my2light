@@ -1,12 +1,16 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '../components/ui/Button';
+import { Input } from '../components/ui/Input';
 import { PageTransition } from '../components/Layout/PageTransition';
-import { ArrowRight, Mail, Lock, Loader2, AlertCircle, Facebook, Chrome } from 'lucide-react';
+import {
+  ArrowRight, ArrowLeft, Mail, Lock, Loader2,
+  Chrome, Facebook, Eye, EyeOff, Sparkles
+} from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useToast } from '../components/ui/Toast';
+import { celebrate } from '../lib/confetti';
 
 export const Login: React.FC = () => {
   const navigate = useNavigate();
@@ -14,19 +18,29 @@ export const Login: React.FC = () => {
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState('');
 
   const handleAuth = async () => {
     setIsLoading(true);
-    setErrorMsg('');
 
     try {
       const cleanEmail = email.trim();
       const cleanPassword = password.trim();
 
+      // Validation
+      if (!cleanEmail || !cleanPassword) {
+        showToast('Vui lòng điền đầy đủ thông tin', 'error');
+        return;
+      }
+
+      if (cleanPassword.length < 6) {
+        showToast('Mật khẩu phải có ít nhất 6 ký tự', 'error');
+        return;
+      }
+
       if (mode === 'signup') {
-        // 1. Đăng ký tài khoản Auth
+        // Sign up
         const { data, error } = await supabase.auth.signUp({
           email: cleanEmail,
           password: cleanPassword,
@@ -35,37 +49,36 @@ export const Login: React.FC = () => {
         if (error) throw error;
 
         if (data.user) {
-          // 2. Tạo Profile (Dùng upsert để tránh lỗi nếu user đã tồn tại)
+          // Create profile
           const name = cleanEmail.split('@')[0];
           const { error: profileError } = await supabase.from('profiles').upsert({
             id: data.user.id,
-            name: name.charAt(0).toUpperCase() + name.slice(1), // Capitalize
+            name: name.charAt(0).toUpperCase() + name.slice(1),
             avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${data.user.id}`,
-            credits: 200000, // Tiền thưởng tân thủ
+            credits: 200000,
             membership_tier: 'free',
             total_highlights: 0
           });
 
           if (profileError) {
-            console.error("Lỗi tạo profile:", profileError);
-            // Không throw error ở đây để user vẫn vào được app (API sẽ handle fallback)
+            console.error("Profile creation error:", profileError);
           }
 
-          // Tự động đăng nhập ngay sau khi đăng ký (nếu Supabase không yêu cầu verify email)
-          navigate('/onboarding');
+          celebrate({ particleCount: 100 });
+          showToast('Đăng ký thành công! 🎉', 'success');
+          setTimeout(() => navigate('/onboarding'), 500);
         } else {
-          // Trường hợp cần verify email
-          alert('Vui lòng kiểm tra email để xác thực tài khoản!');
+          showToast('Vui lòng kiểm tra email để xác thực!', 'info');
         }
       } else {
-        // Đăng nhập
+        // Sign in
         const { data: authData, error } = await supabase.auth.signInWithPassword({
           email: cleanEmail,
           password: cleanPassword
         });
+
         if (error) throw error;
 
-        // Check if user has completed onboarding
         if (authData.user) {
           const { data: profile } = await supabase
             .from('profiles')
@@ -73,11 +86,16 @@ export const Login: React.FC = () => {
             .eq('id', authData.user.id)
             .single();
 
-          if (profile && !profile.has_onboarded) {
-            navigate('/onboarding');
-          } else {
-            navigate('/home');
-          }
+          celebrate({ particleCount: 50 });
+          showToast('Đăng nhập thành công! 👋', 'success');
+
+          setTimeout(() => {
+            if (profile && !profile.has_onboarded) {
+              navigate('/onboarding');
+            } else {
+              navigate('/home');
+            }
+          }, 500);
         }
       }
     } catch (error: any) {
@@ -85,145 +103,192 @@ export const Login: React.FC = () => {
       const msg = error.message === "Invalid login credentials"
         ? "Sai email hoặc mật khẩu"
         : error.message || "Có lỗi xảy ra, vui lòng thử lại.";
-      // setErrorMsg(msg); // Old way
       showToast(msg, 'error');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleSocialLogin = (provider: string) => {
-    // Simulation only for MVP
-    alert(`Đăng nhập bằng ${provider} đang được phát triển!`);
+  const handleSocialLogin = async (provider: 'google' | 'facebook') => {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: provider,
+        options: {
+          redirectTo: `${window.location.origin}/#/home`
+        }
+      });
+
+      if (error) throw error;
+    } catch (error: any) {
+      showToast(`Đăng nhập ${provider} đang được phát triển!`, 'info');
+    }
   };
 
   return (
     <PageTransition>
-      <div className="min-h-screen flex flex-col p-6 relative overflow-hidden bg-slate-900 justify-center">
-        {/* Background blobs */}
-        <div className="absolute top-[-20%] left-[-20%] w-[300px] h-[300px] bg-blue-600/20 rounded-full blur-[100px]" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[250px] h-[250px] bg-lime-400/10 rounded-full blur-[80px]" />
+      <div className="min-h-screen bg-slate-900 flex flex-col relative overflow-hidden">
+        {/* Animated background */}
+        <div className="absolute inset-0">
+          <div className="absolute top-[-10%] right-[-10%] w-[400px] h-[400px] bg-lime-400/10 rounded-full blur-[120px] animate-pulse" />
+          <div className="absolute bottom-[-10%] left-[-10%] w-[350px] h-[350px] bg-blue-400/10 rounded-full blur-[100px] animate-pulse" style={{ animationDelay: '1s' }} />
+        </div>
 
-        <div className="z-10 w-full max-w-md mx-auto">
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-10 text-center"
-          >
-            <h1 className="text-4xl font-black text-white mb-2">
-              my<span className="text-lime-400">2</span>light
-            </h1>
-            <p className="text-slate-400">
-              {mode === 'signin' ? 'Đăng nhập để ra sân ngay' : 'Tạo tài khoản miễn phí'}
-            </p>
-          </motion.div>
+        {/* Content */}
+        <div className="relative z-10 flex-1 flex flex-col p-6 pt-safe pb-safe">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-8">
+            <button
+              onClick={() => navigate(-1)}
+              className="w-10 h-10 rounded-full bg-slate-800/50 backdrop-blur-md flex items-center justify-center hover:bg-slate-700 transition-colors"
+            >
+              <ArrowLeft size={20} />
+            </button>
 
-          <div className="bg-slate-800/50 backdrop-blur-md rounded-2xl p-6 border border-white/10 shadow-xl">
-            <div className="space-y-4">
-              {errorMsg && (
-                <div className="bg-red-500/10 border border-red-500/50 text-red-500 text-sm p-3 rounded-lg flex items-center gap-2">
-                  <AlertCircle size={16} />
-                  <span>{errorMsg}</span>
-                </div>
-              )}
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-300 ml-1">Email</label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="name@example.com"
-                    className="w-full bg-slate-900/80 border border-slate-700 rounded-xl py-3 pl-10 pr-4 text-white focus:outline-none focus:border-lime-400 transition-colors"
-                    onKeyDown={(e) => e.key === 'Enter' && handleAuth()}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-300 ml-1">Mật khẩu</label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
-                  <input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full bg-slate-900/80 border border-slate-700 rounded-xl py-3 pl-10 pr-4 text-white focus:outline-none focus:border-lime-400 transition-colors"
-                    onKeyDown={(e) => e.key === 'Enter' && handleAuth()}
-                  />
-                </div>
-              </div>
-
-              <Button
-                variant="primary"
-                size="lg"
-                onClick={handleAuth}
-                disabled={isLoading || !email || !password}
-                className="w-full mt-6 flex justify-center gap-2"
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="animate-spin" size={20} />
-                    <span>Đang xử lý...</span>
-                  </>
-                ) : (
-                  <>
-                    <span>{mode === 'signin' ? 'Đăng Nhập' : 'Đăng Ký'}</span>
-                    <ArrowRight size={20} />
-                  </>
-                )}
-              </Button>
-
-              {/* Social Login Divider */}
-              <div className="relative py-4">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-slate-700"></div>
-                </div>
-                <div className="relative flex justify-center text-xs">
-                  <span className="bg-slate-800 px-2 text-slate-400">Hoặc tiếp tục với</span>
-                </div>
-              </div>
-
-              {/* Social Buttons */}
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  onClick={() => handleSocialLogin('Google')}
-                  className="flex items-center justify-center gap-2 bg-white text-slate-900 py-2.5 rounded-xl font-bold text-sm hover:bg-gray-100 transition-colors"
-                >
-                  <Chrome size={18} className="text-red-500" />
-                  Google
-                </button>
-                <button
-                  onClick={() => handleSocialLogin('Facebook')}
-                  className="flex items-center justify-center gap-2 bg-[#1877F2] text-white py-2.5 rounded-xl font-bold text-sm hover:bg-[#166fe5] transition-colors"
-                >
-                  <Facebook size={18} className="text-white fill-white" />
-                  Facebook
-                </button>
-              </div>
-            </div>
-
-            <div className="mt-6 text-center">
-              <p className="text-slate-400 text-sm">
-                {mode === 'signin' ? 'Chưa có tài khoản?' : 'Đã có tài khoản?'}
-                <button
-                  onClick={() => {
-                    setMode(mode === 'signin' ? 'signup' : 'signin');
-                    setErrorMsg('');
-                  }}
-                  className="text-lime-400 font-bold ml-1 hover:underline"
-                >
-                  {mode === 'signin' ? 'Đăng ký ngay' : 'Đăng nhập'}
-                </button>
-              </p>
+            <div className="flex items-center gap-2">
+              <Sparkles size={16} className="text-lime-400" />
+              <span className="text-sm font-bold text-slate-400">
+                {mode === 'signin' ? 'Đăng nhập' : 'Đăng ký'}
+              </span>
             </div>
           </div>
 
-          <p className="text-center text-xs text-slate-600 mt-8">
-            v1.0.4 MVP • Powered by Supabase
+          {/* Logo */}
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-center mb-12"
+          >
+            <h1 className="text-5xl font-black text-white mb-2">
+              my<span className="text-lime-400">2</span>light
+            </h1>
+            <p className="text-slate-400">
+              {mode === 'signin'
+                ? 'Chào mừng trở lại! 👋'
+                : 'Tạo tài khoản miễn phí 🎉'}
+            </p>
+          </motion.div>
+
+          {/* Form */}
+          <div className="flex-1 max-w-md mx-auto w-full">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={mode}
+                initial={{ opacity: 0, x: mode === 'signin' ? -20 : 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: mode === 'signin' ? 20 : -20 }}
+                transition={{ duration: 0.3 }}
+                className="space-y-5"
+              >
+                {/* Email Input */}
+                <Input
+                  type="email"
+                  label="Email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="name@example.com"
+                  leftIcon={<Mail size={20} />}
+                  variant="filled"
+                  autoComplete="email"
+                  onKeyDown={(e) => e.key === 'Enter' && handleAuth()}
+                />
+
+                {/* Password Input */}
+                <div className="relative">
+                  <Input
+                    type={showPassword ? 'text' : 'password'}
+                    label="Mật khẩu"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    leftIcon={<Lock size={20} />}
+                    variant="filled"
+                    autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
+                    onKeyDown={(e) => e.key === 'Enter' && handleAuth()}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-[38px] text-slate-400 hover:text-white transition-colors"
+                  >
+                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                  </button>
+                </div>
+
+                {mode === 'signin' && (
+                  <div className="flex justify-end">
+                    <button className="text-sm text-lime-400 font-medium hover:underline">
+                      Quên mật khẩu?
+                    </button>
+                  </div>
+                )}
+
+                {/* Submit Button */}
+                <Button
+                  onClick={handleAuth}
+                  disabled={isLoading || !email || !password}
+                  isLoading={isLoading}
+                  size="xl"
+                  className="w-full mt-6"
+                  icon={!isLoading && <ArrowRight size={20} />}
+                >
+                  {isLoading
+                    ? 'Đang xử lý...'
+                    : mode === 'signin' ? 'Đăng nhập' : 'Tạo tài khoản'}
+                </Button>
+
+                {/* Divider */}
+                <div className="relative py-6">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-slate-800" />
+                  </div>
+                  <div className="relative flex justify-center text-xs">
+                    <span className="bg-slate-900 px-3 text-slate-500 font-medium">
+                      Hoặc tiếp tục với
+                    </span>
+                  </div>
+                </div>
+
+                {/* Social Buttons */}
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    onClick={() => handleSocialLogin('google')}
+                    className="flex items-center justify-center gap-2 bg-white text-slate-900 py-3.5 rounded-xl font-bold text-sm hover:bg-gray-100 transition-all hover:scale-105 active:scale-95"
+                  >
+                    <Chrome size={20} className="text-red-500" />
+                    Google
+                  </button>
+                  <button
+                    onClick={() => handleSocialLogin('facebook')}
+                    className="flex items-center justify-center gap-2 bg-[#1877F2] text-white py-3.5 rounded-xl font-bold text-sm hover:bg-[#166fe5] transition-all hover:scale-105 active:scale-95"
+                  >
+                    <Facebook size={20} className="fill-white" />
+                    Facebook
+                  </button>
+                </div>
+              </motion.div>
+            </AnimatePresence>
+          </div>
+
+          {/* Toggle Mode */}
+          <div className="mt-8 text-center">
+            <p className="text-slate-400">
+              {mode === 'signin' ? 'Chưa có tài khoản?' : 'Đã có tài khoản?'}
+              <button
+                onClick={() => {
+                  setMode(mode === 'signin' ? 'signup' : 'signin');
+                  setEmail('');
+                  setPassword('');
+                }}
+                className="text-lime-400 font-bold ml-2 hover:underline"
+              >
+                {mode === 'signin' ? 'Đăng ký ngay' : 'Đăng nhập'}
+              </button>
+            </p>
+          </div>
+
+          {/* Footer */}
+          <p className="text-center text-xs text-slate-600 mt-6">
+            v2.5.1 • Powered by Supabase
           </p>
         </div>
       </div>

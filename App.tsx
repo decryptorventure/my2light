@@ -5,6 +5,7 @@ import { supabase } from './lib/supabase';
 
 // Critical pages - load immediately
 import { Splash } from './pages/Splash';
+import { Welcome } from './pages/Welcome';
 import { Login } from './pages/Login';
 import { Home } from './pages/Home';
 
@@ -39,6 +40,7 @@ const AnimatedRoutes = () => {
       <Suspense fallback={<PageLoader />}>
         <Routes location={location} key={location.pathname}>
           <Route path="/" element={<Splash />} />
+          <Route path="/welcome" element={<Welcome />} />
           <Route path="/login" element={<Login />} />
           <Route path="/onboarding" element={<Onboarding />} />
           <Route path="/home" element={<Home />} />
