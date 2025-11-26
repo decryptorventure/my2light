@@ -5,7 +5,7 @@ import { QrCode, MapPin, Activity, ChevronRight, Play, Camera, Mic } from 'lucid
 import { PageTransition } from '../components/Layout/PageTransition';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
-import { LoadingSpinner } from '../components/ui/LoadingSpinner';
+import { SkeletonCourtCard, SkeletonHighlightCard, Skeleton } from '../components/ui/Skeleton';
 import { ApiService } from '../services/api';
 import { User, Court, Highlight } from '../types';
 
@@ -47,8 +47,6 @@ export const Home: React.FC = () => {
 
     fetchData();
   }, []);
-
-  if (loading) return <LoadingSpinner fullScreen />;
 
   // Safe fallback if user load fails completely
   const displayUser = user || {
@@ -133,7 +131,11 @@ export const Home: React.FC = () => {
             <span className="text-xs text-lime-400 font-semibold cursor-pointer" onClick={() => navigate('/gallery')}>Xem tất cả</span>
           </div>
 
-          {highlights.length === 0 ? (
+          {loading ? (
+            <div className="flex gap-4 overflow-x-auto pb-4 no-scrollbar -mx-6 px-6">
+              {[1, 2, 3].map(i => <SkeletonHighlightCard key={i} />)}
+            </div>
+          ) : highlights.length === 0 ? (
             <div className="text-center py-8 bg-slate-800/30 rounded-2xl border border-slate-800 border-dashed">
               <p className="text-slate-500 text-sm">Chưa có highlight nào. Hãy ra sân chơi nhé!</p>
             </div>
@@ -175,36 +177,42 @@ export const Home: React.FC = () => {
           </div>
 
           <div className="space-y-4">
-            {courts.map((court) => (
-              <Card key={court.id} className="flex p-3 gap-4 items-center group cursor-pointer" hoverEffect>
-                <div className="w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 bg-slate-800 relative">
-                  <img src={court.thumbnailUrl} alt={court.name} className="w-full h-full object-cover" />
-                  {court.status === 'live' && (
-                    <div className="absolute top-1 left-1 w-2 h-2 bg-red-500 rounded-full animate-pulse shadow-[0_0_8px_red]" />
-                  )}
-                </div>
-                <div className="flex-1">
-                  <div className="flex justify-between items-start">
-                    <h4 className="font-bold text-sm leading-tight mb-1 group-hover:text-lime-400 transition-colors">{court.name}</h4>
-                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${court.status === 'live' ? 'bg-red-500/20 text-red-500' :
-                      court.status === 'available' ? 'bg-green-500/20 text-green-500' :
-                        'bg-orange-500/20 text-orange-500'
-                      }`}>
-                      {getStatusLabel(court.status)}
-                    </span>
+            {loading ? (
+              <>
+                {[1, 2, 3].map(i => <SkeletonCourtCard key={i} />)}
+              </>
+            ) : (
+              courts.map((court) => (
+                <Card key={court.id} className="flex p-3 gap-4 items-center group cursor-pointer" hoverEffect>
+                  <div className="w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 bg-slate-800 relative">
+                    <img src={court.thumbnailUrl} alt={court.name} className="w-full h-full object-cover" />
+                    {court.status === 'live' && (
+                      <div className="absolute top-1 left-1 w-2 h-2 bg-red-500 rounded-full animate-pulse shadow-[0_0_8px_red]" />
+                    )}
                   </div>
-                  <p className="text-xs text-slate-500 mb-2 line-clamp-1">{court.address}</p>
-                  <div className="flex items-center gap-3 text-xs font-medium text-slate-400">
-                    <span>{court.distanceKm} km</span>
-                    <span className="w-1 h-1 rounded-full bg-slate-600"></span>
-                    <span>{court.rating} ⭐</span>
+                  <div className="flex-1">
+                    <div className="flex justify-between items-start">
+                      <h4 className="font-bold text-sm leading-tight mb-1 group-hover:text-lime-400 transition-colors">{court.name}</h4>
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${court.status === 'live' ? 'bg-red-500/20 text-red-500' :
+                        court.status === 'available' ? 'bg-green-500/20 text-green-500' :
+                          'bg-orange-500/20 text-orange-500'
+                        }`}>
+                        {getStatusLabel(court.status)}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-500 mb-2 line-clamp-1">{court.address}</p>
+                    <div className="flex items-center gap-3 text-xs font-medium text-slate-400">
+                      <span>{court.distanceKm} km</span>
+                      <span className="w-1 h-1 rounded-full bg-slate-600"></span>
+                      <span>{court.rating} ⭐</span>
+                    </div>
                   </div>
-                </div>
-                <Button variant="ghost" size="sm" className="p-2 text-slate-500 group-hover:text-white">
-                  <ChevronRight size={18} />
-                </Button>
-              </Card>
-            ))}
+                  <Button variant="ghost" size="sm" className="p-2 text-slate-500 group-hover:text-white">
+                    <ChevronRight size={18} />
+                  </Button>
+                </Card>
+              ))
+            )}
           </div>
         </section>
       </div>

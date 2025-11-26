@@ -1,7 +1,7 @@
 {
   "name": "my2light",
   "private": true,
-  "version": "1.0.0",
+  "version": "2.5.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.0",
+    "canvas-confetti": "^1.9.4",
     "dotenv": "^17.2.3",
     "framer-motion": "^10.16.16",
     "html5-qrcode": "^2.3.8",

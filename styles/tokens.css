@@ -1,0 +1,214 @@
+/* ==========================================================================
+   my2light Design Tokens v2.0
+   Foundation for consistent design system
+   ========================================================================== */
+
+:root {
+  /* ==========================================================================
+     SPACING SCALE (4px base system)
+     ========================================================================== */
+  --space-0: 0;
+  --space-1: 0.25rem;   /* 4px */
+  --space-2: 0.5rem;    /* 8px */
+  --space-3: 0.75rem;   /* 12px */
+  --space-4: 1rem;      /* 16px */
+  --space-5: 1.5rem;    /* 24px */
+  --space-6: 2rem;      /* 32px */
+  --space-8: 3rem;      /* 48px */
+  --space-10: 4rem;     /* 64px */
+  --space-12: 6rem;     /* 96px */
+  --space-16: 8rem;     /* 128px */
+
+  /* ==========================================================================
+     TYPOGRAPHY SCALE
+     ========================================================================== */
+  --text-xs: 0.625rem;   /* 10px */
+  --text-sm: 0.75rem;    /* 12px */
+  --text-base: 0.875rem; /* 14px */
+  --text-lg: 1rem;       /* 16px */
+  --text-xl: 1.25rem;    /* 20px */
+  --text-2xl: 1.5rem;    /* 24px */
+  --text-3xl: 2rem;      /* 32px */
+  --text-4xl: 2.5rem;    /* 40px */
+  --text-5xl: 3rem;      /* 48px */
+
+  /* Font Weights */
+  --font-normal: 400;
+  --font-medium: 500;
+  --font-semibold: 600;
+  --font-bold: 700;
+  --font-black: 900;
+
+  /* Line Heights */
+  --leading-tight: 1.25;
+  --leading-snug: 1.375;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.625;
+  --leading-loose: 2;
+
+  /* ==========================================================================
+     BORDER RADIUS SCALE
+     ========================================================================== */
+  --radius-none: 0;
+  --radius-sm: 0.5rem;   /* 8px */
+  --radius-md: 0.75rem;  /* 12px */
+  --radius-lg: 1rem;     /* 16px */
+  --radius-xl: 1.5rem;   /* 24px */
+  --radius-2xl: 2rem;    /* 32px */
+  --radius-3xl: 3rem;    /* 48px */
+  --radius-full: 9999px;
+
+  /* ==========================================================================
+     SEMANTIC COLORS - Light Mode Base
+     ========================================================================== */
+  
+  /* Primary Brand Colors */
+  --color-primary: #a3e635;        /* lime-400 - Main brand color */
+  --color-primary-hover: #84cc16;  /* lime-500 - Hover state */
+  --color-primary-dark: #65a30d;   /* lime-600 - Active state */
+  --color-primary-light: #d9f99d;  /* lime-300 - Light variant */
+  
+  /* Background Colors */
+  --color-background: #0f172a;     /* slate-900 - Main background */
+  --color-surface: #1e293b;        /* slate-800 - Card background */
+  --color-surface-elevated: #334155; /* slate-700 - Elevated elements */
+  --color-surface-hover: #475569;  /* slate-600 - Hover state */
+  
+  /* Text Colors */
+  --color-text-primary: #f1f5f9;   /* slate-100 - Primary text */
+  --color-text-secondary: #94a3b8; /* slate-400 - Secondary text */
+  --color-text-tertiary: #64748b;  /* slate-500 - Tertiary text */
+  --color-text-disabled: #475569;  /* slate-600 - Disabled text */
+  --color-text-on-primary: #0f172a; /* Text on primary color */
+  
+  /* Border Colors */
+  --color-border: rgba(255, 255, 255, 0.1);
+  --color-border-strong: rgba(255, 255, 255, 0.2);
+  --color-border-subtle: rgba(255, 255, 255, 0.05);
+  
+  /* State Colors */
+  --color-success: #22c55e;        /* green-500 */
+  --color-success-light: #86efac;  /* green-300 */
+  --color-success-dark: #16a34a;   /* green-600 */
+  
+  --color-error: #ef4444;          /* red-500 */
+  --color-error-light: #fca5a5;    /* red-300 */
+  --color-error-dark: #dc2626;     /* red-600 */
+  
+  --color-warning: #f59e0b;        /* amber-500 */
+  --color-warning-light: #fcd34d;  /* amber-300 */
+  --color-warning-dark: #d97706;   /* amber-600 */
+  
+  --color-info: #3b82f6;           /* blue-500 */
+  --color-info-light: #93c5fd;     /* blue-300 */
+  --color-info-dark: #2563eb;      /* blue-600 */
+
+  /* ==========================================================================
+     SHADOWS
+     ========================================================================== */
+  --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+  --shadow-inner: inset 0 2px 4px 0 rgb(0 0 0 / 0.05);
+  
+  /* Glow Shadows */
+  --shadow-glow-primary: 0 0 20px rgba(163, 230, 53, 0.3);
+  --shadow-glow-primary-lg: 0 0 40px rgba(163, 230, 53, 0.4);
+  --shadow-glow-success: 0 0 20px rgba(34, 197, 94, 0.3);
+  --shadow-glow-error: 0 0 20px rgba(239, 68, 68, 0.3);
+
+  /* ==========================================================================
+     Z-INDEX SCALE
+     ========================================================================== */
+  --z-base: 0;
+  --z-dropdown: 1000;
+  --z-sticky: 1100;
+  --z-fixed: 1200;
+  --z-modal-backdrop: 1300;
+  --z-modal: 1400;
+  --z-popover: 1500;
+  --z-tooltip: 1600;
+  --z-toast: 1700;
+
+  /* ==========================================================================
+     TRANSITIONS & ANIMATIONS
+     ========================================================================== */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-base: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 350ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slower: 500ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-spring: 500ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  
+  /* Easing Functions */
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* ==========================================================================
+     BREAKPOINTS (for reference in JS)
+     ========================================================================== */
+  --breakpoint-sm: 640px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1280px;
+  --breakpoint-2xl: 1536px;
+
+  /* ==========================================================================
+     SAFE AREA INSETS (iOS notch support)
+     ========================================================================== */
+  --safe-top: env(safe-area-inset-top);
+  --safe-bottom: env(safe-area-inset-bottom);
+  --safe-left: env(safe-area-inset-left);
+  --safe-right: env(safe-area-inset-right);
+
+  /* ==========================================================================
+     COMPONENT-SPECIFIC TOKENS
+     ========================================================================== */
+  
+  /* Button */
+  --button-height-sm: 2rem;        /* 32px */
+  --button-height-md: 2.5rem;      /* 40px */
+  --button-height-lg: 3rem;        /* 48px */
+  --button-height-xl: 3.5rem;      /* 56px */
+  
+  /* Input */
+  --input-height-sm: 2rem;
+  --input-height-md: 2.5rem;
+  --input-height-lg: 3rem;
+  
+  /* Modal */
+  --modal-backdrop: rgba(0, 0, 0, 0.6);
+  --modal-max-width: 28rem;        /* 448px */
+  --modal-border-radius: var(--radius-2xl);
+}
+
+/* ==========================================================================
+   UTILITY CLASSES BASED ON TOKENS
+   ========================================================================== */
+
+/* Spacing utilities */
+.p-token-4 { padding: var(--space-4); }
+.px-token-6 { padding-left: var(--space-6); padding-right: var(--space-6); }
+.py-token-5 { padding-top: var(--space-5); padding-bottom: var(--space-5); }
+
+/* Text utilities */
+.text-primary { color: var(--color-text-primary); }
+.text-secondary { color: var(--color-text-secondary); }
+.text-tertiary { color: var(--color-text-tertiary); }
+
+/* Background utilities */
+.bg-surface { background-color: var(--color-surface); }
+.bg-surface-elevated { background-color: var(--color-surface-elevated); }
+
+/* Border utilities */
+.border-default { border-color: var(--color-border); }
+.border-strong { border-color: var(--color-border-strong); }
+
+/* Transition utilities */
+.transition-fast { transition: all var(--transition-fast); }
+.transition-base { transition: all var(--transition-base); }
+.transition-slow { transition: all var(--transition-slow); }

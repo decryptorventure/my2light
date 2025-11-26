@@ -8,6 +8,7 @@ import { supabase } from './lib/supabase';
 import { Splash } from './pages/Splash';
 import { Login } from './pages/Login';
 import { Home } from './pages/Home';
+import { CourtDetail } from './pages/CourtDetail';
 import { QRScan } from './pages/QRScan';
 import { ActiveSession } from './pages/ActiveSession';
 import { Gallery } from './pages/Gallery';
@@ -31,6 +32,7 @@ const AnimatedRoutes = () => {
         <Route path="/login" element={<Login />} />
         <Route path="/onboarding" element={<Onboarding />} />
         <Route path="/home" element={<Home />} />
+        <Route path="/court/:id" element={<CourtDetail />} />
         <Route path="/qr" element={<QRScan />} />
         <Route path="/active-session" element={<ActiveSession />} />
         <Route path="/gallery" element={<Gallery />} />

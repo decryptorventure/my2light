@@ -1,30 +1,66 @@
 import React from 'react';
 import { motion, HTMLMotionProps } from 'framer-motion';
 
-interface CardProps extends HTMLMotionProps<"div"> {
+interface CardProps extends HTMLMotionProps<'div'> {
   children: React.ReactNode;
-  variant?: 'glass' | 'solid';
+  className?: string;
   hoverEffect?: boolean;
+  variant?: 'default' | 'elevated' | 'glass' | 'gradient' | 'outline';
+  interactive?: boolean; // Adds hover/focus states
+  shimmer?: boolean; // Loading shimmer effect
+  glow?: boolean; // Glow on hover
+  onClick?: () => void;
 }
 
-export const Card: React.FC<CardProps> = ({ 
-  children, 
-  variant = 'glass', 
+export const Card: React.FC<CardProps> = ({
+  children,
+  className = '',
   hoverEffect = false,
-  className = '', 
-  ...props 
+  variant = 'default',
+  interactive = false,
+  shimmer = false,
+  glow = false,
+  onClick,
+  ...props
 }) => {
-  const baseStyles = "rounded-2xl overflow-hidden";
-  const glassStyles = "bg-slate-800/40 backdrop-blur-md border border-white/5 shadow-xl";
-  const solidStyles = "bg-slate-850 border border-slate-700";
+  const baseStyles = "rounded-2xl overflow-hidden transition-all duration-300";
+
+  const variants = {
+    default: "bg-slate-800/50 border border-slate-700",
+    elevated: "bg-slate-800 border border-slate-700 shadow-xl",
+    glass: "glass", // Uses utility class from index.css
+    gradient: "gradient-surface border border-slate-700",
+    outline: "bg-transparent border-2 border-slate-700"
+  };
+
+  const interactiveStyles = interactive || onClick ? "cursor-pointer hover:border-lime-400/30 hover:shadow-lg hover:shadow-lime-400/10 active:scale-[0.99]" : "";
+  const shimmerStyles = shimmer ? "shimmer" : "";
+  const glowStyles = glow ? "hover:shadow-glow-primary" : "";
+  const hoverStyles = hoverEffect ? "hover:scale-[1.02] hover:shadow-xl" : "";
+
+  const Component = onClick || interactive ? motion.div : 'div';
+  const isMotion = onClick || interactive;
 
   return (
-    <motion.div
-      whileHover={hoverEffect ? { y: -4, boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.1)" } : undefined}
-      className={`${baseStyles} ${variant === 'glass' ? glassStyles : solidStyles} ${className}`}
-      {...props}
-    >
-      {children}
-    </motion.div>
+    <>
+      {isMotion ? (
+        <motion.div
+          className={`${baseStyles} ${variants[variant]} ${interactiveStyles} ${shimmerStyles} ${glowStyles} ${hoverStyles} ${className}`}
+          onClick={onClick}
+          whileHover={{ scale: 1.01 }}
+          whileTap={{ scale: 0.99 }}
+          {...props}
+        >
+          {children}
+        </motion.div>
+      ) : (
+        <div
+          className={`${baseStyles} ${variants[variant]} ${interactiveStyles} ${shimmerStyles} ${glowStyles} ${hoverStyles} ${className}`}
+          {...props as React.HTMLAttributes<HTMLDivElement>}
+        >
+          {children}
+        </div>
+      )}
+    </>
   );
 };

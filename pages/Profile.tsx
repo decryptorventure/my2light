@@ -6,6 +6,8 @@ import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
+import { StatCircle } from '../components/ui/CircularProgress';
+import { ActivityHeatmap } from '../components/ui/ActivityHeatmap';
 import { ApiService } from '../services/api';
 import { User, Booking } from '../types';
 import { supabase } from '../lib/supabase';
@@ -72,20 +74,30 @@ export const Profile: React.FC = () => {
         }
     };
 
+    // Generate mock activity data for heatmap
+    const generateMockActivityData = () => {
+        const data = [];
+        const today = new Date();
+        for (let i = 0; i < 84; i++) { // 12 weeks = 84 days
+            const date = new Date(today);
+            date.setDate(today.getDate() - i);
+            const dateStr = date.toISOString().split('T')[0];
+
+            // Random activity with some clustering
+            const isActive = Math.random() > 0.6;
+            if (isActive) {
+                data.push({
+                    date: dateStr,
+                    count: Math.floor(Math.random() * 3) + 1, // 1-3 sessions
+                    duration: Math.floor(Math.random() * 120) + 30 // 30-150 mins
+                });
+            }
+        }
+        return data;
+    };
+
     if (loading) return <LoadingSpinner fullScreen />;
     if (!user) return null;
-
-    const StatCard = ({ icon: Icon, label, value, color }: any) => (
-        <Card className="p-3 flex flex-col items-center justify-center text-center gap-2 bg-slate-800/50">
-            <div className={`p-2 rounded-full ${color} bg-opacity-20`}>
-                <Icon size={18} className={color.replace('bg-', 'text-')} />
-            </div>
-            <div>
-                <div className="text-lg font-black text-white">{value}</div>
-                <div className="text-[10px] text-slate-400 uppercase tracking-wide">{label}</div>
-            </div>
-        </Card>
-    );
 
     return (
         <PageTransition>
@@ -142,40 +154,13 @@ export const Profile: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Activity Streak (Heatmap) - Inspired by Competitor */}
+                {/* Activity Streak (Heatmap) - Interactive */}
                 <div className="mb-8">
-                    <div className="flex justify-between items-end mb-2 px-1">
-                        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Hoạt động (12 Tuần)</h3>
-                        <span className="text-[10px] text-lime-400 font-bold flex items-center gap-1">
-                            <div className="w-2 h-2 rounded-full bg-lime-400" /> 2 tuần liên tiếp
-                        </span>
-                    </div>
-                    <Card className="p-4 bg-slate-800/50">
-                        <div className="flex justify-between gap-1">
-                            {/* Render 12 columns (weeks) x 5 rows (days/intensity) mock */}
-                            {Array.from({ length: 12 }).map((_, i) => (
-                                <div key={i} className="flex flex-col gap-1.5">
-                                    {Array.from({ length: 5 }).map((_, j) => {
-                                        // Random intensity logic for mock
-                                        const r = Math.random();
-                                        const active = r > 0.7;
-                                        const high = r > 0.9;
-                                        const isCurrent = i === 11;
-
-                                        return (
-                                            <div
-                                                key={j}
-                                                className={`w-3 h-3 rounded-sm ${high ? 'bg-lime-400' :
-                                                    active ? 'bg-lime-400/40' :
-                                                        'bg-slate-700'
-                                                    }`}
-                                            />
-                                        );
-                                    })}
-                                </div>
-                            ))}
-                        </div>
-                    </Card>
+                    <ActivityHeatmap
+                        data={generateMockActivityData()}
+                        weeks={12}
+                        onDayClick={(day) => console.log('Clicked day:', day)}
+                    />
                 </div>
 
                 {/* Tabs */}
@@ -196,10 +181,31 @@ export const Profile: React.FC = () => {
 
                 {activeTab === 'info' ? (
                     <div className="space-y-6 animate-in slide-in-from-left-4 fade-in duration-300">
-                        <div className="grid grid-cols-3 gap-3">
-                            <StatCard icon={Zap} label="Highlight" value={user.totalHighlights} color="bg-yellow-500" />
-                            <StatCard icon={Clock} label="Giờ chơi" value={user.hoursPlayed} color="bg-blue-500" />
-                            <StatCard icon={Map} label="Sân đã đến" value={user.courtsVisited} color="bg-purple-500" />
+                        <div className="grid grid-cols-3 gap-4">
+                            <StatCircle
+                                icon={<Zap size={20} />}
+                                label="Highlight"
+                                value={user.totalHighlights}
+                                max={50}
+                                color="warning"
+                                size={100}
+                            />
+                            <StatCircle
+                                icon={<Clock size={20} />}
+                                label="Giờ chơi"
+                                value={user.hoursPlayed}
+                                max={100}
+                                color="info"
+                                size={100}
+                            />
+                            <StatCircle
+                                icon={<Map size={20} />}
+                                label="Sân đã đến"
+                                value={user.courtsVisited}
+                                max={20}
+                                color="success"
+                                size={100}
+                            />
                         </div>
 
                         <div>
