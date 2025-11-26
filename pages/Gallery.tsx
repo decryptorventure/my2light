@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
-import { Heart, Share2, Download, Play, Pause, ChevronLeft } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { Heart, Share2, Download, Play, Pause, ChevronLeft, Link as LinkIcon, Facebook, MessageCircle } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { PageTransition } from '../components/Layout/PageTransition';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
@@ -53,6 +53,7 @@ const VideoItem: React.FC<{ highlight: Highlight }> = ({ highlight }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [liked, setLiked] = useState(highlight.isLiked || false);
   const [likesCount, setLikesCount] = useState(highlight.likes);
+  const [isShareOpen, setIsShareOpen] = useState(false);
 
   const togglePlay = () => setIsPlaying(!isPlaying);
   
@@ -64,26 +65,6 @@ const VideoItem: React.FC<{ highlight: Highlight }> = ({ highlight }) => {
         setLikesCount(p => p + 1);
     }
     setLiked(!liked);
-  };
-
-  const handleShare = async () => {
-      const shareData = {
-          title: `Highlight ${highlight.courtName}`,
-          text: `Xem pha highlight của ${highlight.userName} tại my2light!`,
-          url: window.location.href // In a real app, this would be a deep link to the highlight
-      };
-
-      if (navigator.share) {
-          try {
-              await navigator.share(shareData);
-          } catch (err) {
-              console.error('Error sharing', err);
-          }
-      } else {
-          // Fallback
-          alert("Link highlight đã được sao chép vào bộ nhớ tạm!");
-          // navigator.clipboard.writeText(...)
-      }
   };
 
   return (
@@ -122,7 +103,7 @@ const VideoItem: React.FC<{ highlight: Highlight }> = ({ highlight }) => {
 
         <div className="flex flex-col items-center gap-1">
              <button 
-                onClick={handleShare}
+                onClick={() => setIsShareOpen(true)}
                 className="p-3 rounded-full bg-black/40 backdrop-blur-md border border-white/5 text-white active:bg-white/10"
              >
                 <Share2 size={24} strokeWidth={2.5} />
@@ -163,6 +144,60 @@ const VideoItem: React.FC<{ highlight: Highlight }> = ({ highlight }) => {
              <div className={`h-full bg-lime-400 w-1/2 ${isPlaying ? 'animate-[shimmer_2s_infinite]' : ''}`} />
          </div>
       </div>
+
+      {/* Share Modal */}
+      <AnimatePresence>
+        {isShareOpen && (
+            <>
+                <motion.div 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    onClick={() => setIsShareOpen(false)}
+                    className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40"
+                />
+                <motion.div
+                    initial={{ y: "100%" }}
+                    animate={{ y: 0 }}
+                    exit={{ y: "100%" }}
+                    className="fixed bottom-0 left-0 right-0 bg-slate-900 rounded-t-3xl z-50 p-6 pb-safe-bottom"
+                >
+                    <div className="w-12 h-1 bg-slate-700 rounded-full mx-auto mb-6" />
+                    <h3 className="text-white font-bold text-center mb-6">Chia sẻ highlight</h3>
+                    <div className="grid grid-cols-4 gap-4 mb-4">
+                        <button className="flex flex-col items-center gap-2">
+                             <div className="w-14 h-14 bg-[#1877F2] rounded-full flex items-center justify-center text-white">
+                                 <Facebook />
+                             </div>
+                             <span className="text-xs text-slate-400">Facebook</span>
+                        </button>
+                        <button className="flex flex-col items-center gap-2">
+                             <div className="w-14 h-14 bg-[#0068FF] rounded-full flex items-center justify-center text-white font-bold text-xl">
+                                 Z
+                             </div>
+                             <span className="text-xs text-slate-400">Zalo</span>
+                        </button>
+                        <button className="flex flex-col items-center gap-2">
+                             <div className="w-14 h-14 bg-gradient-to-tr from-yellow-400 to-red-600 rounded-full flex items-center justify-center text-white">
+                                 <MessageCircle />
+                             </div>
+                             <span className="text-xs text-slate-400">Instagram</span>
+                        </button>
+                        <button className="flex flex-col items-center gap-2" onClick={() => {
+                            navigator.clipboard.writeText("https://my2light.app/v/123");
+                            setIsShareOpen(false);
+                            alert("Đã sao chép link!");
+                        }}>
+                             <div className="w-14 h-14 bg-slate-700 rounded-full flex items-center justify-center text-white">
+                                 <LinkIcon />
+                             </div>
+                             <span className="text-xs text-slate-400">Sao chép</span>
+                        </button>
+                    </div>
+                </motion.div>
+            </>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

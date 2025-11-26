@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { StopCircle, Zap, Check, Wifi, Mail, Download, Video } from 'lucide-react';
+import { StopCircle, Zap, Check, Wifi, Mail, Download, Video, Users, User } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
@@ -18,6 +18,9 @@ export const ActiveSession: React.FC = () => {
   const [showToast, setShowToast] = useState(false);
   const [showEndModal, setShowEndModal] = useState(false);
   const [downloadStep, setDownloadStep] = useState<'choice' | 'downloading' | 'done'>('choice');
+  
+  // New UI states inspired by competitor
+  const [sessionType, setSessionType] = useState<'rally' | 'match'>('match');
 
   useEffect(() => {
     const initSession = async () => {
@@ -26,8 +29,9 @@ export const ActiveSession: React.FC = () => {
         
         if (res.success && res.data) {
             setBooking(res.data);
+            // Default to match for Full Match packages
+            if (res.data.packageType === 'full_match') setSessionType('match');
         } else {
-            // No active booking found, redirect home
             console.log("No active booking");
             navigate('/home');
         }
@@ -45,7 +49,7 @@ export const ActiveSession: React.FC = () => {
       
       if (diff <= 0) {
         clearInterval(interval);
-        handleEndSessionClick(); // Prompt user instead of auto-close immediately? Or auto-close
+        // Prompt user
         return;
       }
 
@@ -61,12 +65,12 @@ export const ActiveSession: React.FC = () => {
   const handleMarkHighlight = async () => {
     if (!booking) return;
 
-    // Vibration Feedback (if supported)
+    // Vibration Feedback (Haptic)
     if (navigator.vibrate) {
         navigator.vibrate(200);
     }
 
-    // Optimistic UI update (feedback immediate)
+    // Optimistic UI update
     setHighlightCount(prev => prev + 1);
     setShowToast(true);
     setTimeout(() => setShowToast(false), 2000);
@@ -74,10 +78,8 @@ export const ActiveSession: React.FC = () => {
     // Background API call
     try {
         await ApiService.createHighlight(booking.courtId);
-        console.log("Highlight created via API");
     } catch (e) {
         console.error("Error creating highlight", e);
-        // In real app, revert count or show error
     }
   };
 
@@ -86,7 +88,6 @@ export const ActiveSession: React.FC = () => {
           setDownloadStep('choice');
           setShowEndModal(true);
       } else {
-          // Standard session, just end it
           confirmEndSession();
       }
   };
@@ -98,7 +99,6 @@ export const ActiveSession: React.FC = () => {
 
   const handleWifiDownload = async () => {
       setDownloadStep('downloading');
-      // Mock download process
       setTimeout(() => {
           setDownloadStep('done');
       }, 3000);
@@ -116,14 +116,24 @@ export const ActiveSession: React.FC = () => {
         {/* Ambient pulse background */}
         <div className={`absolute inset-0 animate-pulse ${booking?.packageType === 'full_match' ? 'bg-red-900/10' : 'bg-lime-400/5'}`} />
 
-        {/* Header info */}
+        {/* Header info with Session Type Toggle */}
         <div className="p-6 pt-8 flex justify-between items-start z-10">
             <div>
-                <h1 className="text-lime-400 font-bold tracking-wider uppercase text-sm">ĐANG DIỄN RA</h1>
-                <p className="text-white font-medium">Sân Pickleball • Camera 01</p>
-                {booking?.packageType === 'full_match' && (
-                    <span className="text-[10px] bg-red-500 text-white px-2 py-0.5 rounded font-bold uppercase mt-1 inline-block">Full Match Rec</span>
-                )}
+                <div className="flex bg-slate-800 rounded-lg p-0.5 mb-2 border border-slate-700 w-fit">
+                    <button 
+                        onClick={() => setSessionType('rally')}
+                        className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase transition-colors ${sessionType === 'rally' ? 'bg-lime-400 text-slate-900' : 'text-slate-400'}`}
+                    >
+                        Rally
+                    </button>
+                    <button 
+                        onClick={() => setSessionType('match')}
+                        className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase transition-colors ${sessionType === 'match' ? 'bg-lime-400 text-slate-900' : 'text-slate-400'}`}
+                    >
+                        Match
+                    </button>
+                </div>
+                <p className="text-white font-medium text-sm">Camera 01 • Sân Pickleball</p>
             </div>
             <div className="bg-slate-800/80 px-3 py-1 rounded-full border border-slate-700 flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
@@ -140,7 +150,7 @@ export const ActiveSession: React.FC = () => {
         </div>
 
         {/* Controls */}
-        <div className="p-6 pb-12 z-10 flex flex-col items-center gap-10">
+        <div className="p-6 pb-12 z-10 flex flex-col items-center gap-8">
             <div className="relative">
                 {/* Highlight Button */}
                 <motion.button
@@ -156,8 +166,8 @@ export const ActiveSession: React.FC = () => {
                 <div className="absolute inset-0 rounded-full border border-orange-500/30 scale-150 animate-ping z-0 pointer-events-none" />
             </div>
 
-            <div className="w-full flex flex-col gap-4">
-                {/* Full Match Download Trigger */}
+            <div className="w-full flex flex-col gap-3">
+                {/* Full Match Download Trigger - Explicit Request */}
                 {booking?.packageType === 'full_match' && (
                      <Button 
                         variant="secondary"
@@ -165,10 +175,10 @@ export const ActiveSession: React.FC = () => {
                             setDownloadStep('choice');
                             setShowEndModal(true);
                         }}
-                        className="w-full flex items-center justify-center gap-2 bg-slate-800/80"
+                        className="w-full flex items-center justify-center gap-2 bg-slate-800/80 hover:bg-slate-700"
                      >
                          <Video size={16} />
-                         <span>Tải video trận đấu</span>
+                         <span>Tải video cả trận</span>
                      </Button>
                 )}
 
@@ -207,12 +217,12 @@ export const ActiveSession: React.FC = () => {
         <Modal
             isOpen={showEndModal}
             onClose={() => setShowEndModal(false)}
-            title="Kết thúc trận đấu"
+            title="Tải Video Trận Đấu"
         >
             {downloadStep === 'choice' && (
                 <div className="space-y-4">
                     <p className="text-sm text-slate-300">
-                        Bạn đang sử dụng gói <b>Quay Cả Trận</b> (1.5GB). Bạn muốn nhận video bằng cách nào?
+                        Gói <b>Quay Cả Trận</b> của bạn đã được lưu. Chọn phương thức tải video (1.5GB):
                     </p>
                     
                     <div onClick={handleWifiDownload} className="bg-slate-700/50 p-4 rounded-xl border border-lime-400/30 cursor-pointer hover:bg-slate-700 transition-colors">
@@ -221,11 +231,11 @@ export const ActiveSession: React.FC = () => {
                                 <Wifi size={24} className="text-lime-400" />
                             </div>
                             <div>
-                                <h4 className="font-bold text-white">Wifi Nội Bộ (Khuyên dùng)</h4>
-                                <span className="text-xs text-lime-400">Tốc độ cực nhanh • Miễn phí 4G</span>
+                                <h4 className="font-bold text-white">Wifi Nội Bộ Box (Siêu tốc)</h4>
+                                <span className="text-xs text-lime-400">Tải ngay tại sân • Miễn phí Data</span>
                             </div>
                         </div>
-                        <p className="text-xs text-slate-400">Kết nối vào Wifi "my2light_Box_01" và tải video trực tiếp về máy.</p>
+                        <p className="text-xs text-slate-400">Kết nối vào Wifi "my2light_Box_01" và tải video trực tiếp.</p>
                     </div>
 
                     <div onClick={handleEmailRequest} className="bg-slate-700/50 p-4 rounded-xl border border-white/5 cursor-pointer hover:bg-slate-700 transition-colors">
@@ -234,11 +244,11 @@ export const ActiveSession: React.FC = () => {
                                 <Mail size={24} className="text-blue-500" />
                             </div>
                             <div>
-                                <h4 className="font-bold text-white">Gửi qua Cloud</h4>
+                                <h4 className="font-bold text-white">Gửi link qua Email</h4>
                                 <span className="text-xs text-blue-400">Nhận sau 2-4 giờ</span>
                             </div>
                         </div>
-                        <p className="text-xs text-slate-400">Hệ thống sẽ nén video và gửi link tải qua email đăng ký của bạn.</p>
+                        <p className="text-xs text-slate-400">Hệ thống sẽ nén video và gửi link tải qua email đăng ký.</p>
                     </div>
                 </div>
             )}

@@ -1,7 +1,7 @@
 
 import React, { useRef, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { X, Mic, Video, Zap, RefreshCw } from 'lucide-react';
+import { X, Mic, Video, Zap, RefreshCw, Activity, Users } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '../components/ui/Button';
 
@@ -21,6 +21,9 @@ export const SelfRecording: React.FC = () => {
   const [lastCommand, setLastCommand] = useState('');
   const [highlightTriggered, setHighlightTriggered] = useState(false);
   const [facingMode, setFacingMode] = useState<'user' | 'environment'>('environment');
+  
+  // New Setup UI
+  const [sessionType, setSessionType] = useState<'rally' | 'match'>('match');
 
   // Initialize Camera
   useEffect(() => {
@@ -31,7 +34,7 @@ export const SelfRecording: React.FC = () => {
         }
         const newStream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: facingMode },
-          audio: true // Need audio for speech recog context often, or just separate
+          audio: true 
         });
         setStream(newStream);
         if (videoRef.current) {
@@ -75,13 +78,12 @@ export const SelfRecording: React.FC = () => {
       const transcript = event.results[last][0].transcript.trim().toLowerCase();
       console.log("Heard:", transcript);
 
-      // Keywords detection
+      // Keywords detection - Optimized
       if (
         transcript.includes('lưu highlight') || 
         transcript.includes('highlight') || 
-        transcript.includes('lưu pha này') ||
-        transcript.includes('hay quá') ||
-        transcript.includes('tuyệt vời')
+        transcript.includes('pha này') ||
+        transcript.includes('hay quá')
       ) {
         setLastCommand(transcript);
         triggerHighlight();
@@ -102,7 +104,9 @@ export const SelfRecording: React.FC = () => {
     // Flash effect logic
     setTimeout(() => setHighlightTriggered(false), 500);
     
-    // Mock save
+    // Haptic feedback
+    if (navigator.vibrate) navigator.vibrate(200);
+
     console.log("Saved highlight from mobile mode");
   };
 
@@ -128,10 +132,23 @@ export const SelfRecording: React.FC = () => {
               <Button variant="ghost" className="bg-black/40 text-white rounded-full p-2" onClick={() => navigate('/home')}>
                   <X size={24} />
               </Button>
-              <div className="bg-black/40 backdrop-blur-md px-3 py-1 rounded-full border border-white/10 flex items-center gap-2">
-                  <div className={`w-2 h-2 rounded-full ${isListening ? 'bg-red-500 animate-pulse' : 'bg-slate-500'}`} />
-                  <span className="text-xs font-mono text-white">AI VOICE ACTIVE</span>
+              
+              {/* Session Type Toggle (Competitor style) */}
+              <div className="flex bg-black/40 backdrop-blur-md rounded-full p-1 border border-white/10">
+                   <button 
+                        onClick={() => setSessionType('rally')}
+                        className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase flex items-center gap-1 transition-colors ${sessionType === 'rally' ? 'bg-lime-400 text-slate-900' : 'text-slate-300'}`}
+                    >
+                        <Activity size={12} /> Rally
+                    </button>
+                    <button 
+                        onClick={() => setSessionType('match')}
+                        className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase flex items-center gap-1 transition-colors ${sessionType === 'match' ? 'bg-lime-400 text-slate-900' : 'text-slate-300'}`}
+                    >
+                        <Users size={12} /> Match
+                    </button>
               </div>
+
               <Button variant="ghost" className="bg-black/40 text-white rounded-full p-2" onClick={switchCamera}>
                   <RefreshCw size={20} />
               </Button>
@@ -149,7 +166,7 @@ export const SelfRecording: React.FC = () => {
             )}
           </AnimatePresence>
           
-          {/* Feedback */}
+          {/* Feedback Icon */}
           <AnimatePresence>
               {highlightTriggered && (
                  <motion.div
@@ -164,21 +181,27 @@ export const SelfRecording: React.FC = () => {
               )}
           </AnimatePresence>
 
-          {/* Bottom Instruction */}
+          {/* Bottom Controls */}
           <div className="text-center">
-             <div className="inline-block bg-black/60 backdrop-blur-md p-4 rounded-2xl border border-white/10 mb-8">
-                 <p className="text-slate-300 text-sm mb-2">Hô to khẩu lệnh để lưu lại:</p>
-                 <div className="flex gap-2 justify-center">
-                     <span className="bg-white/10 px-2 py-1 rounded text-lime-400 font-bold text-xs uppercase">"Lưu Highlight"</span>
-                     <span className="bg-white/10 px-2 py-1 rounded text-lime-400 font-bold text-xs uppercase">"Lưu pha này"</span>
-                     <span className="bg-white/10 px-2 py-1 rounded text-lime-400 font-bold text-xs uppercase">"Hay quá"</span>
+             {/* Voice Command Hint */}
+             <div className="inline-block bg-black/60 backdrop-blur-md p-4 rounded-2xl border border-white/10 mb-8 max-w-xs">
+                 <div className="flex items-center justify-center gap-2 mb-2 text-slate-300 text-xs uppercase tracking-wide">
+                     <div className={`w-2 h-2 rounded-full ${isListening ? 'bg-red-500 animate-pulse' : 'bg-slate-500'}`} />
+                     {isListening ? 'Đang lắng nghe...' : 'Mic tắt'}
                  </div>
+                 
+                 <p className="text-white font-bold text-lg mb-2">"Lưu Highlight"</p>
+                 
+                 <div className="flex gap-2 justify-center text-[10px] text-slate-400">
+                     <span>Hoặc: "Pha này", "Hay quá"</span>
+                 </div>
+
                  {lastCommand && (
                      <motion.p 
                         key={lastCommand}
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="text-white text-xs mt-3 italic"
+                        className="text-lime-400 text-xs mt-2 italic font-medium"
                      >
                          Nghe thấy: "{lastCommand}"
                      </motion.p>
@@ -190,7 +213,7 @@ export const SelfRecording: React.FC = () => {
                 onClick={triggerHighlight}
                 className="w-20 h-20 rounded-full border-4 border-white/30 p-1 mx-auto block active:scale-95 transition-transform"
              >
-                 <div className="w-full h-full bg-red-500 rounded-full" />
+                 <div className="w-full h-full bg-red-500 rounded-full shadow-[0_0_20px_rgba(239,68,68,0.5)]" />
              </button>
           </div>
        </div>

@@ -93,7 +93,7 @@ export const Profile: React.FC = () => {
         </div>
 
         {/* User Info Header */}
-        <div className="flex flex-col items-center mb-8">
+        <div className="flex flex-col items-center mb-6">
             <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-slate-700 mb-4 shadow-xl relative">
                 <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
                 <div className="absolute bottom-0 right-0 w-6 h-6 bg-lime-400 rounded-full border-4 border-slate-900" />
@@ -105,6 +105,43 @@ export const Profile: React.FC = () => {
                 </span>
                 <span className="text-slate-500 text-xs">{user.phone || 'Chưa có SĐT'}</span>
             </div>
+        </div>
+
+        {/* Activity Streak (Heatmap) - Inspired by Competitor */}
+        <div className="mb-8">
+            <div className="flex justify-between items-end mb-2 px-1">
+                 <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Hoạt động (12 Tuần)</h3>
+                 <span className="text-[10px] text-lime-400 font-bold flex items-center gap-1">
+                    <div className="w-2 h-2 rounded-full bg-lime-400" /> 2 tuần liên tiếp
+                 </span>
+            </div>
+            <Card className="p-4 bg-slate-800/50">
+                <div className="flex justify-between gap-1">
+                    {/* Render 12 columns (weeks) x 5 rows (days/intensity) mock */}
+                    {Array.from({ length: 12 }).map((_, i) => (
+                        <div key={i} className="flex flex-col gap-1.5">
+                            {Array.from({ length: 5 }).map((_, j) => {
+                                // Random intensity logic for mock
+                                const r = Math.random();
+                                const active = r > 0.7;
+                                const high = r > 0.9;
+                                const isCurrent = i === 11;
+                                
+                                return (
+                                    <div 
+                                        key={j} 
+                                        className={`w-3 h-3 rounded-sm ${
+                                            high ? 'bg-lime-400' : 
+                                            active ? 'bg-lime-400/40' : 
+                                            'bg-slate-700'
+                                        }`} 
+                                    />
+                                );
+                            })}
+                        </div>
+                    ))}
+                </div>
+            </Card>
         </div>
 
         {/* Tabs */}

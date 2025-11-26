@@ -205,7 +205,7 @@ export const Login: React.FC = () => {
           </div>
           
           <p className="text-center text-xs text-slate-600 mt-8">
-            v1.0.3 MVP • Powered by Supabase
+            v1.0.4 MVP • Powered by Supabase
           </p>
         </div>
       </div>
