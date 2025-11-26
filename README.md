@@ -193,6 +193,20 @@ vercel --prod
 
 ---
 
+
+## 📚 Documentation
+
+- **Development Guide**: [docs/DEVELOPMENT_GUIDE.md](docs/DEVELOPMENT_GUIDE.md) - Setup, environment variables, and debugging.
+- **Database History**: [docs/DATABASE_HISTORY.sql](docs/DATABASE_HISTORY.sql) - Consolidated SQL history.
+- **Performance**: [docs/PERFORMANCE.md](docs/PERFORMANCE.md) - Optimization details.
+- **Deployment**: [docs/VERCEL_DEPLOY.md](docs/VERCEL_DEPLOY.md) - Vercel deployment guide.
+- **Changelog**: [docs/CHANGELOG.md](docs/CHANGELOG.md) - Version history.
+
+## 🛠 Scripts
+
+- `scripts/check-env.sh`: Check development environment.
+- `scripts/test-db.ts`: Test database connection.
+
 ## 📄 License
 
 Private Project - All Rights Reserved
