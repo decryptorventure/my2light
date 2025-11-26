@@ -168,7 +168,8 @@ export const ApiService = {
   getCourtById: async (id: string): Promise<ApiResponse<Court | undefined>> => {
     const { data, error } = await supabase.from('courts').select('*').eq('id', id).single();
     if (error || !data) {
-      return { success: false, data: undefined };
+      console.error('getCourtById error:', error);
+      return { success: false, data: undefined, error: error?.message || 'Court not found' };
     }
 
     return {

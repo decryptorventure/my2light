@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
@@ -28,17 +27,19 @@ export const QRScan: React.FC = () => {
   }, []);
 
   const handleScanSuccess = async (decodedText: string) => {
-    console.log('Scanned:', decodedText);
+    const cleanId = decodedText.trim();
+    console.log('Scanned (raw):', decodedText);
+    console.log('Scanned (clean):', cleanId);
 
-    // 1. Try to find court by ID (assuming QR code contains the ID)
-    const courtRes = await ApiService.getCourtById(decodedText);
+    // 1. Try to find court by ID
+    const courtRes = await ApiService.getCourtById(cleanId);
 
     if (courtRes.success && courtRes.data) {
       setScannedCourt(courtRes.data);
 
       // 2. Check for active booking
       const activeBooking = await ApiService.getActiveBooking();
-      if (activeBooking.success && activeBooking.data && activeBooking.data.courtId === decodedText) {
+      if (activeBooking.success && activeBooking.data && activeBooking.data.courtId === cleanId) {
         // Auto check-in
         await ApiService.checkInBooking(activeBooking.data.id);
         showToast('Check-in thành công! Chúc bạn chơi vui vẻ.', 'success');
@@ -49,8 +50,8 @@ export const QRScan: React.FC = () => {
         setStep('package');
       }
     } else {
-      showToast('Không tìm thấy sân với mã QR này. Vui lòng thử lại.', 'error');
-      // Scanner will stay open so user can try again
+      console.error('Scan failed:', courtRes.error);
+      showToast(`Không tìm thấy sân: ${courtRes.error || 'Mã không hợp lệ'}`, 'error');
     }
   };
 
