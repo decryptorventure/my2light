@@ -68,7 +68,7 @@ export const Home: React.FC = () => {
 
   return (
     <PageTransition>
-      <div className="p-6 pt-8 space-y-8 max-w-lg mx-auto">
+      <div className="p-6 pt-8 pb-24 space-y-8 max-w-lg mx-auto">
         {/* Header */}
         <div className="flex justify-between items-center">
           <div>
@@ -187,8 +187,8 @@ export const Home: React.FC = () => {
                   <div className="flex justify-between items-start">
                     <h4 className="font-bold text-sm leading-tight mb-1 group-hover:text-lime-400 transition-colors">{court.name}</h4>
                     <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${court.status === 'live' ? 'bg-red-500/20 text-red-500' :
-                        court.status === 'available' ? 'bg-green-500/20 text-green-500' :
-                          'bg-orange-500/20 text-orange-500'
+                      court.status === 'available' ? 'bg-green-500/20 text-green-500' :
+                        'bg-orange-500/20 text-orange-500'
                       }`}>
                       {getStatusLabel(court.status)}
                     </span>

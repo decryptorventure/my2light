@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
@@ -97,14 +97,23 @@ export const QRScan: React.FC = () => {
           <Card
             key={pkg.id}
             onClick={() => setSelectedPackage(pkg.id)}
-            className={`p-5 relative cursor-pointer border-2 transition-all ${selectedPackage === pkg.id ? 'border-lime-400 bg-slate-800' : 'border-transparent bg-slate-800/50'}`}
+            className={`p-5 relative cursor-pointer border-2 transition-all ${selectedPackage === pkg.id
+                ? 'border-lime-400 bg-slate-800 ring-2 ring-lime-400/20 shadow-[0_0_20px_rgba(163,230,53,0.15)]'
+                : 'border-transparent bg-slate-800/50 hover:bg-slate-800'
+              }`}
           >
+            {selectedPackage === pkg.id && (
+              <div className="absolute top-4 right-4 bg-lime-400 text-slate-900 rounded-full p-1 z-10">
+                <Check size={14} strokeWidth={3} />
+              </div>
+            )}
+
             {pkg.isBestValue && (
-              <div className="absolute -top-3 right-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wide shadow-lg">
+              <div className="absolute -top-3 left-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wide shadow-lg z-10">
                 Phổ biến nhất
               </div>
             )}
-            <div className="flex justify-between items-center mb-1">
+            <div className="flex justify-between items-center mb-1 pr-8">
               <h3 className="font-bold text-lg">{pkg.name}</h3>
               <div className="text-xl font-bold text-lime-400">{pkg.price.toLocaleString()}đ</div>
             </div>

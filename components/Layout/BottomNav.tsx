@@ -44,18 +44,6 @@ export const BottomNav: React.FC = () => {
             </motion.button>
           );
         })}
-
-        {/* Floating Action Button for QR */}
-        <div className="absolute -top-8 left-1/2 -translate-x-1/2">
-          <motion.button
-            whileTap={{ scale: 0.9 }}
-            whileHover={{ scale: 1.05 }}
-            onClick={() => navigate('/qr')}
-            className="w-14 h-14 bg-lime-400 rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(163,230,53,0.4)] border-4 border-slate-900 text-slate-900 z-10"
-          >
-            <QrCode size={24} strokeWidth={2.5} />
-          </motion.button>
-        </div>
       </div>
     </div>
   );
