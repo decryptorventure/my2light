@@ -9,8 +9,8 @@ if (typeof process !== 'undefined' && process.env && !import.meta) {
 // Get Supabase credentials
 // Support both Vite (import.meta.env) and Node.js (process.env)
 const getEnv = (key: string) => {
-  if (typeof import.meta !== 'undefined' && import.meta.env) {
-    return import.meta.env[key];
+  if (typeof import.meta !== 'undefined' && (import.meta as any).env) {
+    return (import.meta as any).env[key];
   }
   if (typeof process !== 'undefined' && process.env) {
     return process.env[key];

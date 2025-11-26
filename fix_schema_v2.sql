@@ -1,0 +1,45 @@
+-- Fix Schema v2 - Compatible with UUID court IDs
+-- Run this in Supabase SQL Editor
+
+-- First, check current court table structure
+-- If courts.id is UUID, we need to use gen_random_uuid() or cast properly
+
+-- Add missing columns to courts table (if not exists)
+ALTER TABLE courts ADD COLUMN IF NOT EXISTS distance_km DECIMAL(5,2) DEFAULT 0;
+ALTER TABLE courts ADD COLUMN IF NOT EXISTS rating DECIMAL(3,1) DEFAULT 4.5;
+
+-- Update existing courts (using their current IDs)
+-- First, let's see what courts exist
+-- SELECT id, name FROM courts;
+
+-- If you have existing courts with UUID ids (c1, c2, c3), update them:
+UPDATE courts SET distance_km = 2.5, rating = 4.8 WHERE name LIKE '%Cầu Giấy%';
+UPDATE courts SET distance_km = 5.2, rating = 4.5 WHERE name LIKE '%Tennis%';
+UPDATE courts SET distance_km = 1.8, rating = 4.9 WHERE name LIKE '%Ciputra%';
+
+-- If no courts exist, we need to check the id column type first
+-- Run this to check:
+-- SELECT column_name, data_type FROM information_schema.columns 
+-- WHERE table_name = 'courts' AND column_name = 'id';
+
+-- If id is TEXT (not UUID), use this INSERT:
+INSERT INTO courts (id, name, address, status, thumbnail_url, price_per_hour, distance_km, rating) VALUES
+('court-1', 'CLB Pickleball Cầu Giấy', '123 Đường Cầu Giấy, Hà Nội', 'available', 'https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=400', 150000, 2.5, 4.8),
+('court-2', 'Sân Pickleball Thủ Đức', '456 Đường Võ Văn Ngân, TP.HCM', 'live', 'https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?w=400', 200000, 5.2, 4.5),
+('court-3', 'Arena Pickleball Đống Đa', '789 Láng Hạ, Hà Nội', 'available', 'https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?w=400', 100000, 1.8, 4.9)
+ON CONFLICT (id) DO UPDATE SET
+    distance_km = EXCLUDED.distance_km,
+    rating = EXCLUDED.rating,
+    thumbnail_url = EXCLUDED.thumbnail_url;
+
+-- Insert sample packages (these should work fine)
+INSERT INTO packages (id, name, description, price, duration_minutes, is_best_value) VALUES
+('pkg-1', 'Gói Thử Nghiệm', 'Trải nghiệm 30 phút chơi pickleball', 50000, 30, false),
+('pkg-2', 'Gói Tiêu Chuẩn', '1 giờ chơi + ghi hình AI', 80000, 60, true),
+('pkg-3', 'Gói Premium', '2 giờ chơi + highlight tự động', 150000, 120, false)
+ON CONFLICT (id) DO NOTHING;
+
+-- Verify
+SELECT 'Courts' as table_name, COUNT(*) as count FROM courts
+UNION ALL
+SELECT 'Packages', COUNT(*) FROM packages;
