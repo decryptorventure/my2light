@@ -28,8 +28,14 @@ export const QRScan: React.FC = () => {
 
   const handleScanSuccess = async (decodedText: string) => {
     const cleanId = decodedText.trim();
-    console.log('Scanned (raw):', decodedText);
     console.log('Scanned (clean):', cleanId);
+
+    // Validate UUID format
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(cleanId)) {
+      showToast('Mã QR không hợp lệ. Vui lòng quét mã QR chứa ID sân (dạng Text).', 'error');
+      return;
+    }
 
     // 1. Try to find court by ID
     const courtRes = await ApiService.getCourtById(cleanId);
