@@ -49,9 +49,10 @@ const MOCK_COURTS: Court[] = [
 ];
 
 const MOCK_PACKAGES: Package[] = [
-  { id: 'p1', name: 'Giao Hữu Nhanh', durationMinutes: 60, price: 30000, description: 'Phù hợp khởi động hoặc chơi nhanh' },
-  { id: 'p2', name: 'Trận Đấu Pro', durationMinutes: 120, price: 50000, isBestValue: true, description: 'Gói tiêu chuẩn cho trận đấu đầy đủ' },
-  { id: 'p3', name: 'Marathon Thể Lực', durationMinutes: 180, price: 70000, description: 'Dành cho những chiến binh bền bỉ' },
+  { id: 'p1', name: 'Giao Hữu Nhanh', durationMinutes: 60, price: 30000, description: 'Phù hợp khởi động hoặc chơi nhanh', type: 'standard' },
+  { id: 'p2', name: 'Trận Đấu Pro', durationMinutes: 120, price: 50000, isBestValue: true, description: 'Gói tiêu chuẩn cho trận đấu đầy đủ', type: 'standard' },
+  { id: 'p3', name: 'Marathon Thể Lực', durationMinutes: 180, price: 70000, description: 'Dành cho những chiến binh bền bỉ', type: 'standard' },
+  { id: 'p4', name: 'Gói Quay Cả Trận', durationMinutes: 90, price: 100000, description: 'Ghi hình toàn bộ 90 phút Full HD. Tải về qua Wifi tại sân.', type: 'full_match' },
 ];
 
 export const ApiService = {
@@ -208,7 +209,8 @@ export const ApiService = {
             durationMinutes: p.duration_minutes,
             price: p.price,
             description: p.description,
-            isBestValue: p.is_best_value
+            isBestValue: p.is_best_value,
+            type: p.name.includes('Full') ? 'full_match' : 'standard' // simple inference for MVP
         }))
         };
     } catch (e) {
@@ -224,6 +226,7 @@ export const ApiService = {
     // Check if package exists in DB, if not check Mock
     let pkgPrice = 0;
     let pkgDuration = 0;
+    let pkgType: 'standard' | 'full_match' = 'standard';
     
     // Try DB first
     const { data: pkg } = await supabase.from('packages').select('*').eq('id', packageId).maybeSingle();
@@ -231,12 +234,14 @@ export const ApiService = {
     if (pkg) {
         pkgPrice = pkg.price;
         pkgDuration = pkg.duration_minutes;
+        pkgType = pkg.name.includes('Full') ? 'full_match' : 'standard';
     } else {
         // Try Mock
         const mockPkg = MOCK_PACKAGES.find(p => p.id === packageId);
         if (mockPkg) {
             pkgPrice = mockPkg.price;
             pkgDuration = mockPkg.durationMinutes;
+            pkgType = mockPkg.type || 'standard';
         } else {
             // Last resort default
             pkgPrice = 50000;
@@ -268,7 +273,8 @@ export const ApiService = {
             startTime: startTime.getTime(),
             endTime: endTime.getTime(),
             status: 'active',
-            totalAmount: pkgPrice
+            totalAmount: pkgPrice,
+            packageType: pkgType
         };
         localStorage.setItem('active_booking', JSON.stringify(booking));
         
@@ -289,7 +295,8 @@ export const ApiService = {
         startTime: new Date(data.start_time).getTime(),
         endTime: new Date(data.end_time).getTime(),
         status: data.status,
-        totalAmount: data.total_amount
+        totalAmount: data.total_amount,
+        packageType: pkgType
       }
     };
   },
@@ -312,7 +319,7 @@ export const ApiService = {
 
     const { data, error } = await supabase
       .from('bookings')
-      .select('*')
+      .select(`*, package:packages(name)`)
       .eq('user_id', user.id)
       .eq('status', 'active')
       .order('start_time', { ascending: false })
@@ -326,6 +333,9 @@ export const ApiService = {
         return { success: true, data: null };
     }
 
+    // Infer type from package name if not explicitly stored
+    const pkgType = data.package?.name?.includes('Full') ? 'full_match' : 'standard';
+
     return {
       success: true,
       data: {
@@ -336,7 +346,8 @@ export const ApiService = {
         startTime: new Date(data.start_time).getTime(),
         endTime: endTime,
         status: data.status,
-        totalAmount: data.total_amount
+        totalAmount: data.total_amount,
+        packageType: pkgType
       }
     };
   },
@@ -381,7 +392,8 @@ export const ApiService = {
             status: b.status,
             totalAmount: b.total_amount,
             courtName: b.court?.name || 'Sân không xác định',
-            packageName: b.package?.name || 'Gói dịch vụ'
+            packageName: b.package?.name || 'Gói dịch vụ',
+            packageType: b.package?.name?.includes('Full') ? 'full_match' : 'standard'
         }));
     }
 

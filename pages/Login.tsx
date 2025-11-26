@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Button } from '../components/ui/Button';
 import { PageTransition } from '../components/Layout/PageTransition';
-import { ArrowRight, Mail, Lock, Loader2, AlertCircle } from 'lucide-react';
+import { ArrowRight, Mail, Lock, Loader2, AlertCircle, Facebook, Chrome } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 export const Login: React.FC = () => {
@@ -20,18 +20,21 @@ export const Login: React.FC = () => {
     setErrorMsg('');
 
     try {
+      const cleanEmail = email.trim();
+      const cleanPassword = password.trim();
+
       if (mode === 'signup') {
         // 1. Đăng ký tài khoản Auth
         const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
+          email: cleanEmail,
+          password: cleanPassword,
         });
         
         if (error) throw error;
         
         if (data.user) {
             // 2. Tạo Profile (Dùng upsert để tránh lỗi nếu user đã tồn tại)
-            const name = email.split('@')[0];
+            const name = cleanEmail.split('@')[0];
             const { error: profileError } = await supabase.from('profiles').upsert({
                 id: data.user.id,
                 name: name.charAt(0).toUpperCase() + name.slice(1), // Capitalize
@@ -55,8 +58,8 @@ export const Login: React.FC = () => {
       } else {
         // Đăng nhập
         const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password
+          email: cleanEmail,
+          password: cleanPassword
         });
         if (error) throw error;
         navigate('/home');
@@ -69,6 +72,11 @@ export const Login: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleSocialLogin = (provider: string) => {
+      // Simulation only for MVP
+      alert(`Đăng nhập bằng ${provider} đang được phát triển!`);
   };
 
   return (
@@ -150,6 +158,34 @@ export const Login: React.FC = () => {
                     </>
                 )}
               </Button>
+
+              {/* Social Login Divider */}
+              <div className="relative py-4">
+                  <div className="absolute inset-0 flex items-center">
+                      <div className="w-full border-t border-slate-700"></div>
+                  </div>
+                  <div className="relative flex justify-center text-xs">
+                      <span className="bg-slate-800 px-2 text-slate-400">Hoặc tiếp tục với</span>
+                  </div>
+              </div>
+
+              {/* Social Buttons */}
+              <div className="grid grid-cols-2 gap-3">
+                  <button 
+                    onClick={() => handleSocialLogin('Google')}
+                    className="flex items-center justify-center gap-2 bg-white text-slate-900 py-2.5 rounded-xl font-bold text-sm hover:bg-gray-100 transition-colors"
+                  >
+                      <Chrome size={18} className="text-red-500" />
+                      Google
+                  </button>
+                  <button 
+                    onClick={() => handleSocialLogin('Facebook')}
+                    className="flex items-center justify-center gap-2 bg-[#1877F2] text-white py-2.5 rounded-xl font-bold text-sm hover:bg-[#166fe5] transition-colors"
+                  >
+                      <Facebook size={18} className="text-white fill-white" />
+                      Facebook
+                  </button>
+              </div>
             </div>
 
             <div className="mt-6 text-center">
@@ -169,7 +205,7 @@ export const Login: React.FC = () => {
           </div>
           
           <p className="text-center text-xs text-slate-600 mt-8">
-            v1.0.2 MVP • Powered by Supabase
+            v1.0.3 MVP • Powered by Supabase
           </p>
         </div>
       </div>

@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { QrCode, MapPin, Activity, ChevronRight, Play } from 'lucide-react';
+import { QrCode, MapPin, Activity, ChevronRight, Play, Camera, Mic } from 'lucide-react';
 import { PageTransition } from '../components/Layout/PageTransition';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
@@ -79,20 +79,41 @@ export const Home: React.FC = () => {
           </div>
         </div>
 
-        {/* Hero CTA */}
-        <div 
-            onClick={() => navigate('/qr')}
-            className="relative h-48 rounded-3xl overflow-hidden cursor-pointer group shadow-2xl shadow-lime-900/20"
-        >
-            <div className="absolute inset-0 bg-gradient-to-br from-lime-400 to-lime-600 opacity-90 transition-opacity group-hover:opacity-100" />
-            <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-20 mix-blend-overlay" />
-            
-            <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-900 p-6 text-center z-10">
-                <div className="w-16 h-16 bg-slate-900/20 backdrop-blur-sm rounded-2xl flex items-center justify-center mb-3 animate-pulse-fast">
-                    <QrCode size={32} />
+        {/* Hero Actions */}
+        <div className="grid grid-cols-2 gap-4">
+            {/* Scan QR */}
+            <div 
+                onClick={() => navigate('/qr')}
+                className="relative h-40 rounded-3xl overflow-hidden cursor-pointer group shadow-xl shadow-lime-900/20 bg-lime-500"
+            >
+                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-20 mix-blend-overlay" />
+                <div className="absolute inset-0 bg-gradient-to-br from-lime-400 to-lime-600 opacity-90 transition-opacity group-hover:opacity-100" />
+                
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-900 p-4 text-center z-10">
+                    <div className="w-12 h-12 bg-slate-900/20 backdrop-blur-sm rounded-xl flex items-center justify-center mb-2">
+                        <QrCode size={24} />
+                    </div>
+                    <h3 className="text-lg font-black uppercase tracking-tight leading-none">QUÉT QR<br/>VÀO SÂN</h3>
                 </div>
-                <h3 className="text-2xl font-black uppercase tracking-tight">QUÉT QR VÀO SÂN</h3>
-                <p className="text-slate-900/80 font-medium text-sm mt-1">Kết nối camera & ghi hình ngay</p>
+            </div>
+
+            {/* AI Self Recording */}
+            <div 
+                onClick={() => navigate('/self-recording')}
+                className="relative h-40 rounded-3xl overflow-hidden cursor-pointer group shadow-xl shadow-blue-900/20 bg-blue-500"
+            >
+                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-20 mix-blend-overlay" />
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-blue-700 opacity-90 transition-opacity group-hover:opacity-100" />
+                
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-white p-4 text-center z-10">
+                    <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center mb-2 relative">
+                        <Camera size={24} />
+                        <div className="absolute -top-1 -right-1 bg-red-500 rounded-full p-1">
+                            <Mic size={10} className="text-white" />
+                        </div>
+                    </div>
+                    <h3 className="text-lg font-black uppercase tracking-tight leading-none">TỰ QUAY<br/>(AI VOICE)</h3>
+                </div>
             </div>
         </div>
 
@@ -129,7 +150,7 @@ export const Home: React.FC = () => {
                     <span className="text-xs font-medium text-slate-300 block mb-1 truncate">{highlight.courtName}</span>
                     <div className="flex justify-between items-center">
                         <span className="text-white font-bold text-lg">00:{highlight.durationSec}</span>
-                        <span className="text-[10px] bg-red-500 text-white px-1.5 py-0.5 rounded">NEW</span>
+                        <span className="text-xs bg-lime-400 text-slate-900 px-1.5 py-0.5 rounded font-bold">HD</span>
                     </div>
                     </div>
                 </Card>

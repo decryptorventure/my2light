@@ -12,6 +12,7 @@ import { QRScan } from './pages/QRScan';
 import { ActiveSession } from './pages/ActiveSession';
 import { Gallery } from './pages/Gallery';
 import { Profile } from './pages/Profile';
+import { SelfRecording } from './pages/SelfRecording';
 
 // Components
 import { BottomNav } from './components/Layout/BottomNav';
@@ -30,6 +31,7 @@ const AnimatedRoutes = () => {
         <Route path="/active-session" element={<ActiveSession />} />
         <Route path="/gallery" element={<Gallery />} />
         <Route path="/profile" element={<Profile />} />
+        <Route path="/self-recording" element={<SelfRecording />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </AnimatePresence>

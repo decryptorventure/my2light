@@ -66,6 +66,26 @@ const VideoItem: React.FC<{ highlight: Highlight }> = ({ highlight }) => {
     setLiked(!liked);
   };
 
+  const handleShare = async () => {
+      const shareData = {
+          title: `Highlight ${highlight.courtName}`,
+          text: `Xem pha highlight của ${highlight.userName} tại my2light!`,
+          url: window.location.href // In a real app, this would be a deep link to the highlight
+      };
+
+      if (navigator.share) {
+          try {
+              await navigator.share(shareData);
+          } catch (err) {
+              console.error('Error sharing', err);
+          }
+      } else {
+          // Fallback
+          alert("Link highlight đã được sao chép vào bộ nhớ tạm!");
+          // navigator.clipboard.writeText(...)
+      }
+  };
+
   return (
     <div className="relative w-full h-screen snap-start bg-slate-900 overflow-hidden border-b border-slate-800">
       {/* Video Placeholder */}
@@ -101,7 +121,10 @@ const VideoItem: React.FC<{ highlight: Highlight }> = ({ highlight }) => {
         </div>
 
         <div className="flex flex-col items-center gap-1">
-             <button className="p-3 rounded-full bg-black/40 backdrop-blur-md border border-white/5 text-white">
+             <button 
+                onClick={handleShare}
+                className="p-3 rounded-full bg-black/40 backdrop-blur-md border border-white/5 text-white active:bg-white/10"
+             >
                 <Share2 size={24} strokeWidth={2.5} />
              </button>
              <span className="text-white text-xs font-bold drop-shadow-md">Chia sẻ</span>

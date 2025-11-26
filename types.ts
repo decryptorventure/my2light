@@ -1,3 +1,4 @@
+
 export interface User {
   id: string;
   name: string;
@@ -44,6 +45,7 @@ export interface Package {
   price: number;
   description: string;
   isBestValue?: boolean;
+  type?: 'standard' | 'full_match'; // New field
 }
 
 export interface Booking {
@@ -57,6 +59,7 @@ export interface Booking {
   totalAmount: number;
   courtName?: string; // Expanded for UI
   packageName?: string; // Expanded for UI
+  packageType?: 'standard' | 'full_match'; // New field
 }
 
 export interface ApiResponse<T> {
