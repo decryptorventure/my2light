@@ -183,7 +183,12 @@ export const Home: React.FC = () => {
               </>
             ) : (
               courts.map((court) => (
-                <Card key={court.id} className="flex p-3 gap-4 items-center group cursor-pointer" hoverEffect>
+                <Card
+                  key={court.id}
+                  className="flex p-3 gap-4 items-center group cursor-pointer"
+                  hoverEffect
+                  onClick={() => navigate(`/court/${court.id}`)}
+                >
                   <div className="w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 bg-slate-800 relative">
                     <img src={court.thumbnailUrl} alt={court.name} className="w-full h-full object-cover" />
                     {court.status === 'live' && (

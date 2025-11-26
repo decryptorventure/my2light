@@ -16,7 +16,7 @@ export const BottomNav: React.FC = () => {
   const isActive = (path: string) => location.pathname === path;
 
   // Don't show nav on these paths
-  if (['/', '/login', '/qr', '/active-session'].includes(location.pathname)) return null;
+  if (['/', '/welcome', '/onboarding', '/login', '/qr', '/active-session'].includes(location.pathname)) return null;
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 px-6 pt-2 pointer-events-none pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
