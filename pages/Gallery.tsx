@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Heart, Share2, Download, Play, Pause, ChevronLeft, Link as LinkIcon, Facebook, MessageCircle } from 'lucide-react';
+import { Heart, Share2, Download, Play, Pause, ChevronLeft, Link as LinkIcon, Facebook, MessageCircle, Globe, Lock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { PageTransition } from '../components/Layout/PageTransition';
@@ -55,6 +55,7 @@ const VideoItem: React.FC<{ highlight: Highlight }> = ({ highlight }) => {
   const [liked, setLiked] = useState(highlight.isLiked || false);
   const [likesCount, setLikesCount] = useState(highlight.likes);
   const [isShareOpen, setIsShareOpen] = useState(false);
+  const [isPublic, setIsPublic] = useState(highlight.isPublic !== false);
 
   const togglePlay = () => setIsPlaying(!isPlaying);
 
@@ -66,6 +67,19 @@ const VideoItem: React.FC<{ highlight: Highlight }> = ({ highlight }) => {
       setLikesCount(p => p + 1);
     }
     setLiked(!liked);
+  };
+
+  const togglePrivacy = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const newPrivacy = !isPublic;
+    setIsPublic(newPrivacy);
+
+    const result = await ApiService.updateHighlightPrivacy(highlight.id, newPrivacy);
+    if (!result.success) {
+      // Revert on error
+      setIsPublic(!newPrivacy);
+      console.error('Failed to update privacy:', result.error);
+    }
   };
 
   return (
@@ -87,6 +101,21 @@ const VideoItem: React.FC<{ highlight: Highlight }> = ({ highlight }) => {
             </div>
           </div>
         )}
+      </div>
+
+      {/* Privacy Toggle - Top Right */}
+      <div className="absolute top-4 right-4 z-20">
+        <motion.button
+          whileTap={{ scale: 0.9 }}
+          onClick={togglePrivacy}
+          className={`p-3 rounded-full backdrop-blur-md border transition-colors ${isPublic
+              ? 'bg-lime-500/20 border-lime-400/50 text-lime-400'
+              : 'bg-slate-800/60 border-slate-600/50 text-slate-300'
+            }`}
+          title={isPublic ? 'Public - Click to make private' : 'Private - Click to make public'}
+        >
+          {isPublic ? <Globe size={20} /> : <Lock size={20} />}
+        </motion.button>
       </div>
 
       {/* Right Sidebar Actions */}

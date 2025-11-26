@@ -404,7 +404,8 @@ export const ApiService = {
         courtName: h.court?.name || 'Sân',
         userAvatar: h.profile?.avatar || 'https://picsum.photos/200',
         userName: h.profile?.name || 'Người chơi',
-        isLiked: false
+        isLiked: false,
+        isPublic: h.is_public !== false // Default to true if not set
       }));
 
       return { success: true, data: highlights };
@@ -451,6 +452,24 @@ export const ApiService = {
 
     // In a real app, we might update a 'checked_in_at' timestamp here
     // For MVP, just verifying it exists and is active is enough
+    return { success: true, data: true };
+  },
+
+  updateHighlightPrivacy: async (highlightId: string, isPublic: boolean): Promise<ApiResponse<boolean>> => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { success: false, data: false, error: 'Not authenticated' };
+
+    const { error } = await supabase
+      .from('highlights')
+      .update({ is_public: isPublic })
+      .eq('id', highlightId)
+      .eq('user_id', user.id); // Only allow updating own highlights
+
+    if (error) {
+      console.error('Update highlight privacy error:', error);
+      return { success: false, data: false, error: error.message };
+    }
+
     return { success: true, data: true };
   }
 };

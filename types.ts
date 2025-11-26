@@ -36,6 +36,7 @@ export interface Highlight {
   userAvatar?: string; // Joined data
   userName?: string; // Joined data
   isLiked?: boolean; // Client state
+  isPublic?: boolean; // Privacy setting
 }
 
 export interface Package {
