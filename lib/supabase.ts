@@ -1,19 +1,34 @@
 import { createClient } from '@supabase/supabase-js';
+import * as dotenv from 'dotenv';
 
-// Access environment variables safely
-// Use a fallback object if import.meta.env is undefined to prevent crashes
-const env = (import.meta as any).env || {};
-
-// Cấu hình Supabase Real (Hardcoded for MVP/Production)
-// Trong môi trường production chuyên nghiệp, bạn nên dùng biến môi trường (Environment Variables)
-const supabaseUrl = env.VITE_SUPABASE_URL || 'https://uthuigqlvjiscmdqvhxz.supabase.co';
-const supabaseAnonKey = env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV0aHVpZ3Fsdmppc2NtZHF2aHh6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQwOTExNzcsImV4cCI6MjA3OTY2NzE3N30.s3zIPwUNMchOQJVYdOeOI91HMOwoNVR4wdOhLwHGWJ8';
-
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn('Missing Supabase Environment Variables. App will run in degraded mode.');
+// Load env vars if in Node.js environment (for testing scripts)
+if (typeof process !== 'undefined' && process.env && !import.meta) {
+  dotenv.config({ path: '.env.local' });
 }
 
-export const supabase = createClient(
-  supabaseUrl,
-  supabaseAnonKey
-);
+// Get Supabase credentials
+// Support both Vite (import.meta.env) and Node.js (process.env)
+const getEnv = (key: string) => {
+  if (typeof import.meta !== 'undefined' && import.meta.env) {
+    return import.meta.env[key];
+  }
+  if (typeof process !== 'undefined' && process.env) {
+    return process.env[key];
+  }
+  return undefined;
+};
+
+const supabaseUrl = getEnv('VITE_SUPABASE_URL') as string;
+const supabaseAnonKey = getEnv('VITE_SUPABASE_ANON_KEY') as string;
+
+// Validate that environment variables are set
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.error('Missing Supabase environment variables!');
+  console.error('Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in .env.local');
+  // Only throw in browser/app, allow script to handle error gracefully if needed
+  if (typeof window !== 'undefined') {
+    throw new Error('Supabase configuration is missing. Check your .env.local file.');
+  }
+}
+
+export const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '');
