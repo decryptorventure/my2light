@@ -20,6 +20,13 @@ export interface Court {
   distanceKm: number;
   pricePerHour: number;
   rating: number;
+  // Optional fields for CourtDetail page
+  images?: string[];
+  facilities?: string[];
+  description?: string;
+  openTime?: string;
+  closeTime?: string;
+  totalReviews?: number;
 }
 
 export interface Highlight {
@@ -37,6 +44,7 @@ export interface Highlight {
   userName?: string; // Joined data
   isLiked?: boolean; // Client state
   isPublic?: boolean; // Privacy setting
+  description?: string; // Video description
 }
 
 export interface Package {
