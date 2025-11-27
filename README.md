@@ -1,4 +1,4 @@
-# my2light - Version 1.0 Documentation
+# my2light - Version 3.2 Documentation
 
 ## 📋 Tổng quan dự án
 
@@ -162,7 +162,25 @@ vercel --prod
 
 ---
 
-## 🔮 Kế hoạch tối ưu tiếp theo (Version 2.0)
+## � Các cập nhật mới (Version 3.2)
+
+### 1. UI/UX Optimizations
+- ✨ **Onboarding Mới**: Thêm bước chọn "Lối chơi" (Tấn công/Phòng thủ/Toàn diện).
+- 📅 **Booking Thông minh**: Lọc giờ quá khứ, fix lỗi highlight gói dịch vụ.
+- 💰 **Ví & Thanh toán**: Hiển thị số dư thực tế, cảnh báo khi không đủ tiền.
+
+### 2. Creative Features (Profile)
+- 📱 **Stories**: Tính năng Stories hiển thị highlight clips dạng dọc.
+- 🏅 **Gamification Badges**: Hệ thống huy hiệu tương tác (Smasher, Early Bird, Fair Play...).
+- 👆 **Badge Details**: Popup chi tiết điều kiện mở khóa và trạng thái huy hiệu.
+
+### 3. Admin Improvements
+- 🧭 **Navigation**: Tách biệt Admin Navigation khỏi User BottomNav.
+- 📱 **Mobile Experience**: Sidebar dạng trượt cho Admin Dashboard trên mobile.
+
+---
+
+## �🔮 Kế hoạch tối ưu tiếp theo (Version 2.0)
 
 ### 1. State Management
 - [ ] Implement AuthContext cho global auth state

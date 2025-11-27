@@ -7,7 +7,7 @@ import { ApiService } from '../services/api';
 import { celebrate, burst } from '../lib/confetti';
 import {
     ArrowRight, Camera, Check, ChevronLeft, Play,
-    Trophy, Star, Zap, Target, Award, Heart
+    Trophy, Star, Zap, Target, Award, Heart, Shield
 } from 'lucide-react';
 
 export const Onboarding: React.FC = () => {
@@ -17,17 +17,18 @@ export const Onboarding: React.FC = () => {
     const [phone, setPhone] = useState('');
     const [avatar, setAvatar] = useState<string>('');
     const [skillLevel, setSkillLevel] = useState('');
+    const [playStyle, setPlayStyle] = useState('');
     const [loading, setLoading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const totalSteps = 5;
+    const totalSteps = 6;
     const progress = ((step + 1) / totalSteps) * 100;
 
     const handleNext = async () => {
         if (step < totalSteps - 1) {
             setStep(step + 1);
             // Celebrate milestones
-            if (step === 1 || step === 3) {
+            if (step === 1 || step === 3 || step === 4) {
                 celebrate({ particleCount: 30, spread: 40 });
             }
         } else {
@@ -73,6 +74,7 @@ export const Onboarding: React.FC = () => {
             case 1: return name.trim().length >= 2;
             case 2: return avatar !== '';
             case 3: return skillLevel !== '';
+            case 4: return playStyle !== '';
             default: return true;
         }
     };
@@ -261,6 +263,80 @@ export const Onboarding: React.FC = () => {
                                         </h4>
                                         <p className={`text-sm ${isSelected ? 'text-white/80' : 'text-slate-400'}`}>
                                             {level.desc}
+                                        </p>
+                                    </div>
+                                    {isSelected && (
+                                        <motion.div
+                                            initial={{ scale: 0 }}
+                                            animate={{ scale: 1 }}
+                                            className="w-8 h-8 bg-white rounded-full flex items-center justify-center"
+                                        >
+                                            <Check size={20} className="text-slate-900" strokeWidth={3} />
+                                        </motion.div>
+                                    )}
+                                </div>
+                            </motion.div>
+                        );
+                    })}
+                </div>
+            )
+        },
+        {
+            // Play Style - New Step
+            title: "Lối chơi của bạn?",
+            subtitle: "Để chúng tôi tìm đồng đội ăn ý",
+            content: (
+                <div className="space-y-3 py-6">
+                    {[
+                        {
+                            id: 'attack',
+                            label: 'Tấn công (Attack) ⚔️',
+                            desc: 'Thích đập cầu, chơi nhanh, áp đảo',
+                            color: 'from-red-500 to-orange-600',
+                            icon: Zap
+                        },
+                        {
+                            id: 'defense',
+                            label: 'Phòng thủ (Defense) 🛡️',
+                            desc: 'Kiên nhẫn, điều cầu, phản công',
+                            color: 'from-blue-500 to-indigo-600',
+                            icon: Shield
+                        },
+                        {
+                            id: 'all_round',
+                            label: 'Toàn diện (All-round) ⚖️',
+                            desc: 'Linh hoạt công thủ, kỹ thuật đều',
+                            color: 'from-purple-500 to-pink-600',
+                            icon: Target
+                        }
+                    ].map((style) => {
+                        const Icon = style.icon;
+                        const isSelected = playStyle === style.id;
+
+                        return (
+                            <motion.div
+                                key={style.id}
+                                whileTap={{ scale: 0.98 }}
+                                onClick={() => {
+                                    setPlayStyle(style.id);
+                                    celebrate({ particleCount: 20, spread: 30 });
+                                }}
+                                className={`relative p-5 rounded-2xl cursor-pointer transition-all ${isSelected
+                                    ? 'bg-gradient-to-r ' + style.color + ' shadow-xl scale-105'
+                                    : 'bg-slate-800 hover:bg-slate-750 border-2 border-slate-700'
+                                    }`}
+                            >
+                                <div className="flex items-center gap-4">
+                                    <div className={`w-14 h-14 rounded-xl flex items-center justify-center ${isSelected ? 'bg-white/20' : 'bg-slate-700'
+                                        }`}>
+                                        <Icon size={28} className={isSelected ? 'text-white' : 'text-slate-400'} />
+                                    </div>
+                                    <div className="flex-1">
+                                        <h4 className={`font-bold text-lg mb-1 ${isSelected ? 'text-white' : 'text-slate-200'}`}>
+                                            {style.label}
+                                        </h4>
+                                        <p className={`text-sm ${isSelected ? 'text-white/80' : 'text-slate-400'}`}>
+                                            {style.desc}
                                         </p>
                                     </div>
                                     {isSelected && (

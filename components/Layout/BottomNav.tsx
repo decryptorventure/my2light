@@ -25,7 +25,8 @@ export const BottomNav: React.FC = () => {
     !!matchPath('/court/:id', location.pathname) ||
     !!matchPath('/booking/:id', location.pathname) ||
     location.pathname.startsWith('/booking') ||
-    location.pathname.includes('/booking');
+    location.pathname.includes('/booking') ||
+    location.pathname.startsWith('/admin');
 
   if (isHidden) return null;
 
@@ -54,24 +55,6 @@ export const BottomNav: React.FC = () => {
             </motion.button>
           );
         })}
-
-        {/* Admin Link */}
-        {user && (user.role === 'court_owner' || user.role === 'both') && (
-          <motion.button
-            onClick={() => navigate('/admin/dashboard')}
-            className="flex flex-col items-center justify-center flex-1 py-2 gap-1 transition-colors"
-            whileTap={{ scale: 0.95 }}
-          >
-            <User // Using User icon for now, maybe change to LayoutDashboard if available
-              size={24}
-              strokeWidth={2}
-              className={location.pathname.startsWith('/admin') ? 'text-lime-400' : 'text-slate-400'}
-            />
-            <span className={`text-[10px] font-medium ${location.pathname.startsWith('/admin') ? 'text-lime-400' : 'text-slate-500'}`}>
-              Quản lý
-            </span>
-          </motion.button>
-        )}
       </div>
     </div>
   );
