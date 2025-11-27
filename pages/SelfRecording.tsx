@@ -4,75 +4,150 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   ChevronLeft, Camera, Mic, MicOff, Play, Pause, Square,
   Check, X, Volume2, VolumeX, Zap, RotateCcw,
-  Scissors, Type, Download, Share2, Sparkles
+  Scissors, Type, Download, Share2, Sparkles, RefreshCw
 } from 'lucide-react';
 import { PageTransition } from '../components/Layout/PageTransition';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { Input } from '../components/ui/Input';
 import { Textarea } from '../components/ui/Textarea';
+import { useToast } from '../components/ui/Toast';
 import { celebrate, fireworks } from '../lib/confetti';
+import { useCamera } from '../hooks/useCamera';
+import { useMediaRecorder } from '../hooks/useMediaRecorder';
+import { useVoiceCommands } from '../hooks/useVoiceCommands';
+import { ApiService } from '../services/api';
 
 type RecordingStep = 'setup' | 'recording' | 'processing' | 'editing' | 'done';
 
 export const SelfRecording: React.FC = () => {
   const navigate = useNavigate();
+  const { showToast } = useToast();
   const [step, setStep] = useState<RecordingStep>('setup');
-  const [isRecording, setIsRecording] = useState(false);
-  const [isPaused, setIsPaused] = useState(false);
-  const [recordedTime, setRecordedTime] = useState(0);
   const [voiceEnabled, setVoiceEnabled] = useState(true);
   const [courtSelected, setCourtSelected] = useState('Sân Landmark 81');
   const [cameraPosition, setCameraPosition] = useState<'optimal' | 'good' | 'adjusted'>('optimal');
   const [videoTitle, setVideoTitle] = useState('');
   const [videoDescription, setVideoDescription] = useState('');
+  const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
+  // Refs
   const videoRef = useRef<HTMLVideoElement>(null);
-  const timerRef = useRef<any>(null);
+  const previewVideoRef = useRef<HTMLVideoElement>(null);
 
-  useEffect(() => {
-    if (isRecording && !isPaused) {
-      timerRef.current = setInterval(() => {
-        setRecordedTime(prev => prev + 1);
-      }, 1000);
-    } else {
-      if (timerRef.current) clearInterval(timerRef.current);
+  // Custom Hooks
+  const {
+    stream,
+    error: cameraError,
+    isLoading: isCameraLoading,
+    permissionGranted,
+    startCamera,
+    switchCamera,
+    facingMode
+  } = useCamera({
+    videoRef,
+    autoStart: step === 'recording' || step === 'setup'
+  });
+
+  const {
+    status: recordingStatus,
+    duration: recordedTime,
+    startRecording,
+    stopRecording,
+    pauseRecording,
+    resumeRecording,
+    resetRecording
+  } = useMediaRecorder({
+    stream,
+    onStop: (blob) => {
+      setRecordedBlob(blob);
+      const url = URL.createObjectURL(blob);
+      setPreviewUrl(url);
+      setStep('editing');
     }
+  });
+
+  const { lastCommand } = useVoiceCommands({
+    isListening: voiceEnabled && (step === 'setup' || step === 'recording'),
+    onCommand: (cmd) => {
+      if (step === 'setup' && cmd === 'start') {
+        handleStartRecording();
+        showToast('Đã nhận lệnh: Bắt đầu quay', 'success');
+      } else if (step === 'recording') {
+        if (cmd === 'stop') {
+          handleStopRecording();
+          showToast('Đã nhận lệnh: Dừng quay', 'success');
+        } else if (cmd === 'highlight') {
+          showToast('Đã đánh dấu Highlight!', 'info');
+          // Logic to mark timestamp could go here
+        }
+      }
+    }
+  });
+
+  // Cleanup preview URL
+  useEffect(() => {
     return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
     };
-  }, [isRecording, isPaused]);
+  }, [previewUrl]);
 
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  const startRecording = () => {
-    setIsRecording(true);
+  const handleStartRecording = () => {
+    if (!permissionGranted) {
+      showToast('Vui lòng cấp quyền camera để quay', 'error');
+      return;
+    }
     setStep('recording');
+    startRecording();
     celebrate({ particleCount: 30 });
   };
 
-  const pauseRecording = () => {
-    setIsPaused(!isPaused);
-  };
-
-  const stopRecording = () => {
-    setIsRecording(false);
+  const handleStopRecording = () => {
     setStep('processing');
-    // Simulate processing
-    setTimeout(() => {
-      setStep('editing');
-    }, 2000);
+    stopRecording();
   };
 
-  const saveVideo = () => {
-    fireworks();
-    setTimeout(() => {
+  const handleSaveVideo = async () => {
+    if (!recordedBlob) return;
+
+    setIsUploading(true);
+    try {
+      // 1. Upload video
+      const uploadRes = await ApiService.uploadVideo(recordedBlob);
+      if (!uploadRes.success) throw new Error(uploadRes.error);
+
+      // 2. Create highlight record
+      const createRes = await ApiService.createHighlight(
+        'court_id_placeholder', // Should be real ID
+        uploadRes.data,
+        recordedTime,
+        videoTitle || `Highlight ${new Date().toLocaleDateString()}`
+      );
+
+      if (!createRes.success) throw new Error(createRes.error);
+
+      fireworks();
       setStep('done');
-    }, 500);
+    } catch (err: any) {
+      console.error(err);
+      showToast('Lỗi khi lưu video: ' + err.message, 'error');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleDownload = () => {
+    if (previewUrl) {
+      const a = document.createElement('a');
+      a.href = previewUrl;
+      a.download = `highlight-${Date.now()}.webm`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      showToast('Đang tải video xuống...', 'success');
+    }
   };
 
   return (
@@ -87,7 +162,7 @@ export const SelfRecording: React.FC = () => {
             >
               <ChevronLeft size={20} />
             </button>
-            <h1 className="text-lg font-black">Tự Quay</h1>
+            <h1 className="text-lg font-black">Tự Quay AI</h1>
             <div className="w-10" />
           </div>
         </div>
@@ -103,19 +178,25 @@ export const SelfRecording: React.FC = () => {
                 onCameraPositionChange={setCameraPosition}
                 voiceEnabled={voiceEnabled}
                 onVoiceToggle={() => setVoiceEnabled(!voiceEnabled)}
-                onStart={startRecording}
+                onStart={handleStartRecording}
+                videoRef={videoRef}
+                cameraError={cameraError}
+                permissionGranted={permissionGranted}
+                onSwitchCamera={switchCamera}
               />
             )}
 
             {step === 'recording' && (
               <RecordingStep
-                isRecording={isRecording}
-                isPaused={isPaused}
+                videoRef={videoRef}
+                isRecording={recordingStatus === 'recording'}
+                isPaused={recordingStatus === 'paused'}
                 recordedTime={recordedTime}
                 voiceEnabled={voiceEnabled}
-                onPause={pauseRecording}
-                onStop={stopRecording}
+                onPause={recordingStatus === 'paused' ? resumeRecording : pauseRecording}
+                onStop={handleStopRecording}
                 onVoiceToggle={() => setVoiceEnabled(!voiceEnabled)}
+                lastCommand={lastCommand}
               />
             )}
 
@@ -127,8 +208,11 @@ export const SelfRecording: React.FC = () => {
                 description={videoDescription}
                 onTitleChange={setVideoTitle}
                 onDescriptionChange={setVideoDescription}
-                onSave={saveVideo}
+                onSave={handleSaveVideo}
+                onDownload={handleDownload}
                 recordedTime={recordedTime}
+                previewUrl={previewUrl}
+                isUploading={isUploading}
               />
             )}
 
@@ -154,31 +238,56 @@ const SetupStep: React.FC<{
   voiceEnabled: boolean;
   onVoiceToggle: () => void;
   onStart: () => void;
-}> = ({ courtSelected, cameraPosition, voiceEnabled, onVoiceToggle, onStart }) => (
-  <motion.div
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    exit={{ opacity: 0, y: -20 }}
-    className="px-6 space-y-6"
-  >
-    <Card className="p-6">
-      <h3 className="font-bold text-white mb-4 flex items-center gap-2">
-        <Camera size={20} className="text-lime-400" />
-        Hướng dẫn đặt camera
-      </h3>
-
-      {/* Camera position guide */}
-      <div className="bg-slate-800/50 rounded-xl p-4 mb-4">
-        <div className="relative h-48 bg-slate-700/50 rounded-lg mb-3 flex items-center justify-center">
-          <div className="text-center">
-            <div className="w-16 h-16 mx-auto mb-2 bg-lime-400/20 rounded-full flex items-center justify-center">
-              <Camera size={32} className="text-lime-400" />
-            </div>
-            <p className="text-sm text-slate-400">Đặt điện thoại ở góc sân</p>
+  videoRef: React.RefObject<HTMLVideoElement>;
+  cameraError: string | null;
+  permissionGranted: boolean;
+  onSwitchCamera: () => void;
+}> = ({
+  courtSelected, cameraPosition, voiceEnabled, onVoiceToggle, onStart,
+  videoRef, cameraError, permissionGranted, onSwitchCamera
+}) => (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      className="px-6 space-y-6"
+    >
+      {/* Camera Preview Card */}
+      <Card className="p-0 overflow-hidden relative bg-black aspect-video rounded-2xl">
+        {cameraError ? (
+          <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center">
+            <Camera size={48} className="text-red-500 mb-2" />
+            <p className="text-white font-bold">Lỗi Camera</p>
+            <p className="text-slate-400 text-sm">{cameraError}</p>
           </div>
-        </div>
+        ) : (
+          <>
+            <video
+              ref={videoRef}
+              className="w-full h-full object-cover"
+              autoPlay
+              playsInline
+              muted
+            />
+            <div className="absolute bottom-4 right-4">
+              <button
+                onClick={onSwitchCamera}
+                className="p-2 bg-black/50 backdrop-blur rounded-full text-white hover:bg-black/70"
+              >
+                <RefreshCw size={20} />
+              </button>
+            </div>
+          </>
+        )}
+      </Card>
 
-        <div className="space-y-2 text-sm text-slate-300">
+      <Card className="p-6">
+        <h3 className="font-bold text-white mb-4 flex items-center gap-2">
+          <Camera size={20} className="text-lime-400" />
+          Hướng dẫn đặt camera
+        </h3>
+
+        <div className="space-y-2 text-sm text-slate-300 mb-4">
           <div className="flex items-start gap-2">
             <Check size={16} className="text-lime-400 flex-shrink-0 mt-0.5" />
             <span>Đặt điện thoại ở góc sân, cao khoảng 1.5m</span>
@@ -187,86 +296,64 @@ const SetupStep: React.FC<{
             <Check size={16} className="text-lime-400 flex-shrink-0 mt-0.5" />
             <span>Đảm bảo toàn bộ sân trong khung hình</span>
           </div>
-          <div className="flex items-start gap-2">
-            <Check size={16} className="text-lime-400 flex-shrink-0 mt-0.5" />
-            <span>Tránh ánh sáng chiếu trực tiếp vào camera</span>
-          </div>
         </div>
-      </div>
 
-      <div className={`p-4 rounded-xl border-2 ${cameraPosition === 'optimal'
+        <div className={`p-4 rounded-xl border-2 ${cameraPosition === 'optimal'
           ? 'border-lime-400 bg-lime-400/10'
           : 'border-yellow-500 bg-yellow-500/10'
-        }`}>
-        <div className="flex items-center gap-2 mb-1">
-          <div className={`w-2 h-2 rounded-full ${cameraPosition === 'optimal' ? 'bg-lime-400' : 'bg-yellow-500'
-            } animate-pulse`} />
-          <span className="font-bold text-white">
-            {cameraPosition === 'optimal' ? 'Vị trí tối ưu' : 'Vị trí tốt'}
-          </span>
+          }`}>
+          <div className="flex items-center gap-2 mb-1">
+            <div className={`w-2 h-2 rounded-full ${cameraPosition === 'optimal' ? 'bg-lime-400' : 'bg-yellow-500'
+              } animate-pulse`} />
+            <span className="font-bold text-white">
+              {cameraPosition === 'optimal' ? 'Vị trí tối ưu' : 'Vị trí tốt'}
+            </span>
+          </div>
+          <p className="text-xs text-slate-400">
+            Camera đã được kích hoạt. Hãy điều chỉnh góc máy.
+          </p>
         </div>
-        <p className="text-xs text-slate-400">
-          {cameraPosition === 'optimal'
-            ? 'Camera đã được đặt ở vị trí hoàn hảo'
-            : 'Điều chỉnh góc camera để có kết quả tốt hơn'}
-        </p>
-      </div>
-    </Card>
+      </Card>
 
-    <Card className="p-6">
-      <h3 className="font-bold text-white mb-4 flex items-center gap-2">
-        <Mic size={20} className="text-blue-400" />
-        Điều khiển bằng giọng nói
-      </h3>
+      <Card className="p-6">
+        <h3 className="font-bold text-white mb-4 flex items-center gap-2">
+          <Mic size={20} className="text-blue-400" />
+          Điều khiển bằng giọng nói
+        </h3>
 
-      <div className="flex items-center justify-between p-4 bg-slate-800/50 rounded-xl mb-4">
-        <div>
-          <p className="font-medium text-white mb-1">Kích hoạt giọng nói</p>
-          <p className="text-xs text-slate-400">Nói "Ghi" để tạo highlight</p>
+        <div className="flex items-center justify-between p-4 bg-slate-800/50 rounded-xl mb-4">
+          <div>
+            <p className="font-medium text-white mb-1">Kích hoạt giọng nói</p>
+            <p className="text-xs text-slate-400">Nói "Start" để bắt đầu</p>
+          </div>
+          <button
+            onClick={onVoiceToggle}
+            className={`w-14 h-8 rounded-full transition-colors ${voiceEnabled ? 'bg-lime-400' : 'bg-slate-700'
+              }`}
+          >
+            <div className={`w-6 h-6 bg-white rounded-full shadow-lg transform transition-transform ${voiceEnabled ? 'translate-x-7' : 'translate-x-1'
+              }`} />
+          </button>
         </div>
-        <button
-          onClick={onVoiceToggle}
-          className={`w-14 h-8 rounded-full transition-colors ${voiceEnabled ? 'bg-lime-400' : 'bg-slate-700'
-            }`}
+      </Card>
+
+      <div className="fixed bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-slate-900 via-slate-900/95 to-transparent pb-safe">
+        <Button
+          onClick={onStart}
+          icon={<Zap size={20} />}
+          size="xl"
+          className="w-full"
+          disabled={!permissionGranted}
         >
-          <div className={`w-6 h-6 bg-white rounded-full shadow-lg transform transition-transform ${voiceEnabled ? 'translate-x-7' : 'translate-x-1'
-            }`} />
-        </button>
+          Bắt đầu quay
+        </Button>
       </div>
-
-      {voiceEnabled && (
-        <div className="space-y-2 text-sm">
-          <div className="flex items-center gap-2 text-slate-300">
-            <div className="w-8 h-8 bg-lime-400/20 rounded-lg flex items-center justify-center">
-              <span className="text-lime-400 font-bold">1</span>
-            </div>
-            <span>"Ghi" - Tạo highlight</span>
-          </div>
-          <div className="flex items-center gap-2 text-slate-300">
-            <div className="w-8 h-8 bg-lime-400/20 rounded-lg flex items-center justify-center">
-              <span className="text-lime-400 font-bold">2</span>
-            </div>
-            <span>"Dừng" - Kết thúc quay</span>
-          </div>
-        </div>
-      )}
-    </Card>
-
-    <div className="fixed bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-slate-900 via-slate-900/95 to-transparent pb-safe">
-      <Button
-        onClick={onStart}
-        icon={<Zap size={20} />}
-        size="xl"
-        className="w-full"
-      >
-        Bắt đầu quay
-      </Button>
-    </div>
-  </motion.div>
-);
+    </motion.div>
+  );
 
 // Recording Step Component
 const RecordingStep: React.FC<{
+  videoRef: React.RefObject<HTMLVideoElement>;
   isRecording: boolean;
   isPaused: boolean;
   recordedTime: number;
@@ -274,7 +361,8 @@ const RecordingStep: React.FC<{
   onPause: () => void;
   onStop: () => void;
   onVoiceToggle: () => void;
-}> = ({ isPaused, recordedTime, voiceEnabled, onPause, onStop, onVoiceToggle }) => {
+  lastCommand: string | null;
+}> = ({ videoRef, isRecording, isPaused, recordedTime, voiceEnabled, onPause, onStop, onVoiceToggle, lastCommand }) => {
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -289,42 +377,42 @@ const RecordingStep: React.FC<{
       className="fixed inset-0 bg-black flex flex-col pt-16"
     >
       {/* Camera preview */}
-      <div className="flex-1 relative bg-slate-900 flex items-center justify-center">
-        <div className="text-white text-center">
-          <div className="w-32 h-32 mx-auto mb-4 bg-red-500/20 rounded-full flex items-center justify-center relative">
-            {!isPaused && (
-              <div className="absolute inset-0 bg-red-500 rounded-full animate-ping opacity-20" />
-            )}
-            <Camera size={64} className="text-red-500" />
-          </div>
-          <p className="text-sm text-slate-400">Camera đang {isPaused ? 'tạm dừng' : 'quay'}</p>
-        </div>
+      <div className="flex-1 relative bg-slate-900 flex items-center justify-center overflow-hidden">
+        <video
+          ref={videoRef}
+          className="w-full h-full object-cover"
+          autoPlay
+          playsInline
+          muted
+        />
 
-        {/* Voice indicator */}
-        {voiceEnabled && !isPaused && (
-          <div className="absolute top-4 left-4 bg-lime-400/20 backdrop-blur-md border border-lime-400/30 rounded-full px-4 py-2 flex items-center gap-2">
-            <div className="w-2 h-2 bg-lime-400 rounded-full animate-pulse" />
-            <span className="text-sm text-lime-400 font-bold">Đang nghe...</span>
-          </div>
-        )}
-
-        {/* Timer */}
-        <div className="absolute top-4 right-4 bg-black/60 backdrop-blur-md rounded-full px-4 py-2">
-          <div className="flex items-center gap-2">
-            {!isPaused && <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />}
-            <span className="text-lg font-mono font-black text-white">
+        {/* Status Overlay */}
+        <div className="absolute top-4 left-0 right-0 flex justify-center pointer-events-none">
+          <div className="bg-black/60 backdrop-blur-md rounded-full px-4 py-2 flex items-center gap-3">
+            {!isPaused && <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse" />}
+            <span className="text-xl font-mono font-black text-white tracking-widest">
               {formatTime(recordedTime)}
             </span>
           </div>
         </div>
 
+        {/* Voice indicator */}
+        {voiceEnabled && !isPaused && (
+          <div className="absolute top-20 left-4 bg-lime-400/20 backdrop-blur-md border border-lime-400/30 rounded-full px-4 py-2 flex items-center gap-2">
+            <div className="w-2 h-2 bg-lime-400 rounded-full animate-pulse" />
+            <span className="text-sm text-lime-400 font-bold">
+              {lastCommand ? `Lệnh: "${lastCommand}"` : 'Đang nghe...'}
+            </span>
+          </div>
+        )}
+
         {/* Waveform visualization */}
         {voiceEnabled && !isPaused && (
-          <div className="absolute bottom-32 left-0 right-0 flex justify-center gap-1 px-6">
+          <div className="absolute bottom-32 left-0 right-0 flex justify-center gap-1 px-6 pointer-events-none">
             {[...Array(20)].map((_, i) => (
               <motion.div
                 key={i}
-                className="w-1 bg-lime-400 rounded-full"
+                className="w-1 bg-lime-400/80 rounded-full shadow-[0_0_10px_rgba(163,230,53,0.5)]"
                 animate={{
                   height: [8, Math.random() * 40 + 10, 8]
                 }}
@@ -340,33 +428,33 @@ const RecordingStep: React.FC<{
       </div>
 
       {/* Controls */}
-      <div className="p-8 bg-gradient-to-t from-black via-black/95 to-transparent pb-safe">
-        <div className="flex items-center justify-center gap-6">
+      <div className="p-8 bg-gradient-to-t from-black via-black/90 to-transparent pb-safe">
+        <div className="flex items-center justify-center gap-8">
           <Button
             variant="ghost"
             size="icon"
-            className="w-16 h-16"
+            className="w-14 h-14 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/10"
             onClick={onVoiceToggle}
           >
-            {voiceEnabled ? <Mic size={28} /> : <MicOff size={28} />}
+            {voiceEnabled ? <Mic size={24} /> : <MicOff size={24} />}
           </Button>
 
           <Button
             variant="ghost"
             size="icon"
-            className="w-20 h-20border-4 border-white/20"
+            className="w-20 h-20 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md border-2 border-white/20"
             onClick={onPause}
           >
-            {isPaused ? <Play size={32} /> : <Pause size={32} />}
+            {isPaused ? <Play size={32} className="ml-1" /> : <Pause size={32} />}
           </Button>
 
           <Button
             variant="danger"
             size="icon"
-            className="w-16 h-16"
+            className="w-14 h-14 rounded-full shadow-lg shadow-red-500/20"
             onClick={onStop}
           >
-            <Square size={28} />
+            <Square size={24} fill="currentColor" />
           </Button>
         </div>
       </div>
@@ -387,8 +475,8 @@ const ProcessingStep: React.FC = () => (
       transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
       className="w-24 h-24 mb-6 border-4 border-lime-400 border-t-transparent rounded-full"
     />
-    <h2 className="text-2xl font-black text-white mb-2">Đang xử lý...</h2>
-    <p className="text-slate-400 text-center">AI đang phân tích và tạo highlight tự động</p>
+    <h2 className="text-2xl font-black text-white mb-2">Đang xử lý video...</h2>
+    <p className="text-slate-400 text-center">Đang chuẩn bị bản xem trước cho bạn</p>
   </motion.div>
 );
 
@@ -399,8 +487,11 @@ const EditingStep: React.FC<{
   onTitleChange: (title: string) => void;
   onDescriptionChange: (desc: string) => void;
   onSave: () => void;
+  onDownload: () => void;
   recordedTime: number;
-}> = ({ title, description, onTitleChange, onDescriptionChange, onSave, recordedTime }) => (
+  previewUrl: string | null;
+  isUploading: boolean;
+}> = ({ title, description, onTitleChange, onDescriptionChange, onSave, onDownload, recordedTime, previewUrl, isUploading }) => (
   <motion.div
     initial={{ opacity: 0, y: 20 }}
     animate={{ opacity: 1, y: 0 }}
@@ -408,17 +499,18 @@ const EditingStep: React.FC<{
     className="px-6 space-y-6 pb-32"
   >
     {/* Video preview */}
-    <Card className="p-0 overflow-hidden">
-      <div className="aspect-video bg-slate-800 flex items-center justify-center relative">
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center">
-            <Play size={32} className="text-white ml-1" />
-          </div>
+    <Card className="p-0 overflow-hidden bg-black aspect-video rounded-2xl border border-slate-800">
+      {previewUrl ? (
+        <video
+          src={previewUrl}
+          controls
+          className="w-full h-full object-contain"
+        />
+      ) : (
+        <div className="w-full h-full flex items-center justify-center text-slate-500">
+          Không có bản xem trước
         </div>
-        <span className="absolute bottom-2 right-2 bg-black/60 px-2 py-1 rounded text-xs text-white font-mono">
-          {Math.floor(recordedTime / 60)}:{(recordedTime % 60).toString().padStart(2, '0')}
-        </span>
-      </div>
+      )}
     </Card>
 
     {/* Edit form */}
@@ -447,15 +539,22 @@ const EditingStep: React.FC<{
     </Card>
 
     <div className="fixed bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-slate-900 via-slate-900/95 to-transparent pb-safe flex gap-3">
-      <Button variant="outline" className="flex-1" icon={<Download size={20} />}>
+      <Button
+        variant="outline"
+        className="flex-1"
+        icon={<Download size={20} />}
+        onClick={onDownload}
+        disabled={isUploading}
+      >
         Tải về
       </Button>
       <Button
         onClick={onSave}
         className="flex-1"
-        icon={<Check size={20} />}
+        icon={isUploading ? <RefreshCw className="animate-spin" size={20} /> : <Check size={20} />}
+        disabled={isUploading}
       >
-        Lưu video
+        {isUploading ? 'Đang lưu...' : 'Lưu video'}
       </Button>
     </div>
   </motion.div>

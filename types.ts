@@ -45,6 +45,7 @@ export interface Highlight {
   isLiked?: boolean; // Client state
   isPublic?: boolean; // Privacy setting
   description?: string; // Video description
+  title?: string; // Video title
 }
 
 export interface Package {

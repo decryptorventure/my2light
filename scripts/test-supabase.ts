@@ -1,5 +1,5 @@
 // Test script to verify Supabase connection and database operations
-import { supabase } from './lib/supabase';
+import { supabase } from '../lib/supabase';
 import * as dotenv from 'dotenv';
 dotenv.config({ path: '.env.local' });
 

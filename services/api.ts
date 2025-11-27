@@ -415,7 +415,31 @@ export const ApiService = {
     }
   },
 
-  createHighlight: async (courtId: string): Promise<ApiResponse<Highlight>> => {
+  uploadVideo: async (file: Blob): Promise<ApiResponse<string>> => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { success: false, data: '', error: 'Not authenticated' };
+
+    const fileExt = file.type.split('/')[1] || 'webm';
+    const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+    const filePath = `${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('videos')
+      .upload(filePath, file);
+
+    if (uploadError) {
+      console.error('Upload video error:', uploadError);
+      return { success: false, data: '', error: uploadError.message };
+    }
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('videos')
+      .getPublicUrl(filePath);
+
+    return { success: true, data: publicUrl };
+  },
+
+  createHighlight: async (courtId: string, videoUrl?: string, duration?: number, title?: string): Promise<ApiResponse<Highlight>> => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Not authenticated');
 
@@ -423,10 +447,12 @@ export const ApiService = {
       user_id: user.id,
       court_id: courtId,
       thumbnail_url: `https://picsum.photos/400/800?random=${Date.now()}`,
-      video_url: 'https://customer-w42898.cloudflarestream.com/sample/manifest/video.m3u8',
-      duration_sec: 30,
+      video_url: videoUrl || 'https://customer-w42898.cloudflarestream.com/sample/manifest/video.m3u8',
+      duration_sec: duration || 30,
+      title: title || 'Highlight mới',
       likes: 0,
-      views: 0
+      views: 0,
+      is_public: true
     }).select().single();
 
     if (error) throw error;
