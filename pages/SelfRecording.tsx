@@ -119,8 +119,13 @@ export const SelfRecording: React.FC = () => {
       if (!uploadRes.success) throw new Error(uploadRes.error);
 
       // 2. Create highlight record
+      // TODO: Get actual court ID from selection or location
+      // For now, we'll fetch the first court to use as default if not selected
+      const courtsRes = await ApiService.getCourts();
+      const defaultCourtId = courtsRes.data?.[0]?.id || 'court_id_placeholder';
+
       const createRes = await ApiService.createHighlight(
-        'court_id_placeholder', // Should be real ID
+        defaultCourtId,
         uploadRes.data,
         recordedTime,
         videoTitle || `Highlight ${new Date().toLocaleDateString()}`
@@ -132,13 +137,32 @@ export const SelfRecording: React.FC = () => {
       setStep('done');
     } catch (err: any) {
       console.error(err);
-      showToast('Lỗi khi lưu video: ' + err.message, 'error');
+      showToast('Lỗi khi lưu video: ' + (err.message || 'Unknown error'), 'error');
     } finally {
       setIsUploading(false);
     }
   };
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
+    if (!recordedBlob) return;
+
+    // Try Web Share API first for better mobile UX
+    if (navigator.share && recordedBlob) {
+      try {
+        const file = new File([recordedBlob], `highlight-${Date.now()}.webm`, { type: recordedBlob.type });
+        await navigator.share({
+          files: [file],
+          title: 'My Highlight',
+          text: 'Check out my highlight from My2Light!',
+        });
+        showToast('Đã chia sẻ video!', 'success');
+        return;
+      } catch (err) {
+        console.log('Share failed, falling back to download', err);
+      }
+    }
+
+    // Fallback to classic download
     if (previewUrl) {
       const a = document.createElement('a');
       a.href = previewUrl;
@@ -180,6 +204,7 @@ export const SelfRecording: React.FC = () => {
                 onVoiceToggle={() => setVoiceEnabled(!voiceEnabled)}
                 onStart={handleStartRecording}
                 videoRef={videoRef}
+                stream={stream}
                 cameraError={cameraError}
                 permissionGranted={permissionGranted}
                 onSwitchCamera={switchCamera}
@@ -189,6 +214,7 @@ export const SelfRecording: React.FC = () => {
             {step === 'recording' && (
               <RecordingStep
                 videoRef={videoRef}
+                stream={stream}
                 isRecording={recordingStatus === 'recording'}
                 isPaused={recordingStatus === 'paused'}
                 recordedTime={recordedTime}
@@ -239,121 +265,132 @@ const SetupStep: React.FC<{
   onVoiceToggle: () => void;
   onStart: () => void;
   videoRef: React.RefObject<HTMLVideoElement>;
+  stream: MediaStream | null;
   cameraError: string | null;
   permissionGranted: boolean;
   onSwitchCamera: () => void;
 }> = ({
   courtSelected, cameraPosition, voiceEnabled, onVoiceToggle, onStart,
-  videoRef, cameraError, permissionGranted, onSwitchCamera
-}) => (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-      className="px-6 space-y-6"
-    >
-      {/* Camera Preview Card */}
-      <Card className="p-0 overflow-hidden relative bg-black aspect-video rounded-2xl">
-        {cameraError ? (
-          <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center">
-            <Camera size={48} className="text-red-500 mb-2" />
-            <p className="text-white font-bold">Lỗi Camera</p>
-            <p className="text-slate-400 text-sm">{cameraError}</p>
-          </div>
-        ) : (
-          <>
-            <video
-              ref={videoRef}
-              className="w-full h-full object-cover"
-              autoPlay
-              playsInline
-              muted
-            />
-            <div className="absolute bottom-4 right-4">
-              <button
-                onClick={onSwitchCamera}
-                className="p-2 bg-black/50 backdrop-blur rounded-full text-white hover:bg-black/70"
-              >
-                <RefreshCw size={20} />
-              </button>
+  videoRef, stream, cameraError, permissionGranted, onSwitchCamera
+}) => {
+    // Ensure stream is attached when component mounts/updates
+    useEffect(() => {
+      if (videoRef.current && stream) {
+        videoRef.current.srcObject = stream;
+      }
+    }, [stream, videoRef]);
+
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -20 }}
+        className="px-6 space-y-6"
+      >
+        {/* Camera Preview Card */}
+        <Card className="p-0 overflow-hidden relative bg-black aspect-video rounded-2xl">
+          {cameraError ? (
+            <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center">
+              <Camera size={48} className="text-red-500 mb-2" />
+              <p className="text-white font-bold">Lỗi Camera</p>
+              <p className="text-slate-400 text-sm">{cameraError}</p>
             </div>
-          </>
-        )}
-      </Card>
+          ) : (
+            <>
+              <video
+                ref={videoRef}
+                className="w-full h-full object-cover"
+                autoPlay
+                playsInline
+                muted
+              />
+              <div className="absolute bottom-4 right-4">
+                <button
+                  onClick={onSwitchCamera}
+                  className="p-2 bg-black/50 backdrop-blur rounded-full text-white hover:bg-black/70"
+                >
+                  <RefreshCw size={20} />
+                </button>
+              </div>
+            </>
+          )}
+        </Card>
 
-      <Card className="p-6">
-        <h3 className="font-bold text-white mb-4 flex items-center gap-2">
-          <Camera size={20} className="text-lime-400" />
-          Hướng dẫn đặt camera
-        </h3>
+        <Card className="p-6">
+          <h3 className="font-bold text-white mb-4 flex items-center gap-2">
+            <Camera size={20} className="text-lime-400" />
+            Hướng dẫn đặt camera
+          </h3>
 
-        <div className="space-y-2 text-sm text-slate-300 mb-4">
-          <div className="flex items-start gap-2">
-            <Check size={16} className="text-lime-400 flex-shrink-0 mt-0.5" />
-            <span>Đặt điện thoại ở góc sân, cao khoảng 1.5m</span>
+          <div className="space-y-2 text-sm text-slate-300 mb-4">
+            <div className="flex items-start gap-2">
+              <Check size={16} className="text-lime-400 flex-shrink-0 mt-0.5" />
+              <span>Đặt điện thoại ở góc sân, cao khoảng 1.5m</span>
+            </div>
+            <div className="flex items-start gap-2">
+              <Check size={16} className="text-lime-400 flex-shrink-0 mt-0.5" />
+              <span>Đảm bảo toàn bộ sân trong khung hình</span>
+            </div>
           </div>
-          <div className="flex items-start gap-2">
-            <Check size={16} className="text-lime-400 flex-shrink-0 mt-0.5" />
-            <span>Đảm bảo toàn bộ sân trong khung hình</span>
-          </div>
-        </div>
 
-        <div className={`p-4 rounded-xl border-2 ${cameraPosition === 'optimal'
-          ? 'border-lime-400 bg-lime-400/10'
-          : 'border-yellow-500 bg-yellow-500/10'
-          }`}>
-          <div className="flex items-center gap-2 mb-1">
-            <div className={`w-2 h-2 rounded-full ${cameraPosition === 'optimal' ? 'bg-lime-400' : 'bg-yellow-500'
-              } animate-pulse`} />
-            <span className="font-bold text-white">
-              {cameraPosition === 'optimal' ? 'Vị trí tối ưu' : 'Vị trí tốt'}
-            </span>
+          <div className={`p-4 rounded-xl border-2 ${cameraPosition === 'optimal'
+            ? 'border-lime-400 bg-lime-400/10'
+            : 'border-yellow-500 bg-yellow-500/10'
+            }`}>
+            <div className="flex items-center gap-2 mb-1">
+              <div className={`w-2 h-2 rounded-full ${cameraPosition === 'optimal' ? 'bg-lime-400' : 'bg-yellow-500'
+                } animate-pulse`} />
+              <span className="font-bold text-white">
+                {cameraPosition === 'optimal' ? 'Vị trí tối ưu' : 'Vị trí tốt'}
+              </span>
+            </div>
+            <p className="text-xs text-slate-400">
+              Camera đã được kích hoạt. Hãy điều chỉnh góc máy.
+            </p>
           </div>
-          <p className="text-xs text-slate-400">
-            Camera đã được kích hoạt. Hãy điều chỉnh góc máy.
-          </p>
-        </div>
-      </Card>
+        </Card>
 
-      <Card className="p-6">
-        <h3 className="font-bold text-white mb-4 flex items-center gap-2">
-          <Mic size={20} className="text-blue-400" />
-          Điều khiển bằng giọng nói
-        </h3>
+        <Card className="p-6">
+          <h3 className="font-bold text-white mb-4 flex items-center gap-2">
+            <Mic size={20} className="text-blue-400" />
+            Điều khiển bằng giọng nói
+          </h3>
 
-        <div className="flex items-center justify-between p-4 bg-slate-800/50 rounded-xl mb-4">
-          <div>
-            <p className="font-medium text-white mb-1">Kích hoạt giọng nói</p>
-            <p className="text-xs text-slate-400">Nói "Start" để bắt đầu</p>
+          <div className="flex items-center justify-between p-4 bg-slate-800/50 rounded-xl mb-4">
+            <div>
+              <p className="font-medium text-white mb-1">Kích hoạt giọng nói</p>
+              <p className="text-xs text-slate-400">Nói "Start" để bắt đầu</p>
+            </div>
+            <button
+              onClick={onVoiceToggle}
+              className={`w-14 h-8 rounded-full transition-colors ${voiceEnabled ? 'bg-lime-400' : 'bg-slate-700'
+                }`}
+            >
+              <div className={`w-6 h-6 bg-white rounded-full shadow-lg transform transition-transform ${voiceEnabled ? 'translate-x-7' : 'translate-x-1'
+                }`} />
+            </button>
           </div>
-          <button
-            onClick={onVoiceToggle}
-            className={`w-14 h-8 rounded-full transition-colors ${voiceEnabled ? 'bg-lime-400' : 'bg-slate-700'
-              }`}
+        </Card>
+
+        <div className="fixed bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-slate-900 via-slate-900/95 to-transparent pb-safe">
+          <Button
+            onClick={onStart}
+            icon={<Zap size={20} />}
+            size="xl"
+            className="w-full"
+            disabled={!permissionGranted}
           >
-            <div className={`w-6 h-6 bg-white rounded-full shadow-lg transform transition-transform ${voiceEnabled ? 'translate-x-7' : 'translate-x-1'
-              }`} />
-          </button>
+            Bắt đầu quay
+          </Button>
         </div>
-      </Card>
-
-      <div className="fixed bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-slate-900 via-slate-900/95 to-transparent pb-safe">
-        <Button
-          onClick={onStart}
-          icon={<Zap size={20} />}
-          size="xl"
-          className="w-full"
-          disabled={!permissionGranted}
-        >
-          Bắt đầu quay
-        </Button>
-      </div>
-    </motion.div>
-  );
+      </motion.div>
+    );
+  };
 
 // Recording Step Component
 const RecordingStep: React.FC<{
   videoRef: React.RefObject<HTMLVideoElement>;
+  stream: MediaStream | null;
   isRecording: boolean;
   isPaused: boolean;
   recordedTime: number;
@@ -362,12 +399,19 @@ const RecordingStep: React.FC<{
   onStop: () => void;
   onVoiceToggle: () => void;
   lastCommand: string | null;
-}> = ({ videoRef, isRecording, isPaused, recordedTime, voiceEnabled, onPause, onStop, onVoiceToggle, lastCommand }) => {
+}> = ({ videoRef, stream, isRecording, isPaused, recordedTime, voiceEnabled, onPause, onStop, onVoiceToggle, lastCommand }) => {
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
+
+  // Ensure stream is attached when component mounts/updates
+  useEffect(() => {
+    if (videoRef.current && stream) {
+      videoRef.current.srcObject = stream;
+    }
+  }, [stream, videoRef]);
 
   return (
     <motion.div
