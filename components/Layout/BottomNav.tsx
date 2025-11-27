@@ -16,7 +16,7 @@ export const BottomNav: React.FC = () => {
   const isActive = (path: string) => location.pathname === path;
 
   // Don't show nav on these paths
-  const hiddenPaths = ['/', '/welcome', '/onboarding', '/login', '/qr', '/active-session', '/self-recording'];
+  const hiddenPaths = ['/', '/welcome', '/onboarding', '/login', '/qr', '/active-session', '/self-recording', '/gallery'];
   const isHidden = hiddenPaths.includes(location.pathname) || location.pathname.startsWith('/court/');
 
   if (isHidden) return null;

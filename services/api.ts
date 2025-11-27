@@ -439,7 +439,7 @@ export const ApiService = {
     return { success: true, data: publicUrl };
   },
 
-  createHighlight: async (courtId: string, videoUrl?: string, duration?: number, title?: string): Promise<ApiResponse<Highlight>> => {
+  createHighlight: async (courtId: string, videoUrl?: string, duration?: number, title?: string, description?: string): Promise<ApiResponse<Highlight>> => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Not authenticated');
 
@@ -450,6 +450,7 @@ export const ApiService = {
       video_url: videoUrl || 'https://customer-w42898.cloudflarestream.com/sample/manifest/video.m3u8',
       duration_sec: duration || 30,
       title: title || 'Highlight mới',
+      description: description || '',
       likes: 0,
       views: 0,
       is_public: true

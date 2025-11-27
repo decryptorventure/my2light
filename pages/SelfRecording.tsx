@@ -32,6 +32,7 @@ export const SelfRecording: React.FC = () => {
   const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [highlightTimestamps, setHighlightTimestamps] = useState<number[]>([]);
 
   // Refs
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -80,8 +81,7 @@ export const SelfRecording: React.FC = () => {
           handleStopRecording();
           showToast('Đã nhận lệnh: Dừng quay', 'success');
         } else if (cmd === 'highlight') {
-          showToast('Đã đánh dấu Highlight!', 'info');
-          // Logic to mark timestamp could go here
+          handleMarkHighlight();
         }
       }
     }
@@ -99,6 +99,7 @@ export const SelfRecording: React.FC = () => {
       showToast('Vui lòng cấp quyền camera để quay', 'error');
       return;
     }
+    setHighlightTimestamps([]); // Reset highlights
     setStep('recording');
     startRecording();
     celebrate({ particleCount: 30 });
@@ -128,7 +129,8 @@ export const SelfRecording: React.FC = () => {
         defaultCourtId,
         uploadRes.data,
         recordedTime,
-        videoTitle || `Highlight ${new Date().toLocaleDateString()}`
+        videoTitle || `Highlight ${new Date().toLocaleDateString()}`,
+        videoDescription
       );
 
       if (!createRes.success) throw new Error(createRes.error);
@@ -174,28 +176,26 @@ export const SelfRecording: React.FC = () => {
     }
   };
 
+  const handleMarkHighlight = () => {
+    const timestamp = recordedTime;
+    setHighlightTimestamps(prev => [...prev, timestamp]);
+    showToast('Đã đánh dấu Highlight! 🏆', 'success');
+    celebrate({ particleCount: 50, spread: 60, origin: { y: 0.8 } });
+  };
+
+  // ... (existing handleStopRecording, handleSaveVideo, handleDownload)
+
   return (
     <PageTransition>
       <div className="min-h-screen bg-slate-900">
-        {/* Header */}
-        <div className="fixed top-0 left-0 right-0 z-50 bg-slate-900/80 backdrop-blur-md border-b border-slate-800 pt-safe">
-          <div className="flex items-center justify-between p-4">
-            <button
-              onClick={() => navigate(-1)}
-              className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center hover:bg-slate-700"
-            >
-              <ChevronLeft size={20} />
-            </button>
-            <h1 className="text-lg font-black">Tự Quay AI</h1>
-            <div className="w-10" />
-          </div>
-        </div>
+        {/* ... (existing header) */}
 
         {/* Content */}
         <div className="pt-20 pb-safe">
           <AnimatePresence mode="wait">
             {step === 'setup' && (
               <SetupStep
+                // ... (existing props)
                 courtSelected={courtSelected}
                 onCourtChange={setCourtSelected}
                 cameraPosition={cameraPosition}
@@ -223,6 +223,8 @@ export const SelfRecording: React.FC = () => {
                 onStop={handleStopRecording}
                 onVoiceToggle={() => setVoiceEnabled(!voiceEnabled)}
                 lastCommand={lastCommand}
+                highlightCount={highlightTimestamps.length}
+                onMarkHighlight={handleMarkHighlight}
               />
             )}
 
@@ -239,6 +241,7 @@ export const SelfRecording: React.FC = () => {
                 recordedTime={recordedTime}
                 previewUrl={previewUrl}
                 isUploading={isUploading}
+                highlightTimestamps={highlightTimestamps}
               />
             )}
 
@@ -399,112 +402,126 @@ const RecordingStep: React.FC<{
   onStop: () => void;
   onVoiceToggle: () => void;
   lastCommand: string | null;
-}> = ({ videoRef, stream, isRecording, isPaused, recordedTime, voiceEnabled, onPause, onStop, onVoiceToggle, lastCommand }) => {
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  highlightCount: number;
+  onMarkHighlight: () => void;
+}> = ({
+  videoRef, stream, isRecording, isPaused, recordedTime, voiceEnabled,
+  onPause, onStop, onVoiceToggle, lastCommand, highlightCount, onMarkHighlight
+}) => {
+    const formatTime = (seconds: number) => {
+      const mins = Math.floor(seconds / 60);
+      const secs = seconds % 60;
+      return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    };
+
+    // Ensure stream is attached when component mounts/updates
+    useEffect(() => {
+      if (videoRef.current && stream) {
+        videoRef.current.srcObject = stream;
+      }
+    }, [stream, videoRef]);
+
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 bg-black flex flex-col pt-16"
+      >
+        {/* Camera preview */}
+        <div className="flex-1 relative bg-slate-900 flex items-center justify-center overflow-hidden">
+          <video
+            ref={videoRef}
+            className="w-full h-full object-cover"
+            autoPlay
+            playsInline
+            muted
+          />
+
+          {/* Status Overlay */}
+          <div className="absolute top-4 left-0 right-0 flex flex-col items-center gap-2 pointer-events-none">
+            <div className="bg-black/60 backdrop-blur-md rounded-full px-4 py-2 flex items-center gap-3">
+              {!isPaused && <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse" />}
+              <span className="text-xl font-mono font-black text-white tracking-widest">
+                {formatTime(recordedTime)}
+              </span>
+            </div>
+
+            {/* Highlight Counter */}
+            <AnimatePresence>
+              {highlightCount > 0 && (
+                <motion.div
+                  initial={{ scale: 0, y: -20 }}
+                  animate={{ scale: 1, y: 0 }}
+                  exit={{ scale: 0 }}
+                  key={highlightCount} // Re-animate on change
+                  className="bg-lime-400/90 backdrop-blur-md rounded-full px-3 py-1 flex items-center gap-2 shadow-lg shadow-lime-400/20"
+                >
+                  <Sparkles size={14} className="text-slate-900" />
+                  <span className="text-sm font-bold text-slate-900">
+                    {highlightCount} Highlights
+                  </span>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Voice indicator */}
+          {voiceEnabled && !isPaused && (
+            <div className="absolute top-24 left-4 bg-lime-400/20 backdrop-blur-md border border-lime-400/30 rounded-full px-4 py-2 flex items-center gap-2">
+              <div className="w-2 h-2 bg-lime-400 rounded-full animate-pulse" />
+              <span className="text-sm text-lime-400 font-bold">
+                {lastCommand ? `Lệnh: "${lastCommand}"` : 'Đang nghe...'}
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* Controls */}
+        <div className="p-8 bg-gradient-to-t from-black via-black/90 to-transparent pb-safe space-y-6">
+          {/* Highlight Button */}
+          <div className="flex justify-center">
+            <Button
+              onClick={onMarkHighlight}
+              className="bg-lime-400 hover:bg-lime-500 text-slate-900 font-bold px-8 py-6 rounded-2xl shadow-[0_0_20px_rgba(163,230,53,0.3)] active:scale-95 transition-all"
+              icon={<Sparkles size={24} />}
+            >
+              Đánh dấu Highlight
+            </Button>
+          </div>
+
+          <div className="flex items-center justify-center gap-8">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="w-14 h-14 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/10"
+              onClick={onVoiceToggle}
+            >
+              {voiceEnabled ? <Mic size={24} /> : <MicOff size={24} />}
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="icon"
+              className="w-20 h-20 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md border-2 border-white/20"
+              onClick={onPause}
+            >
+              {isPaused ? <Play size={32} className="ml-1" /> : <Pause size={32} />}
+            </Button>
+
+            <Button
+              variant="danger"
+              size="icon"
+              className="w-14 h-14 rounded-full shadow-lg shadow-red-500/20"
+              onClick={onStop}
+            >
+              <Square size={24} fill="currentColor" />
+            </Button>
+          </div>
+        </div>
+      </motion.div>
+    );
   };
-
-  // Ensure stream is attached when component mounts/updates
-  useEffect(() => {
-    if (videoRef.current && stream) {
-      videoRef.current.srcObject = stream;
-    }
-  }, [stream, videoRef]);
-
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-black flex flex-col pt-16"
-    >
-      {/* Camera preview */}
-      <div className="flex-1 relative bg-slate-900 flex items-center justify-center overflow-hidden">
-        <video
-          ref={videoRef}
-          className="w-full h-full object-cover"
-          autoPlay
-          playsInline
-          muted
-        />
-
-        {/* Status Overlay */}
-        <div className="absolute top-4 left-0 right-0 flex justify-center pointer-events-none">
-          <div className="bg-black/60 backdrop-blur-md rounded-full px-4 py-2 flex items-center gap-3">
-            {!isPaused && <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse" />}
-            <span className="text-xl font-mono font-black text-white tracking-widest">
-              {formatTime(recordedTime)}
-            </span>
-          </div>
-        </div>
-
-        {/* Voice indicator */}
-        {voiceEnabled && !isPaused && (
-          <div className="absolute top-20 left-4 bg-lime-400/20 backdrop-blur-md border border-lime-400/30 rounded-full px-4 py-2 flex items-center gap-2">
-            <div className="w-2 h-2 bg-lime-400 rounded-full animate-pulse" />
-            <span className="text-sm text-lime-400 font-bold">
-              {lastCommand ? `Lệnh: "${lastCommand}"` : 'Đang nghe...'}
-            </span>
-          </div>
-        )}
-
-        {/* Waveform visualization */}
-        {voiceEnabled && !isPaused && (
-          <div className="absolute bottom-32 left-0 right-0 flex justify-center gap-1 px-6 pointer-events-none">
-            {[...Array(20)].map((_, i) => (
-              <motion.div
-                key={i}
-                className="w-1 bg-lime-400/80 rounded-full shadow-[0_0_10px_rgba(163,230,53,0.5)]"
-                animate={{
-                  height: [8, Math.random() * 40 + 10, 8]
-                }}
-                transition={{
-                  duration: 0.5,
-                  repeat: Infinity,
-                  delay: i * 0.1
-                }}
-              />
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Controls */}
-      <div className="p-8 bg-gradient-to-t from-black via-black/90 to-transparent pb-safe">
-        <div className="flex items-center justify-center gap-8">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="w-14 h-14 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/10"
-            onClick={onVoiceToggle}
-          >
-            {voiceEnabled ? <Mic size={24} /> : <MicOff size={24} />}
-          </Button>
-
-          <Button
-            variant="ghost"
-            size="icon"
-            className="w-20 h-20 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md border-2 border-white/20"
-            onClick={onPause}
-          >
-            {isPaused ? <Play size={32} className="ml-1" /> : <Pause size={32} />}
-          </Button>
-
-          <Button
-            variant="danger"
-            size="icon"
-            className="w-14 h-14 rounded-full shadow-lg shadow-red-500/20"
-            onClick={onStop}
-          >
-            <Square size={24} fill="currentColor" />
-          </Button>
-        </div>
-      </div>
-    </motion.div>
-  );
-};
 
 // Processing Step Component
 const ProcessingStep: React.FC = () => (
@@ -535,74 +552,134 @@ const EditingStep: React.FC<{
   recordedTime: number;
   previewUrl: string | null;
   isUploading: boolean;
-}> = ({ title, description, onTitleChange, onDescriptionChange, onSave, onDownload, recordedTime, previewUrl, isUploading }) => (
-  <motion.div
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    exit={{ opacity: 0 }}
-    className="px-6 space-y-6 pb-32"
-  >
-    {/* Video preview */}
-    <Card className="p-0 overflow-hidden bg-black aspect-video rounded-2xl border border-slate-800">
-      {previewUrl ? (
-        <video
-          src={previewUrl}
-          controls
-          className="w-full h-full object-contain"
-        />
-      ) : (
-        <div className="w-full h-full flex items-center justify-center text-slate-500">
-          Không có bản xem trước
+  highlightTimestamps: number[];
+}> = ({
+  title, description, onTitleChange, onDescriptionChange, onSave, onDownload,
+  recordedTime, previewUrl, isUploading, highlightTimestamps
+}) => {
+    const videoRef = useRef<HTMLVideoElement>(null);
+
+    const jumpToHighlight = (timestamp: number) => {
+      if (videoRef.current) {
+        // Jump to 5 seconds before the highlight
+        const targetTime = Math.max(0, timestamp - 5);
+        videoRef.current.currentTime = targetTime;
+        videoRef.current.play();
+      }
+    };
+
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0 }}
+        className="px-6 space-y-6 pb-32"
+      >
+        {/* Video preview */}
+        <Card className="p-0 overflow-hidden bg-black aspect-video rounded-2xl border border-slate-800 relative group">
+          {previewUrl ? (
+            <>
+              <video
+                ref={videoRef}
+                src={previewUrl}
+                controls
+                className="w-full h-full object-contain"
+              />
+              {/* Timeline Markers Overlay (Optional - simplified version) */}
+              {highlightTimestamps.length > 0 && (
+                <div className="absolute bottom-12 left-4 right-4 h-1 bg-white/20 rounded-full pointer-events-none hidden group-hover:block">
+                  {highlightTimestamps.map((ts, i) => (
+                    <div
+                      key={i}
+                      className="absolute top-1/2 -translate-y-1/2 w-2 h-2 bg-lime-400 rounded-full shadow-[0_0_5px_rgba(163,230,53,0.8)]"
+                      style={{ left: `${(ts / recordedTime) * 100}%` }}
+                    />
+                  ))}
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-slate-500">
+              Không có bản xem trước
+            </div>
+          )}
+        </Card>
+
+        {/* Highlight Markers */}
+        {highlightTimestamps.length > 0 && (
+          <div className="space-y-2">
+            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider">
+              Highlights đã đánh dấu
+            </h3>
+            <div className="flex flex-wrap gap-2">
+              {highlightTimestamps.map((ts, i) => (
+                <button
+                  key={i}
+                  onClick={() => jumpToHighlight(ts)}
+                  className="flex items-center gap-2 px-3 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg border border-slate-700 transition-colors group"
+                >
+                  <div className="w-6 h-6 rounded-full bg-lime-400/10 flex items-center justify-center group-hover:bg-lime-400/20">
+                    <Sparkles size={12} className="text-lime-400" />
+                  </div>
+                  <span className="text-sm font-medium text-white">
+                    Pha bóng #{i + 1}
+                  </span>
+                  <span className="text-xs text-slate-500 font-mono">
+                    {Math.floor(ts / 60)}:{String(ts % 60).padStart(2, '0')}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Edit form */}
+        <Card className="p-6 space-y-4">
+          <h3 className="font-bold text-white flex items-center gap-2">
+            <Type size={20} className="text-lime-400" />
+            Thông tin video
+          </h3>
+
+          <Input
+            label="Tiêu đề"
+            value={title}
+            onChange={(e) => onTitleChange(e.target.value)}
+            placeholder="Ví dụ: Pha bóng đẹp hôm nay"
+            variant="filled"
+          />
+
+          <Textarea
+            label="Mô tả"
+            value={description}
+            onChange={(e) => onDescriptionChange(e.target.value)}
+            placeholder="Thêm mô tả cho video..."
+            rows={3}
+            variant="filled"
+          />
+        </Card>
+
+        <div className="fixed bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-slate-900 via-slate-900/95 to-transparent pb-safe flex gap-3">
+          <Button
+            variant="outline"
+            className="flex-1"
+            icon={<Download size={20} />}
+            onClick={onDownload}
+            disabled={isUploading}
+          >
+            Tải về
+          </Button>
+          <Button
+            onClick={onSave}
+            className="flex-1"
+            icon={isUploading ? <RefreshCw className="animate-spin" size={20} /> : <Check size={20} />}
+            disabled={isUploading}
+          >
+            {isUploading ? 'Đang lưu...' : 'Lưu video'}
+          </Button>
         </div>
-      )}
-    </Card>
-
-    {/* Edit form */}
-    <Card className="p-6 space-y-4">
-      <h3 className="font-bold text-white flex items-center gap-2">
-        <Type size={20} className="text-lime-400" />
-        Thông tin video
-      </h3>
-
-      <Input
-        label="Tiêu đề"
-        value={title}
-        onChange={(e) => onTitleChange(e.target.value)}
-        placeholder="Ví dụ: Pha bóng đẹp hôm nay"
-        variant="filled"
-      />
-
-      <Textarea
-        label="Mô tả"
-        value={description}
-        onChange={(e) => onDescriptionChange(e.target.value)}
-        placeholder="Thêm mô tả cho video..."
-        rows={3}
-        variant="filled"
-      />
-    </Card>
-
-    <div className="fixed bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-slate-900 via-slate-900/95 to-transparent pb-safe flex gap-3">
-      <Button
-        variant="outline"
-        className="flex-1"
-        icon={<Download size={20} />}
-        onClick={onDownload}
-        disabled={isUploading}
-      >
-        Tải về
-      </Button>
-      <Button
-        onClick={onSave}
-        className="flex-1"
-        icon={isUploading ? <RefreshCw className="animate-spin" size={20} /> : <Check size={20} />}
-        disabled={isUploading}
-      >
-        {isUploading ? 'Đang lưu...' : 'Lưu video'}
-      </Button>
-    </div>
-  </motion.div>
-);
+      </motion.div>
+    );
+  };
 
 // Done Step Component
 const DoneStep: React.FC<{

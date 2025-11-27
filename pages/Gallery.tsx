@@ -66,8 +66,8 @@ export const Gallery: React.FC = () => {
                   key={filter.id}
                   onClick={() => setActiveFilter(filter.id as any)}
                   className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all ${isActive
-                      ? 'bg-lime-400 text-slate-900'
-                      : 'bg-white/10 text-white hover:bg-white/20'
+                    ? 'bg-lime-400 text-slate-900'
+                    : 'bg-white/10 text-white hover:bg-white/20'
                     }`}
                   whileTap={{ scale: 0.95 }}
                 >
@@ -103,6 +103,7 @@ interface VideoCardProps {
 
 const VideoCard: React.FC<VideoCardProps> = ({ highlight, index }) => {
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isPreviewMode, setIsPreviewMode] = useState(true);
   const [liked, setLiked] = useState(highlight.isLiked || false);
   const [saved, setSaved] = useState(false);
   const [likesCount, setLikesCount] = useState(highlight.likes);
@@ -114,14 +115,59 @@ const VideoCard: React.FC<VideoCardProps> = ({ highlight, index }) => {
   const x = useMotionValue(0);
   const opacity = useTransform(x, [-150, 0, 150], [0.5, 1, 0.5]);
 
-  const togglePlay = () => {
+  // Auto-play preview when mounted
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting && videoRef.current) {
+            videoRef.current.play().catch(() => {
+              // Auto-play might fail if not muted, but we set muted={true} initially
+            });
+            setIsPlaying(true);
+          } else if (videoRef.current) {
+            videoRef.current.pause();
+            setIsPlaying(false);
+          }
+        });
+      },
+      { threshold: 0.6 }
+    );
+
     if (videoRef.current) {
-      if (isPlaying) {
-        videoRef.current.pause();
-      } else {
+      observer.observe(videoRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, []);
+
+  const handleTimeUpdate = () => {
+    if (videoRef.current && isPreviewMode) {
+      if (videoRef.current.currentTime >= 5) {
+        videoRef.current.currentTime = 0;
         videoRef.current.play();
       }
-      setIsPlaying(!isPlaying);
+    }
+  };
+
+  const togglePlay = () => {
+    if (videoRef.current) {
+      if (isPreviewMode) {
+        // Switch to full view mode
+        setIsPreviewMode(false);
+        videoRef.current.muted = false;
+        videoRef.current.currentTime = 0;
+        videoRef.current.play();
+        setIsPlaying(true);
+      } else {
+        // Normal toggle
+        if (isPlaying) {
+          videoRef.current.pause();
+        } else {
+          videoRef.current.play();
+        }
+        setIsPlaying(!isPlaying);
+      }
     }
   };
 
@@ -159,13 +205,15 @@ const VideoCard: React.FC<VideoCardProps> = ({ highlight, index }) => {
         src={highlight.videoUrl}
         poster={highlight.thumbnailUrl}
         className="w-full h-full object-contain"
-        loop
+        loop={!isPreviewMode}
         playsInline
+        muted={isPreviewMode}
         onClick={togglePlay}
+        onTimeUpdate={handleTimeUpdate}
       />
 
       {/* Play overlay */}
-      {!isPlaying && (
+      {!isPlaying && !isPreviewMode && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -176,6 +224,15 @@ const VideoCard: React.FC<VideoCardProps> = ({ highlight, index }) => {
             <div className="w-0 h-0 ml-1 border-t-[12px] border-t-transparent border-l-[20px] border-l-slate-900 border-b-[12px] border-b-transparent" />
           </div>
         </motion.div>
+      )}
+
+      {/* Preview Indicator */}
+      {isPreviewMode && isPlaying && (
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
+          <div className="bg-black/50 backdrop-blur-md px-4 py-2 rounded-full text-white text-sm font-medium border border-white/20 animate-pulse">
+            Chạm để xem đầy đủ
+          </div>
+        </div>
       )}
 
       {/* Bottom gradient overlay */}
@@ -210,17 +267,17 @@ const VideoCard: React.FC<VideoCardProps> = ({ highlight, index }) => {
           </div>
 
           {/* Actions */}
-          <div className="flex flex-col items-center gap-5">
+          <div className="flex flex-col items-center gap-4">
             {/* Like */}
             <motion.button
               whileTap={{ scale: 0.9 }}
               onClick={handleLike}
               className="flex flex-col items-center gap-1"
             >
-              <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${liked ? 'bg-red-500' : 'bg-white/20 backdrop-blur-md'
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${liked ? 'bg-red-500' : 'bg-white/20 backdrop-blur-md'
                 }`}>
                 <Heart
-                  size={24}
+                  size={20}
                   className={liked ? 'fill-white text-white' : 'text-white'}
                 />
               </div>
@@ -233,8 +290,8 @@ const VideoCard: React.FC<VideoCardProps> = ({ highlight, index }) => {
               onClick={() => setShowComments(true)}
               className="flex flex-col items-center gap-1"
             >
-              <div className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center">
-                <MessageCircle size={24} className="text-white" />
+              <div className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center">
+                <MessageCircle size={20} className="text-white" />
               </div>
               <span className="text-xs text-white font-bold">
                 {Math.floor(Math.random() * 20)}
@@ -247,10 +304,10 @@ const VideoCard: React.FC<VideoCardProps> = ({ highlight, index }) => {
               onClick={handleSave}
               className="flex flex-col items-center gap-1"
             >
-              <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${saved ? 'bg-lime-400' : 'bg-white/20 backdrop-blur-md'
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${saved ? 'bg-lime-400' : 'bg-white/20 backdrop-blur-md'
                 }`}>
                 <Bookmark
-                  size={24}
+                  size={20}
                   className={saved ? 'fill-slate-900 text-slate-900' : 'text-white'}
                 />
               </div>
@@ -262,8 +319,8 @@ const VideoCard: React.FC<VideoCardProps> = ({ highlight, index }) => {
               onClick={() => setShowShare(true)}
               className="flex flex-col items-center gap-1"
             >
-              <div className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center">
-                <Share2 size={24} className="text-white" />
+              <div className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center">
+                <Share2 size={20} className="text-white" />
               </div>
             </motion.button>
 
@@ -272,8 +329,8 @@ const VideoCard: React.FC<VideoCardProps> = ({ highlight, index }) => {
               whileTap={{ scale: 0.9 }}
               className="flex flex-col items-center gap-1"
             >
-              <div className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center">
-                <MoreVertical size={24} className="text-white" />
+              <div className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center">
+                <MoreVertical size={20} className="text-white" />
               </div>
             </motion.button>
           </div>
