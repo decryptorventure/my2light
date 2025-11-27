@@ -175,9 +175,14 @@ const VideoCard: React.FC<VideoCardProps> = ({ highlight, index }) => {
     if (!liked) {
       celebrate({ particleCount: 20, spread: 40 });
     }
-    setLiked(!liked);
-    setLikesCount(prev => liked ? prev - 1 : prev + 1);
-    // API call here
+
+    // Optimistic update
+    const newLikedState = !liked;
+    setLiked(newLikedState);
+    setLikesCount(prev => newLikedState ? prev + 1 : prev - 1);
+
+    // API call
+    await ApiService.toggleLike(highlight.id, likesCount, newLikedState);
   };
 
   const handleSave = () => {

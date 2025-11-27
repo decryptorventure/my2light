@@ -18,12 +18,20 @@ const Gallery = lazy(() => import('./pages/Gallery').then(m => ({ default: m.Gal
 const MyHighlights = lazy(() => import('./pages/MyHighlights').then(m => ({ default: m.MyHighlights })));
 const Profile = lazy(() => import('./pages/Profile').then(m => ({ default: m.Profile })));
 const SelfRecording = lazy(() => import('./pages/SelfRecording').then(m => ({ default: m.SelfRecording })));
+const Booking = lazy(() => import('./pages/Booking').then(m => ({ default: m.Booking })));
+const Notifications = lazy(() => import('./pages/Notifications').then(m => ({ default: m.Notifications })));
+const MyBookings = lazy(() => import('./pages/MyBookings').then(m => ({ default: m.MyBookings })));
+const Wallet = lazy(() => import('./pages/Wallet').then(m => ({ default: m.Wallet })));
+const PaymentCallback = lazy(() => import('./pages/PaymentCallback').then(m => ({ default: m.PaymentCallback })));
 
 // Components
 import { BottomNav } from './components/Layout/BottomNav';
 import { IOSInstallPrompt } from './components/Layout/IOSInstallPrompt';
 import { ToastProvider } from './components/ui/Toast';
 import { LoadingSpinner } from './components/ui/LoadingSpinner';
+import { NotificationProvider } from './contexts/NotificationContext';
+import { ErrorBoundary } from './components/ui/ErrorBoundary';
+import { NotificationPermissionPrompt } from './components/modals/NotificationPermissionPrompt';
 
 // Suspense fallback component
 const PageLoader = () => (
@@ -51,6 +59,11 @@ const AnimatedRoutes = () => {
           <Route path="/my-highlights" element={<MyHighlights />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/self-recording" element={<SelfRecording />} />
+          <Route path="/booking/:id" element={<Booking />} />
+          <Route path="/my-bookings" element={<MyBookings />} />
+          <Route path="/wallet" element={<Wallet />} />
+          <Route path="/payment-callback" element={<PaymentCallback />} />
+          <Route path="/notifications" element={<Notifications />} />
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </Suspense>
@@ -76,15 +89,20 @@ const App: React.FC = () => {
   }, []);
 
   return (
-    <HashRouter>
-      <ToastProvider>
-        <div className="bg-slate-900 min-h-screen text-slate-100 font-sans selection:bg-lime-400/30 pt-safe-top pb-safe-bottom">
-          <AnimatedRoutes />
-          <BottomNav />
-          <IOSInstallPrompt />
-        </div>
-      </ToastProvider>
-    </HashRouter>
+    <ErrorBoundary>
+      <NotificationProvider>
+        <HashRouter>
+          <ToastProvider>
+            <div className="bg-slate-900 min-h-screen text-slate-100 font-sans selection:bg-lime-400/30 pt-safe-top pb-safe-bottom">
+              <AnimatedRoutes />
+              <BottomNav />
+              <IOSInstallPrompt />
+              <NotificationPermissionPrompt />
+            </div>
+          </ToastProvider>
+        </HashRouter>
+      </NotificationProvider>
+    </ErrorBoundary>
   );
 };
 

@@ -1,6 +1,5 @@
-
 import React, { useEffect, useState } from 'react';
-import { Settings, LogOut, Clock, Zap, Map, Edit2, Calendar, CreditCard, ChevronDown, Camera } from 'lucide-react';
+import { Settings, LogOut, Clock, Zap, Map as MapIcon, Edit2, Calendar, CreditCard, ChevronDown, Camera, Wallet, Activity } from 'lucide-react';
 import { PageTransition } from '../components/Layout/PageTransition';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
@@ -74,25 +73,44 @@ export const Profile: React.FC = () => {
         }
     };
 
-    // Generate mock activity data for heatmap
-    const generateMockActivityData = () => {
-        const data = [];
+    // Generate activity data from real bookings
+    const generateActivityData = () => {
+        const data: { date: string; count: number; duration: number }[] = [];
         const today = new Date();
-        for (let i = 0; i < 84; i++) { // 12 weeks = 84 days
+        const map: Map<string, { count: number; duration: number }> = new Map();
+
+        // Initialize last 84 days with 0
+        for (let i = 0; i < 84; i++) {
             const date = new Date(today);
             date.setDate(today.getDate() - i);
             const dateStr = date.toISOString().split('T')[0];
+            map.set(dateStr, { count: 0, duration: 0 });
+        }
 
-            // Random activity with some clustering
-            const isActive = Math.random() > 0.6;
-            if (isActive) {
-                data.push({
-                    date: dateStr,
-                    count: Math.floor(Math.random() * 3) + 1, // 1-3 sessions
-                    duration: Math.floor(Math.random() * 120) + 30 // 30-150 mins
+        // Fill with booking data
+        bookings.forEach(b => {
+            const dateStr = new Date(b.startTime).toISOString().split('T')[0];
+            if (map.has(dateStr)) {
+                const current = map.get(dateStr)!;
+                const durationMinutes = (b.endTime - b.startTime) / 60000;
+                map.set(dateStr, {
+                    count: current.count + 1,
+                    duration: current.duration + durationMinutes
                 });
             }
-        }
+        });
+
+        // Convert map to array
+        map.forEach((value: { count: number; duration: number }, key: string) => {
+            if (value.count > 0) { // Only push active days to save space/rendering
+                data.push({
+                    date: key,
+                    count: value.count,
+                    duration: value.duration
+                });
+            }
+        });
+
         return data;
     };
 
@@ -157,7 +175,7 @@ export const Profile: React.FC = () => {
                 {/* Activity Streak (Heatmap) - Interactive */}
                 <div className="mb-8">
                     <ActivityHeatmap
-                        data={generateMockActivityData()}
+                        data={generateActivityData()}
                         weeks={12}
                         onDayClick={(day) => console.log('Clicked day:', day)}
                     />
@@ -199,7 +217,7 @@ export const Profile: React.FC = () => {
                                 size={100}
                             />
                             <StatCircle
-                                icon={<Map size={20} />}
+                                icon={<MapIcon size={20} />}
                                 label="Sân đã đến"
                                 value={user.courtsVisited}
                                 max={20}
@@ -226,6 +244,22 @@ export const Profile: React.FC = () => {
                         <div>
                             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 pl-1">Cài đặt</h3>
                             <div className="space-y-3">
+                                <Button
+                                    variant="secondary"
+                                    className="w-full justify-between bg-slate-800/50 border-slate-700"
+                                    onClick={() => navigate('/my-bookings')}
+                                >
+                                    <span>Lịch Đặt Sân</span>
+                                    <Calendar size={16} className="text-slate-500" />
+                                </Button>
+                                <Button
+                                    variant="secondary"
+                                    className="w-full justify-between bg-slate-800/50 border-slate-700"
+                                    onClick={() => navigate('/wallet')}
+                                >
+                                    <span>Ví My2Light</span>
+                                    <Wallet size={16} className="text-slate-500" />
+                                </Button>
                                 <Button variant="secondary" className="w-full justify-between bg-slate-800/50 border-slate-700">
                                     <span>Liên kết ngân hàng</span>
                                     <CreditCard size={16} className="text-slate-500" />

@@ -43,18 +43,28 @@ export const QRScan: React.FC = () => {
     if (courtRes.success && courtRes.data) {
       setScannedCourt(courtRes.data);
 
-      // 2. Check for active booking
+      // 2. Check for active booking (already started)
       const activeBooking = await ApiService.getActiveBooking();
       if (activeBooking.success && activeBooking.data && activeBooking.data.courtId === cleanId) {
-        // Auto check-in
+        // Auto check-in (re-confirm)
         await ApiService.checkInBooking(activeBooking.data.id);
-        showToast('Check-in thành công! Chúc bạn chơi vui vẻ.', 'success');
+        showToast('Đã vào lại phiên chơi!', 'success');
         navigate('/active-session');
-      } else {
-        // Proceed to booking
-        showToast('Đã tìm thấy sân: ' + courtRes.data.name, 'success');
-        setStep('package');
+        return;
       }
+
+      // 3. Check for upcoming booking (starting soon)
+      const upcomingBooking = await ApiService.getUpcomingBooking(cleanId);
+      if (upcomingBooking.success && upcomingBooking.data) {
+        await ApiService.checkInBooking(upcomingBooking.data.id);
+        showToast(`Check-in thành công!`, 'success');
+        navigate('/active-session');
+        return;
+      }
+
+      // 4. No booking found -> Proceed to new booking
+      showToast('Đã tìm thấy sân: ' + courtRes.data.name, 'success');
+      setStep('package');
     } else {
       console.error('Scan failed:', courtRes.error);
       showToast(`Không tìm thấy sân: ${courtRes.error || 'Mã không hợp lệ'}`, 'error');
@@ -66,7 +76,15 @@ export const QRScan: React.FC = () => {
 
     setIsProcessing(true);
     try {
-      const res = await ApiService.createBooking(selectedPackage, scannedCourt.id);
+      // Create booking with selected package
+      // Note: createBooking(courtId, startTime, duration, packageId)
+      const res = await ApiService.createBooking(
+        scannedCourt.id,
+        Date.now(),
+        1, // Default 1 hour for quick scan booking
+        selectedPackage
+      );
+
       if (res.success) {
         showToast('Đặt sân thành công!', 'success');
         navigate('/active-session');
@@ -98,8 +116,8 @@ export const QRScan: React.FC = () => {
             key={pkg.id}
             onClick={() => setSelectedPackage(pkg.id)}
             className={`p-5 relative cursor-pointer border-2 transition-all ${selectedPackage === pkg.id
-                ? 'border-lime-400 bg-slate-800 ring-2 ring-lime-400/20 shadow-[0_0_20px_rgba(163,230,53,0.15)]'
-                : 'border-transparent bg-slate-800/50 hover:bg-slate-800'
+              ? 'border-lime-400 bg-slate-800 ring-2 ring-lime-400/20 shadow-[0_0_20px_rgba(163,230,53,0.15)]'
+              : 'border-transparent bg-slate-800/50 hover:bg-slate-800'
               }`}
           >
             {selectedPackage === pkg.id && (

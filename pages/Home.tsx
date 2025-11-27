@@ -1,20 +1,33 @@
-
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { QrCode, MapPin, Activity, ChevronRight, Play, Camera, Mic } from 'lucide-react';
+import { QrCode, MapPin, Activity, ChevronRight, Play, Camera, Mic, Bell } from 'lucide-react';
 import { PageTransition } from '../components/Layout/PageTransition';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { SkeletonCourtCard, SkeletonHighlightCard, Skeleton } from '../components/ui/Skeleton';
+import { EmptyState } from '../components/ui/EmptyState';
+import { SearchBar } from '../components/features/SearchBar';
+import { FilterPanel, CourtFilters } from '../components/features/FilterPanel';
 import { ApiService } from '../services/api';
 import { User, Court, Highlight } from '../types';
+import { useNotifications } from '../contexts/NotificationContext';
 
 export const Home: React.FC = () => {
   const navigate = useNavigate();
+  const { unreadCount } = useNotifications();
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<User | null>(null);
   const [courts, setCourts] = useState<Court[]>([]);
   const [highlights, setHighlights] = useState<Highlight[]>([]);
+
+  // Search and filter states
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filters, setFilters] = useState<CourtFilters>({
+    sortBy: 'distance',
+    maxDistance: 10,
+    minPrice: 0,
+    maxPrice: 500000,
+  });
 
   useEffect(() => {
     const fetchData = async () => {
@@ -64,6 +77,44 @@ export const Home: React.FC = () => {
     }
   };
 
+  // Filter and sort courts
+  const filteredAndSortedCourts = useMemo(() => {
+    let result = [...courts];
+
+    // Search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(court =>
+        court.name.toLowerCase().includes(query) ||
+        court.address.toLowerCase().includes(query)
+      );
+    }
+
+    // Distance filter
+    result = result.filter(court => court.distanceKm <= filters.maxDistance);
+
+    // Price filter
+    result = result.filter(court =>
+      court.pricePerHour >= filters.minPrice &&
+      court.pricePerHour <= filters.maxPrice
+    );
+
+    // Status filter
+    if (filters.status === 'available') {
+      result = result.filter(court => court.status === 'available');
+    }
+
+    // Sort
+    result.sort((a, b) => {
+      if (filters.sortBy === 'distance') return a.distanceKm - b.distanceKm;
+      if (filters.sortBy === 'price') return a.pricePerHour - b.pricePerHour;
+      if (filters.sortBy === 'rating') return b.rating - a.rating;
+      return 0;
+    });
+
+    return result;
+  }, [courts, searchQuery, filters]);
+
   return (
     <PageTransition>
       <div className="p-6 pt-8 pb-24 space-y-8 max-w-lg mx-auto">
@@ -74,6 +125,18 @@ export const Home: React.FC = () => {
             <h2 className="text-2xl font-bold">{displayUser.name}</h2>
           </div>
           <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate('/notifications')}
+              className="w-10 h-10 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center relative hover:bg-slate-700 transition-colors"
+            >
+              <Bell size={20} className="text-slate-300" />
+              {unreadCount > 0 && (
+                <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center text-[10px] font-bold text-white border-2 border-slate-900">
+                  {unreadCount}
+                </div>
+              )}
+            </button>
+
             <div className="bg-slate-800 px-3 py-1 rounded-full border border-slate-700">
               <span className="text-lime-400 font-bold text-xs">{displayUser.credits?.toLocaleString() || 0}đ</span>
             </div>
@@ -174,6 +237,45 @@ export const Home: React.FC = () => {
               <MapPin size={18} className="text-blue-500" />
               Sân Gần Bạn
             </h3>
+            <span className="text-xs text-slate-400">
+              {filteredAndSortedCourts.length} sân
+            </span>
+          </div>
+
+          {/* Search and Filter */}
+          <div className="mb-4 space-y-3">
+            <SearchBar
+              value={searchQuery}
+              onChange={setSearchQuery}
+              placeholder="Tìm sân theo tên hoặc địa chỉ..."
+            />
+            <div className="flex gap-2 justify-between items-center">
+              <FilterPanel
+                onApply={setFilters}
+                onReset={() => setFilters({
+                  sortBy: 'distance',
+                  maxDistance: 10,
+                  minPrice: 0,
+                  maxPrice: 500000,
+                })}
+              />
+              {(searchQuery || filters.status) && (
+                <button
+                  onClick={() => {
+                    setSearchQuery('');
+                    setFilters({
+                      sortBy: 'distance',
+                      maxDistance: 10,
+                      minPrice: 0,
+                      maxPrice: 500000,
+                    });
+                  }}
+                  className="text-xs text-slate-400 hover:text-white transition-colors"
+                >
+                  Xóa bộ lọc
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="space-y-4">
@@ -181,8 +283,32 @@ export const Home: React.FC = () => {
               <>
                 {[1, 2, 3].map(i => <SkeletonCourtCard key={i} />)}
               </>
+            ) : filteredAndSortedCourts.length === 0 ? (
+              <EmptyState
+                icon={MapPin}
+                title={searchQuery || filters.status ? "Không tìm thấy sân" : "Không có sân nào"}
+                description={
+                  searchQuery || filters.status
+                    ? "Không có sân nào khớp với tìm kiếm của bạn. Thử điều chỉnh bộ lọc."
+                    : "Hiện tại chưa có sân nào gần bạn."
+                }
+                actionLabel={searchQuery || filters.status ? "Xóa bộ lọc" : "Làm mới"}
+                onAction={() => {
+                  if (searchQuery || filters.status) {
+                    setSearchQuery('');
+                    setFilters({
+                      sortBy: 'distance',
+                      maxDistance: 10,
+                      minPrice: 0,
+                      maxPrice: 500000,
+                    });
+                  } else {
+                    window.location.reload();
+                  }
+                }}
+              />
             ) : (
-              courts.map((court) => (
+              filteredAndSortedCourts.map((court) => (
                 <Card
                   key={court.id}
                   className="flex p-3 gap-4 items-center group cursor-pointer"

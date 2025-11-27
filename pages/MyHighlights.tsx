@@ -165,8 +165,8 @@ export const MyHighlights: React.FC = () => {
                                     key={filter}
                                     onClick={() => setFilterBy(filter)}
                                     className={`px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all ${filterBy === filter
-                                            ? 'bg-lime-400 text-slate-900'
-                                            : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                                        ? 'bg-lime-400 text-slate-900'
+                                        : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
                                         }`}
                                 >
                                     {filter === 'all' ? 'Tất cả' : filter === 'public' ? 'Công khai' : 'Riêng tư'}
@@ -246,7 +246,7 @@ const EmptyState: React.FC<{
     onCreateNew: () => void;
     onResetFilter: () => void;
 }> = ({ hasHighlights, filterBy, onCreateNew, onResetFilter }) => (
-    <div className="text-center py-20 px-6">
+    <div className="text-center py-20 px-6 flex flex-col items-center justify-center min-h-[60vh]">
         <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}

@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, matchPath } from 'react-router-dom';
 import { Home, Play, User } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -16,14 +16,20 @@ export const BottomNav: React.FC = () => {
   const isActive = (path: string) => location.pathname === path;
 
   // Don't show nav on these paths
-  const hiddenPaths = ['/', '/welcome', '/onboarding', '/login', '/qr', '/active-session', '/self-recording', '/gallery'];
-  const isHidden = hiddenPaths.includes(location.pathname) || location.pathname.startsWith('/court/');
+  const hiddenPaths = ['/', '/welcome', '/onboarding', '/login', '/qr', '/active-session', '/self-recording', '/gallery', '/notifications'];
+
+  // Robust check for hiding
+  const isHidden = hiddenPaths.includes(location.pathname) ||
+    !!matchPath('/court/:id', location.pathname) ||
+    !!matchPath('/booking/:id', location.pathname) ||
+    location.pathname.startsWith('/booking') ||
+    location.pathname.includes('/booking');
 
   if (isHidden) return null;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 px-6 pt-2 pointer-events-none pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
-      <div className="bg-slate-900/80 backdrop-blur-lg rounded-full border border-white/10 shadow-2xl p-1.5 flex items-center justify-between pointer-events-auto max-w-sm mx-auto">
+    <div className="fixed bottom-0 left-0 right-0 z-50 bg-slate-950 border-t border-slate-800 pb-safe">
+      <div className="flex items-center justify-around px-2 py-1">
         {navItems.map((item) => {
           const ActiveIcon = item.icon;
           const active = isActive(item.path);
@@ -32,18 +38,17 @@ export const BottomNav: React.FC = () => {
             <motion.button
               key={item.path}
               onClick={() => navigate(item.path)}
-              className={`relative flex flex-col items-center justify-center w-16 h-12 rounded-full transition-colors ${active ? 'text-lime-400' : 'text-slate-400'}`}
-              whileTap={{ scale: 0.9 }}
+              className="flex flex-col items-center justify-center flex-1 py-2 gap-1 transition-colors"
+              whileTap={{ scale: 0.95 }}
             >
-              {active && (
-                <motion.div
-                  layoutId="nav-pill"
-                  className="absolute inset-0 bg-white/5 rounded-full"
-                  transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                />
-              )}
-              <ActiveIcon size={24} strokeWidth={active ? 2.5 : 2} />
-              <span className="text-[10px] mt-0.5 font-medium">{item.label}</span>
+              <ActiveIcon
+                size={24}
+                strokeWidth={2}
+                className={active ? 'text-lime-400' : 'text-slate-400'}
+              />
+              <span className={`text-[10px] font-medium ${active ? 'text-lime-400' : 'text-slate-500'}`}>
+                {item.label}
+              </span>
             </motion.button>
           );
         })}

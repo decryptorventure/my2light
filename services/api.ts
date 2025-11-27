@@ -18,12 +18,12 @@ export const ApiService = {
         .eq('id', session.user.id)
         .single();
 
-      if (error || !data) {
-        // Profile doesn't exist - this shouldn't happen if trigger is working
-        // But if it does, create it now
-        const emailName = session.user.email?.split('@')[0] || 'User';
-        const displayName = emailName.charAt(0).toUpperCase() + emailName.slice(1);
+      // Calculate fallback display name from email
+      const emailName = session.user.email?.split('@')[0] || 'User';
+      const displayName = emailName.charAt(0).toUpperCase() + emailName.slice(1);
 
+      if (error || !data) {
+        // Profile doesn't exist - create it
         const newProfile = {
           id: session.user.id,
           name: displayName,
@@ -44,7 +44,6 @@ export const ApiService = {
           return { success: false, data: null as any, error: 'Failed to create profile' };
         }
 
-        // Return the newly created profile
         return {
           success: true,
           data: {
@@ -61,14 +60,38 @@ export const ApiService = {
         };
       }
 
+      // Calculate stats from bookings
+      const { data: bookings } = await supabase
+        .from('bookings')
+        .select('court_id, start_time, end_time, status')
+        .eq('user_id', session.user.id)
+        .eq('status', 'completed');
+
+      let hoursPlayed = 0;
+      const visitedCourts = new Set();
+
+      if (bookings) {
+        bookings.forEach((b: any) => {
+          const duration = (new Date(b.end_time).getTime() - new Date(b.start_time).getTime()) / 3600000;
+          hoursPlayed += duration;
+          visitedCourts.add(b.court_id);
+        });
+      }
+
+      // Calculate total highlights
+      const { count: highlightsCount } = await supabase
+        .from('highlights')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', session.user.id);
+
       const user: User = {
         id: data.id,
-        name: data.name || 'Người chơi',
+        name: data.name || displayName,
         avatar: data.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${data.id}`,
         phone: data.phone || '',
-        totalHighlights: data.total_highlights || 0,
-        hoursPlayed: 0, // TODO: Calculate from bookings
-        courtsVisited: 0, // TODO: Calculate from bookings
+        totalHighlights: highlightsCount || 0,
+        hoursPlayed: Number(hoursPlayed.toFixed(1)),
+        courtsVisited: visitedCourts.size,
         credits: data.credits || 0,
         membershipTier: (data.membership_tier as any) || 'free'
       };
@@ -78,6 +101,20 @@ export const ApiService = {
       console.error('getCurrentUser error:', e);
       return { success: false, data: null as any, error: 'Failed to fetch user' };
     }
+  },
+
+  toggleLike: async (highlightId: string, currentLikes: number, isLiked: boolean): Promise<ApiResponse<boolean>> => {
+    // For MVP without a likes table, we just update the count on the highlight
+    // In a real app, we would insert/delete from a 'highlight_likes' table
+    const newCount = isLiked ? Math.max(0, currentLikes - 1) : currentLikes + 1;
+
+    const { error } = await supabase
+      .from('highlights')
+      .update({ likes: newCount })
+      .eq('id', highlightId);
+
+    if (error) return { success: false, data: false };
+    return { success: true, data: true };
   },
 
   updateUserProfile: async (updates: Partial<{
@@ -97,20 +134,20 @@ export const ApiService = {
     if (updates.credits !== undefined) dbUpdates.credits = updates.credits;
     if (updates.has_onboarded !== undefined) dbUpdates.has_onboarded = updates.has_onboarded;
 
+    // Use upsert to handle both update and create scenarios
     const { error } = await supabase
       .from('profiles')
-      .update(dbUpdates)
-      .eq('id', user.id);
+      .upsert({
+        id: user.id,
+        ...dbUpdates,
+        updated_at: new Date().toISOString()
+      });
 
     if (error) {
       console.error("Update profile error", error);
-      // Try upsert if update failed (maybe profile doesn't exist yet)
-      const { error: upsertError } = await supabase.from('profiles').upsert({
-        id: user.id,
-        ...dbUpdates
-      });
-      if (upsertError) return { success: false, data: false };
+      return { success: false, data: false, error: error.message };
     }
+
     return { success: true, data: true };
   },
 
@@ -212,23 +249,30 @@ export const ApiService = {
   },
 
   // 3. Bookings
-  createBooking: async (packageId: string, courtId: string): Promise<ApiResponse<Booking>> => {
+  createBooking: async (courtId: string, startTimeTimestamp: number, durationHours: number = 1, packageId?: string): Promise<ApiResponse<Booking>> => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Not authenticated');
 
-    // Get Package details
-    const { data: pkg, error: pkgError } = await supabase.from('packages').select('*').eq('id', packageId).single();
-    if (pkgError || !pkg) throw new Error('Package not found');
+    // Get Court details for base price
+    const { data: court, error: courtError } = await supabase.from('courts').select('price_per_hour').eq('id', courtId).single();
+    if (courtError || !court) throw new Error('Court not found');
 
-    const pkgPrice = pkg.price;
-    const pkgDuration = pkg.duration_minutes;
-    const pkgType = pkg.name.includes('Full') ? 'full_match' : 'standard';
+    let totalAmount = court.price_per_hour * durationHours;
+    let pkgType = 'standard';
 
-    const startTime = new Date();
-    const endTime = new Date(startTime.getTime() + pkgDuration * 60000);
+    // Get Package details if selected
+    if (packageId) {
+      const { data: pkg, error: pkgError } = await supabase.from('packages').select('*').eq('id', packageId).single();
+      if (pkgError || !pkg) throw new Error('Package not found');
 
-    // Check for overlapping bookings on the same court
-    // (active bookings that overlap with the requested time window)
+      totalAmount += pkg.price;
+      pkgType = pkg.name.includes('Full') ? 'full_match' : 'standard';
+    }
+
+    const startTime = new Date(startTimeTimestamp);
+    const endTime = new Date(startTime.getTime() + durationHours * 60 * 60000);
+
+    // Check for overlapping bookings
     const { data: conflicts, error: conflictError } = await supabase
       .from('bookings')
       .select('id')
@@ -252,17 +296,17 @@ export const ApiService = {
       .eq('id', user.id)
       .single();
 
-    if (!profile || profile.credits < pkgPrice) {
-      throw new Error(`Không đủ tiền! Bạn cần ${pkgPrice.toLocaleString()}đ nhưng chỉ có ${(profile?.credits || 0).toLocaleString()}đ`);
+    if (!profile || profile.credits < totalAmount) {
+      throw new Error(`Không đủ tiền! Bạn cần ${totalAmount.toLocaleString()}đ nhưng chỉ có ${(profile?.credits || 0).toLocaleString()}đ`);
     }
 
     const { data, error } = await supabase.from('bookings').insert({
       user_id: user.id,
       court_id: courtId,
-      package_id: packageId,
+      package_id: packageId || null,
       start_time: startTime.toISOString(),
       end_time: endTime.toISOString(),
-      total_amount: pkgPrice,
+      total_amount: totalAmount,
       status: 'active'
     }).select().single();
 
@@ -274,7 +318,7 @@ export const ApiService = {
     // Deduct credits from user profile
     await supabase
       .from('profiles')
-      .update({ credits: profile.credits - pkgPrice })
+      .update({ credits: profile.credits - totalAmount })
       .eq('id', user.id);
 
     return {
@@ -288,7 +332,7 @@ export const ApiService = {
         endTime: new Date(data.end_time).getTime(),
         status: data.status as any,
         totalAmount: data.total_amount,
-        packageType: pkgType
+        packageType: pkgType as any
       }
     };
   },
@@ -297,23 +341,21 @@ export const ApiService = {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { success: false, data: null };
 
+    const now = new Date().toISOString();
+    const bufferTime = new Date(Date.now() + 15 * 60000).toISOString(); // Allow entering 15 mins early
+
     const { data, error } = await supabase
       .from('bookings')
       .select(`*, package:packages(name)`)
       .eq('user_id', user.id)
       .eq('status', 'active')
+      .lte('start_time', bufferTime) // Started or starting soon
+      .gte('end_time', now)   // Not ended
       .order('start_time', { ascending: false })
       .limit(1)
       .maybeSingle();
 
     if (!data) return { success: true, data: null };
-
-    const endTime = new Date(data.end_time).getTime();
-    if (Date.now() > endTime) {
-      // Auto-expire booking if time passed (could be done via DB trigger or cron, but client-side check is ok for MVP)
-      // Optionally update status to 'completed' here
-      return { success: true, data: null };
-    }
 
     const pkgType = data.package?.name?.includes('Full') ? 'full_match' : 'standard';
 
@@ -325,7 +367,49 @@ export const ApiService = {
         courtId: data.court_id,
         packageId: data.package_id,
         startTime: new Date(data.start_time).getTime(),
-        endTime: endTime,
+        endTime: new Date(data.end_time).getTime(),
+        status: data.status,
+        totalAmount: data.total_amount,
+        packageType: pkgType
+      }
+    };
+  },
+
+  getUpcomingBooking: async (courtId?: string): Promise<ApiResponse<Booking | null>> => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { success: false, data: null };
+
+    const now = new Date().toISOString();
+    // Look for bookings starting in the next 30 minutes
+    const thirtyMinsLater = new Date(Date.now() + 30 * 60000).toISOString();
+
+    let query = supabase
+      .from('bookings')
+      .select(`*, package:packages(name)`)
+      .eq('user_id', user.id)
+      .eq('status', 'active')
+      .gt('start_time', now)
+      .lte('start_time', thirtyMinsLater);
+
+    if (courtId) {
+      query = query.eq('court_id', courtId);
+    }
+
+    const { data, error } = await query.order('start_time', { ascending: true }).limit(1).maybeSingle();
+
+    if (!data) return { success: true, data: null };
+
+    const pkgType = data.package?.name?.includes('Full') ? 'full_match' : 'standard';
+
+    return {
+      success: true,
+      data: {
+        id: data.id,
+        userId: data.user_id,
+        courtId: data.court_id,
+        packageId: data.package_id,
+        startTime: new Date(data.start_time).getTime(),
+        endTime: new Date(data.end_time).getTime(),
         status: data.status,
         totalAmount: data.total_amount,
         packageType: pkgType
@@ -344,6 +428,117 @@ export const ApiService = {
       .eq('status', 'active');
 
     return { success: true, data: true };
+  },
+
+  cancelBooking: async (bookingId: string, reason?: string): Promise<ApiResponse<boolean>> => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return { success: false, data: false, error: 'User not authenticated' };
+
+      // Get booking details for refund
+      const { data: booking, error: fetchError } = await supabase
+        .from('bookings')
+        .select('*, packages(price)')
+        .eq('id', bookingId)
+        .eq('user_id', user.id)
+        .single();
+
+      if (fetchError || !booking) {
+        return { success: false, data: false, error: 'Booking not found' };
+      }
+
+      // Update booking status to cancelled
+      const { error: updateError } = await supabase
+        .from('bookings')
+        .update({
+          status: 'cancelled',
+          cancellation_reason: reason,
+          cancelled_at: new Date().toISOString()
+        })
+        .eq('id', bookingId);
+
+      if (updateError) {
+        return { success: false, data: false, error: updateError.message };
+      }
+
+      // Refund credits to user wallet
+      const refundAmount = booking.packages?.price || booking.total_amount || 0;
+      const { data: userData } = await supabase
+        .from('users')
+        .select('credits')
+        .eq('id', user.id)
+        .single();
+
+      if (userData) {
+        await supabase
+          .from('users')
+          .update({ credits: (userData.credits || 0) + refundAmount })
+          .eq('id', user.id);
+      }
+
+      return { success: true, data: true };
+    } catch (error) {
+      console.error('Cancel booking error:', error);
+      return { success: false, data: false, error: 'Failed to cancel booking' };
+    }
+  },
+
+  rescheduleBooking: async (
+    bookingId: string,
+    newStartTime: number
+  ): Promise<ApiResponse<Booking>> => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return { success: false, data: {} as Booking, error: 'User not authenticated' };
+
+      // Get booking to calculate new end time
+      const { data: booking, error: fetchError } = await supabase
+        .from('bookings')
+        .select('*, packages(duration_minutes)')
+        .eq('id', bookingId)
+        .eq('user_id', user.id)
+        .single();
+
+      if (fetchError || !booking) {
+        return { success: false, data: {} as Booking, error: 'Booking not found' };
+      }
+
+      const durationMs = (booking.packages?.duration_minutes || 60) * 60 * 1000;
+      const newEndTime = newStartTime + durationMs;
+
+      // Update booking times
+      const { data, error } = await supabase
+        .from('bookings')
+        .update({
+          start_time: new Date(newStartTime).toISOString(),
+          end_time: new Date(newEndTime).toISOString(),
+          rescheduled_from: booking.start_time
+        })
+        .eq('id', bookingId)
+        .select()
+        .single();
+
+      if (error) {
+        return { success: false, data: {} as Booking, error: error.message };
+      }
+
+      return {
+        success: true,
+        data: {
+          id: data.id,
+          userId: data.user_id,
+          courtId: data.court_id,
+          packageId: data.package_id,
+          startTime: new Date(data.start_time).getTime(),
+          endTime: new Date(data.end_time).getTime(),
+          status: data.status,
+          totalAmount: data.total_amount
+        }
+      };
+    } catch (error) {
+      console.error('Reschedule booking error:', error);
+      return { success: false, data: {} as Booking, error: 'Failed to reschedule booking' };
+    }
   },
 
   getBookingHistory: async (): Promise<ApiResponse<Booking[]>> => {
@@ -499,5 +694,55 @@ export const ApiService = {
     }
 
     return { success: true, data: true };
+  },
+
+  // Process top-up transaction
+  processTopUp: async (
+    transactionId: string,
+    amount: number,
+    method: string
+  ): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return { success: false, error: 'User not authenticated' };
+
+      // Get current credits
+      const { data: userData } = await supabase
+        .from('users')
+        .select('credits')
+        .eq('id', user.id)
+        .single();
+
+      if (!userData) {
+        return { success: false, error: 'User not found' };
+      }
+
+      // Update user credits
+      const newBalance = (userData.credits || 0) + amount;
+      const { error: updateError } = await supabase
+        .from('users')
+        .update({ credits: newBalance })
+        .eq('id', user.id);
+
+      if (updateError) {
+        return { success: false, error: updateError.message };
+      }
+
+      // TODO: In production, create a transaction record in transactions table
+      // await supabase.from('transactions').insert({
+      //   user_id: user.id,
+      //   transaction_id: transactionId,
+      //   type: 'topup',
+      //   amount: amount,
+      //   method: method,
+      //   status: 'completed',
+      //   created_at: new Date().toISOString()
+      // });
+
+      return { success: true };
+    } catch (error) {
+      console.error('Process top-up error:', error);
+      return { success: false, error: 'Failed to process top-up' };
+    }
   }
 };

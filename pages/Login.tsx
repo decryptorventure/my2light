@@ -86,6 +86,9 @@ export const Login: React.FC = () => {
             .eq('id', authData.user.id)
             .single();
 
+          // Force refresh session to ensure latest claims/metadata
+          await supabase.auth.refreshSession();
+
           celebrate({ particleCount: 50 });
           showToast('Đăng nhập thành công! 👋', 'success');
 

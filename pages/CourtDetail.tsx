@@ -23,31 +23,35 @@ export const CourtDetail: React.FC = () => {
 
     useEffect(() => {
         const fetchCourt = async () => {
+            if (!id) return;
             setLoading(true);
-            // Mock data - replace with real API
-            setTimeout(() => {
-                setCourt({
-                    id: id || '1',
-                    name: 'Sân Pickleball Landmark 81',
-                    address: 'Vinhomes Central Park, Bình Thạnh, TP.HCM',
-                    distanceKm: 2.3,
-                    rating: 4.8,
-                    status: 'available',
-                    thumbnailUrl: 'https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=800',
-                    images: [
-                        'https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=800',
-                        'https://images.unsplash.com/photo-1622547748225-3fc4abd2cca0?w=800',
-                        'https://images.unsplash.com/photo-1594911772125-07fc7a2d8d9f?w=800'
-                    ],
-                    facilities: ['Wifi miễn phí', 'Camera AI', 'Phòng thay đồ', 'Căn-tin', 'Sân đêm'],
-                    description: 'Sân pickleball cao cấp với hệ thống camera AI tự động ghi hình và tạo highlight. Nằm ngay trung tâm thành phố, tiện lợi di chuyển.',
-                    pricePerHour: 150000,
-                    openTime: '06:00',
-                    closeTime: '22:00',
-                    totalReviews: 156
-                } as Court);
+            try {
+                const res = await ApiService.getCourtById(id);
+                if (res.success && res.data) {
+                    // Merge with some default rich data if missing from DB (for MVP)
+                    const richData = {
+                        ...res.data,
+                        images: res.data.images || [
+                            res.data.thumbnailUrl,
+                            'https://images.unsplash.com/photo-1622547748225-3fc4abd2cca0?w=800',
+                            'https://images.unsplash.com/photo-1594911772125-07fc7a2d8d9f?w=800'
+                        ],
+                        facilities: res.data.facilities || ['Wifi miễn phí', 'Camera AI', 'Phòng thay đồ', 'Căn-tin', 'Sân đêm'],
+                        description: res.data.description || 'Sân pickleball cao cấp với hệ thống camera AI tự động ghi hình và tạo highlight. Nằm ngay trung tâm thành phố, tiện lợi di chuyển.',
+                        openTime: res.data.openTime || '06:00',
+                        closeTime: res.data.closeTime || '22:00',
+                        totalReviews: res.data.totalReviews || 156
+                    };
+                    setCourt(richData);
+                } else {
+                    // Handle error or not found
+                    console.error("Court not found");
+                }
+            } catch (error) {
+                console.error("Error fetching court", error);
+            } finally {
                 setLoading(false);
-            }, 500);
+            }
         };
         fetchCourt();
     }, [id]);
@@ -110,8 +114,8 @@ export const CourtDetail: React.FC = () => {
                                     key={index}
                                     onClick={() => setCurrentImageIndex(index)}
                                     className={`h-2 rounded-full transition-all ${index === currentImageIndex
-                                            ? 'w-8 bg-lime-400'
-                                            : 'w-2 bg-white/40'
+                                        ? 'w-8 bg-lime-400'
+                                        : 'w-2 bg-white/40'
                                         }`}
                                 />
                             ))}
@@ -214,14 +218,14 @@ export const CourtDetail: React.FC = () => {
                                 price="150k/giờ"
                                 features={['Tự động lưu highlight', '30 giây/clip']}
                                 popular={false}
-                                onSelect={() => navigate('/qr')}
+                                onSelect={() => navigate(`/booking/${court.id}`, { state: { selectedPackageId: 'pkg_basic' } })}
                             />
                             <PackageCard
                                 title="Full Match"
                                 price="300k/trận"
                                 features={['Quay toàn bộ trận', 'AI tạo highlight', 'Tải về full HD']}
                                 popular={true}
-                                onSelect={() => navigate('/qr')}
+                                onSelect={() => navigate(`/booking/${court.id}`, { state: { selectedPackageId: 'pkg_premium' } })}
                             />
                         </div>
                     </Card>
@@ -254,7 +258,7 @@ export const CourtDetail: React.FC = () => {
                             className="flex-1"
                             size="xl"
                             icon={<Zap size={20} />}
-                            onClick={() => navigate('/qr')}
+                            onClick={() => navigate(`/booking/${court.id}`)}
                         >
                             Đặt sân ngay
                         </Button>
@@ -284,8 +288,8 @@ const PackageCard: React.FC<PackageCardProps> = ({
     <div
         onClick={onSelect}
         className={`relative p-4 rounded-xl cursor-pointer transition-all ${popular
-                ? 'bg-gradient-to-r from-lime-400/10 to-green-400/10 border-2 border-lime-400/50'
-                : 'bg-slate-800/50 border-2 border-slate-700 hover:border-slate-600'
+            ? 'bg-gradient-to-r from-lime-400/10 to-green-400/10 border-2 border-lime-400/50'
+            : 'bg-slate-800/50 border-2 border-slate-700 hover:border-slate-600'
             }`}
     >
         {popular && (
