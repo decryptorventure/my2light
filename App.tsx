@@ -29,6 +29,8 @@ const PaymentCallback = lazy(() => import('./pages/PaymentCallback').then(m => (
 const BecomeCourtOwner = lazy(() => import('./pages/BecomeCourtOwner').then(m => ({ default: m.BecomeCourtOwner })));
 const AdminLayout = lazy(() => import('./components/admin/layout/AdminLayout').then(m => ({ default: m.AdminLayout })));
 const Dashboard = lazy(() => import('./pages/admin/Dashboard').then(m => ({ default: m.Dashboard })));
+const CourtsManagement = lazy(() => import('./pages/admin/CourtsManagement').then(m => ({ default: m.CourtsManagement })));
+const BookingsManagement = lazy(() => import('./pages/admin/BookingsManagement').then(m => ({ default: m.BookingsManagement })));
 
 // Auth components
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
@@ -84,8 +86,8 @@ const AnimatedRoutes = () => {
             </ProtectedRoute>
           }>
             <Route path="dashboard" element={<Dashboard />} />
-            <Route path="courts" element={<div className="text-white">Courts Page - Coming Soon</div>} />
-            <Route path="bookings" element={<div className="text-white">Bookings Page - Coming Soon</div>} />
+            <Route path="courts" element={<CourtsManagement />} />
+            <Route path="bookings" element={<BookingsManagement />} />
             <Route path="packages" element={<div className="text-white">Packages Page - Coming Soon</div>} />
             <Route path="revenue" element={<div className="text-white">Revenue Page - Coming Soon</div>} />
             <Route path="settings" element={<div className="text-white">Settings Page - Coming Soon</div>} />
