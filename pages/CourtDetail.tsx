@@ -21,6 +21,8 @@ export const CourtDetail: React.FC = () => {
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const [isFavorite, setIsFavorite] = useState(false);
 
+    const [selectedPackageId, setSelectedPackageId] = useState<string | null>(null);
+
     useEffect(() => {
         const fetchCourt = async () => {
             if (!id) return;
@@ -218,14 +220,16 @@ export const CourtDetail: React.FC = () => {
                                 price="150k/giờ"
                                 features={['Tự động lưu highlight', '30 giây/clip']}
                                 popular={false}
-                                onSelect={() => navigate(`/booking/${court.id}`, { state: { selectedPackageId: 'pkg_basic' } })}
+                                isSelected={selectedPackageId === 'pkg_basic'}
+                                onSelect={() => setSelectedPackageId('pkg_basic')}
                             />
                             <PackageCard
                                 title="Full Match"
                                 price="300k/trận"
                                 features={['Quay toàn bộ trận', 'AI tạo highlight', 'Tải về full HD']}
                                 popular={true}
-                                onSelect={() => navigate(`/booking/${court.id}`, { state: { selectedPackageId: 'pkg_premium' } })}
+                                isSelected={selectedPackageId === 'pkg_premium'}
+                                onSelect={() => setSelectedPackageId('pkg_premium')}
                             />
                         </div>
                     </Card>
@@ -258,7 +262,7 @@ export const CourtDetail: React.FC = () => {
                             className="flex-1"
                             size="xl"
                             icon={<Zap size={20} />}
-                            onClick={() => navigate(`/booking/${court.id}`)}
+                            onClick={() => navigate(`/booking/${court.id}`, { state: { selectedPackageId } })}
                         >
                             Đặt sân ngay
                         </Button>
@@ -275,6 +279,7 @@ interface PackageCardProps {
     price: string;
     features: string[];
     popular?: boolean;
+    isSelected?: boolean;
     onSelect: () => void;
 }
 
@@ -283,18 +288,27 @@ const PackageCard: React.FC<PackageCardProps> = ({
     price,
     features,
     popular = false,
+    isSelected = false,
     onSelect
 }) => (
     <div
         onClick={onSelect}
-        className={`relative p-4 rounded-xl cursor-pointer transition-all ${popular
-            ? 'bg-gradient-to-r from-lime-400/10 to-green-400/10 border-2 border-lime-400/50'
-            : 'bg-slate-800/50 border-2 border-slate-700 hover:border-slate-600'
+        className={`relative p-4 rounded-xl cursor-pointer transition-all ${isSelected
+            ? 'bg-lime-400/10 border-2 border-lime-400'
+            : popular
+                ? 'bg-gradient-to-r from-lime-400/10 to-green-400/10 border-2 border-lime-400/50'
+                : 'bg-slate-800/50 border-2 border-slate-700 hover:border-slate-600'
             }`}
     >
-        {popular && (
+        {popular && !isSelected && (
             <div className="absolute -top-2 -right-2 bg-lime-400 text-slate-900 text-[10px] font-black px-2 py-0.5 rounded-full">
                 PHỔ BIẾN
+            </div>
+        )}
+        {isSelected && (
+            <div className="absolute -top-2 -right-2 bg-lime-400 text-slate-900 text-[10px] font-black px-2 py-0.5 rounded-full flex items-center gap-1">
+                <Check size={10} strokeWidth={4} />
+                ĐÃ CHỌN
             </div>
         )}
         <div className="flex items-center justify-between mb-3">
@@ -309,6 +323,6 @@ const PackageCard: React.FC<PackageCardProps> = ({
                 </div>
             ))}
         </div>
-        <ChevronRight size={20} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-600" />
+        {!isSelected && <ChevronRight size={20} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-600" />}
     </div>
 );

@@ -104,9 +104,9 @@ export class NotificationService {
     // Save token to backend
     static async saveTokenToBackend(userId: string, token: string): Promise<boolean> {
         try {
-            // In production, save to Supabase users table
+            // In production, save to Supabase profiles table
             console.log('Saving FCM token for user:', userId, token);
-            // await supabase.from('users').update({ fcm_token: token }).eq('id', userId);
+            // await supabase.from('profiles').update({ fcm_token: token }).eq('id', userId);
             return true;
         } catch (error) {
             console.error('Error saving token:', error);

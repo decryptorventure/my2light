@@ -127,28 +127,65 @@ export const ApiService = {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { success: false, data: false };
 
-    const dbUpdates: any = {};
-    if (updates.name !== undefined) dbUpdates.name = updates.name;
-    if (updates.phone !== undefined) dbUpdates.phone = updates.phone;
-    if (updates.avatar !== undefined) dbUpdates.avatar = updates.avatar;
-    if (updates.credits !== undefined) dbUpdates.credits = updates.credits;
-    if (updates.has_onboarded !== undefined) dbUpdates.has_onboarded = updates.has_onboarded;
+    try {
+      // 1. Check if profile exists
+      const { data: existingProfile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('id', user.id)
+        .single();
 
-    // Use upsert to handle both update and create scenarios
-    const { error } = await supabase
-      .from('profiles')
-      .upsert({
-        id: user.id,
-        ...dbUpdates,
-        updated_at: new Date().toISOString()
-      });
+      const dbUpdates: any = {};
+      if (updates.name !== undefined) dbUpdates.name = updates.name;
+      if (updates.phone !== undefined) dbUpdates.phone = updates.phone;
+      if (updates.avatar !== undefined) dbUpdates.avatar = updates.avatar;
+      if (updates.credits !== undefined) dbUpdates.credits = updates.credits;
+      if (updates.has_onboarded !== undefined) dbUpdates.has_onboarded = updates.has_onboarded;
 
-    if (error) {
-      console.error("Update profile error", error);
-      return { success: false, data: false, error: error.message };
+      if (!existingProfile) {
+        // 2. Create new profile with defaults + updates
+        const emailName = user.email?.split('@')[0] || 'User';
+        const displayName = emailName.charAt(0).toUpperCase() + emailName.slice(1);
+
+        const newProfile = {
+          id: user.id,
+          name: displayName, // Default
+          avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.id}`, // Default
+          phone: '',
+          credits: 200000, // Default welcome bonus
+          membership_tier: 'free',
+          total_highlights: 0,
+          has_onboarded: false,
+          ...dbUpdates // Override with updates
+          // updated_at removed as it does not exist in DB
+        };
+
+        const { error: insertError } = await supabase
+          .from('profiles')
+          .insert(newProfile);
+
+        if (insertError) {
+          console.error('Failed to create profile in update:', insertError);
+          return { success: false, data: false, error: insertError.message };
+        }
+      } else {
+        // 3. Update existing profile
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update(dbUpdates)
+          .eq('id', user.id);
+
+        if (updateError) {
+          console.error("Update profile error", updateError);
+          return { success: false, data: false, error: updateError.message };
+        }
+      }
+
+      return { success: true, data: true };
+    } catch (e) {
+      console.error("Exception in updateUserProfile", e);
+      return { success: false, data: false, error: 'Internal error' };
     }
-
-    return { success: true, data: true };
   },
 
   uploadAvatar: async (file: File): Promise<ApiResponse<string>> => {
@@ -464,14 +501,14 @@ export const ApiService = {
       // Refund credits to user wallet
       const refundAmount = booking.packages?.price || booking.total_amount || 0;
       const { data: userData } = await supabase
-        .from('users')
+        .from('profiles')
         .select('credits')
         .eq('id', user.id)
         .single();
 
       if (userData) {
         await supabase
-          .from('users')
+          .from('profiles')
           .update({ credits: (userData.credits || 0) + refundAmount })
           .eq('id', user.id);
       }
@@ -708,7 +745,7 @@ export const ApiService = {
 
       // Get current credits
       const { data: userData } = await supabase
-        .from('users')
+        .from('profiles')
         .select('credits')
         .eq('id', user.id)
         .single();
@@ -720,7 +757,7 @@ export const ApiService = {
       // Update user credits
       const newBalance = (userData.credits || 0) + amount;
       const { error: updateError } = await supabase
-        .from('users')
+        .from('profiles')
         .update({ credits: newBalance })
         .eq('id', user.id);
 
