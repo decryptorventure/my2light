@@ -2,6 +2,7 @@ import React, { useEffect, Suspense, lazy } from 'react';
 import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import { supabase } from './lib/supabase';
+import { useAuthStore } from './stores/authStore';
 
 // Critical pages - load immediately
 import { Splash } from './pages/Splash';
@@ -98,11 +99,11 @@ const AnimatedRoutes = () => {
 };
 
 const App: React.FC = () => {
+  const { initialize } = useAuthStore();
+
   useEffect(() => {
-    // Check auth state
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log("Auth Session:", session ? "Logged In" : "Guest");
-    });
+    // Initialize auth store
+    initialize();
 
     // Prefetch critical routes after initial load
     if ('requestIdleCallback' in window) {
@@ -112,7 +113,7 @@ const App: React.FC = () => {
         import('./pages/Profile');
       });
     }
-  }, []);
+  }, [initialize]);
 
   return (
     <ErrorBoundary>

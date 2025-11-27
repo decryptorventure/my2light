@@ -2,10 +2,12 @@ import React from 'react';
 import { useNavigate, useLocation, matchPath } from 'react-router-dom';
 import { Home, Play, User } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useAuthStore } from '../../stores/authStore';
 
 export const BottomNav: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useAuthStore();
 
   const navItems = [
     { icon: Home, label: 'Trang chủ', path: '/home' },
@@ -52,6 +54,24 @@ export const BottomNav: React.FC = () => {
             </motion.button>
           );
         })}
+
+        {/* Admin Link */}
+        {user && (user.role === 'court_owner' || user.role === 'both') && (
+          <motion.button
+            onClick={() => navigate('/admin/dashboard')}
+            className="flex flex-col items-center justify-center flex-1 py-2 gap-1 transition-colors"
+            whileTap={{ scale: 0.95 }}
+          >
+            <User // Using User icon for now, maybe change to LayoutDashboard if available
+              size={24}
+              strokeWidth={2}
+              className={location.pathname.startsWith('/admin') ? 'text-lime-400' : 'text-slate-400'}
+            />
+            <span className={`text-[10px] font-medium ${location.pathname.startsWith('/admin') ? 'text-lime-400' : 'text-slate-500'}`}>
+              Quản lý
+            </span>
+          </motion.button>
+        )}
       </div>
     </div>
   );
