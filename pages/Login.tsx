@@ -49,15 +49,16 @@ export const Login: React.FC = () => {
         if (error) throw error;
 
         if (data.user) {
-          // Create profile
-          const name = cleanEmail.split('@')[0];
-          const { error: profileError } = await supabase.from('profiles').upsert({
+          // Create minimal profile - onboarding will update with real name
+          const { error: profileError } = await supabase.from('profiles').insert({
             id: data.user.id,
-            name: name.charAt(0).toUpperCase() + name.slice(1),
+            name: '', // Empty, will be set in onboarding
             avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${data.user.id}`,
+            phone: '',
             credits: 200000,
             membership_tier: 'free',
-            total_highlights: 0
+            total_highlights: 0,
+            has_onboarded: false
           });
 
           if (profileError) {

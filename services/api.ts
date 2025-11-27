@@ -170,6 +170,7 @@ export const ApiService = {
         }
       } else {
         // 3. Update existing profile
+        console.log('🔄 Updating existing profile with:', dbUpdates);
         const { error: updateError } = await supabase
           .from('profiles')
           .update(dbUpdates)
@@ -179,6 +180,7 @@ export const ApiService = {
           console.error("Update profile error", updateError);
           return { success: false, data: false, error: updateError.message };
         }
+        console.log('✅ Profile updated successfully');
       }
 
       return { success: true, data: true };

@@ -218,17 +218,21 @@ export const CourtDetail: React.FC = () => {
                             <PackageCard
                                 title="Rally Mode"
                                 price="150k/giờ"
+                                priceValue={150000}
                                 features={['Tự động lưu highlight', '30 giây/clip']}
                                 popular={false}
                                 isSelected={selectedPackageId === 'pkg_basic'}
+                                hasAnySelected={selectedPackageId !== null}
                                 onSelect={() => setSelectedPackageId('pkg_basic')}
                             />
                             <PackageCard
                                 title="Full Match"
                                 price="300k/trận"
+                                priceValue={300000}
                                 features={['Quay toàn bộ trận', 'AI tạo highlight', 'Tải về full HD']}
                                 popular={true}
                                 isSelected={selectedPackageId === 'pkg_premium'}
+                                hasAnySelected={selectedPackageId !== null}
                                 onSelect={() => setSelectedPackageId('pkg_premium')}
                             />
                         </div>
@@ -253,9 +257,17 @@ export const CourtDetail: React.FC = () => {
                 <div className="fixed bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-slate-900 via-slate-900/95 to-transparent pb-safe border-t border-slate-800">
                     <div className="flex items-center gap-3">
                         <div>
-                            <div className="text-xs text-slate-400">Từ</div>
+                            <div className="text-xs text-slate-400">{selectedPackageId ? 'Tổng cộng' : 'Từ'}</div>
                             <div className="text-xl font-black text-lime-400">
-                                {(court.pricePerHour || 0).toLocaleString()}đ
+                                {(() => {
+                                    let totalPrice = court.pricePerHour || 0;
+                                    if (selectedPackageId === 'pkg_basic') {
+                                        totalPrice += 150000;
+                                    } else if (selectedPackageId === 'pkg_premium') {
+                                        totalPrice += 300000;
+                                    }
+                                    return totalPrice.toLocaleString();
+                                })()}đ
                             </div>
                         </div>
                         <Button
@@ -277,18 +289,22 @@ export const CourtDetail: React.FC = () => {
 interface PackageCardProps {
     title: string;
     price: string;
+    priceValue: number;
     features: string[];
     popular?: boolean;
     isSelected?: boolean;
+    hasAnySelected?: boolean;
     onSelect: () => void;
 }
 
 const PackageCard: React.FC<PackageCardProps> = ({
     title,
     price,
+    priceValue,
     features,
     popular = false,
     isSelected = false,
+    hasAnySelected = false,
     onSelect
 }) => (
     <div
@@ -300,7 +316,7 @@ const PackageCard: React.FC<PackageCardProps> = ({
                 : 'bg-slate-800/50 border-2 border-slate-700 hover:border-slate-600'
             }`}
     >
-        {popular && !isSelected && (
+        {popular && !hasAnySelected && (
             <div className="absolute -top-2 -right-2 bg-lime-400 text-slate-900 text-[10px] font-black px-2 py-0.5 rounded-full">
                 PHỔ BIẾN
             </div>

@@ -34,12 +34,14 @@ export const Onboarding: React.FC = () => {
             // Final celebration
             burst();
             setLoading(true);
-            await ApiService.updateUserProfile({
+            console.log('📝 Onboarding: Updating profile with name:', name);
+            const result = await ApiService.updateUserProfile({
                 name,
                 phone,
                 avatar: avatar || 'https://cdn-icons-png.flaticon.com/512/3307/3307873.png',
                 has_onboarded: true
             });
+            console.log('📝 Onboarding: Update result:', result);
             setLoading(false);
             navigate('/home');
         }
@@ -244,8 +246,8 @@ export const Onboarding: React.FC = () => {
                                     celebrate({ particleCount: 20, spread: 30 });
                                 }}
                                 className={`relative p-5 rounded-2xl cursor-pointer transition-all ${isSelected
-                                        ? 'bg-gradient-to-r ' + level.color + ' shadow-xl scale-105'
-                                        : 'bg-slate-800 hover:bg-slate-750 border-2 border-slate-700'
+                                    ? 'bg-gradient-to-r ' + level.color + ' shadow-xl scale-105'
+                                    : 'bg-slate-800 hover:bg-slate-750 border-2 border-slate-700'
                                     }`}
                             >
                                 <div className="flex items-center gap-4">
