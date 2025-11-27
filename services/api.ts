@@ -153,7 +153,7 @@ export const ApiService = {
         name: c.name,
         address: c.address,
         status: c.status,
-        thumbnailUrl: c.thumbnail_url || 'https://images.unsplash.com/photo-1626248584912-2550cb5a6b0c?q=80&w=800&auto=format&fit=crop',
+        thumbnailUrl: c.thumbnail_url || 'https://images.unsplash.com/photo-1622163642998-1ea36b1dde3b?q=80&w=800&auto=format&fit=crop',
         distanceKm: Number((Math.random() * 5).toFixed(1)), // Mock distance for now
         pricePerHour: c.price_per_hour,
         rating: 4.5 // Mock rating
@@ -396,14 +396,14 @@ export const ApiService = {
         id: h.id,
         userId: h.user_id,
         courtId: h.court_id,
-        thumbnailUrl: h.thumbnail_url || 'https://picsum.photos/400/800',
+        thumbnailUrl: h.thumbnail_url || 'https://images.unsplash.com/photo-1599058945522-28d584b6f0ff?q=80&w=400&h=800&auto=format&fit=crop',
         videoUrl: h.video_url,
         durationSec: h.duration_sec,
         createdAt: h.created_at,
         likes: h.likes,
         views: h.views,
         courtName: h.court?.name || 'Sân',
-        userAvatar: h.profile?.avatar || 'https://picsum.photos/200',
+        userAvatar: h.profile?.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=fallback',
         userName: h.profile?.name || 'Người chơi',
         isLiked: false,
         isPublic: h.is_public !== false // Default to true if not set
@@ -446,7 +446,7 @@ export const ApiService = {
     const { data, error } = await supabase.from('highlights').insert({
       user_id: user.id,
       court_id: courtId,
-      thumbnail_url: `https://picsum.photos/400/800?random=${Date.now()}`,
+      thumbnail_url: 'https://images.unsplash.com/photo-1599058945522-28d584b6f0ff?q=80&w=400&h=800&auto=format&fit=crop',
       video_url: videoUrl || 'https://customer-w42898.cloudflarestream.com/sample/manifest/video.m3u8',
       duration_sec: duration || 30,
       title: title || 'Highlight mới',
