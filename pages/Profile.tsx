@@ -241,6 +241,55 @@ export const Profile: React.FC = () => {
                             </Card>
                         </div>
 
+                        {/* Role Management Section */}
+                        {(user.role === 'court_owner' || user.role === 'both') && (
+                            <div>
+                                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 pl-1">Quản lý sân</h3>
+                                <Card className="p-5 bg-gradient-to-r from-blue-500/10 to-purple-500/10 border-blue-500/30">
+                                    <div className="flex items-center gap-3 mb-3">
+                                        <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
+                                            <Activity size={20} className="text-blue-400" />
+                                        </div>
+                                        <div className="flex-1">
+                                            <h4 className="font-bold text-white">Dashboard Chủ Sân</h4>
+                                            <p className="text-xs text-slate-400">Quản lý sân và booking</p>
+                                        </div>
+                                    </div>
+                                    <Button
+                                        onClick={() => navigate('/admin/dashboard')}
+                                        className="w-full bg-blue-500 hover:bg-blue-600"
+                                    >
+                                        Mở Dashboard
+                                    </Button>
+                                </Card>
+                            </div>
+                        )}
+
+                        {/* Become Court Owner - Show if user is only player */}
+                        {user.role === 'player' && (
+                            <div>
+                                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 pl-1">Dành cho chủ sân</h3>
+                                <Card className="p-5 bg-gradient-to-r from-lime-400/10 to-green-400/10 border-lime-400/30">
+                                    <div className="flex items-center gap-3 mb-3">
+                                        <div className="w-10 h-10 rounded-lg bg-lime-400/20 flex items-center justify-center">
+                                            <Activity size={20} className="text-lime-400" />
+                                        </div>
+                                        <div className="flex-1">
+                                            <h4 className="font-bold text-white">Bạn là chủ sân?</h4>
+                                            <p className="text-xs text-slate-400">Đăng ký ngay để quản lý sân</p>
+                                        </div>
+                                    </div>
+                                    <Button
+                                        onClick={() => navigate('/become-court-owner')}
+                                        variant="outline"
+                                        className="w-full border-lime-400 text-lime-400 hover:bg-lime-400/10"
+                                    >
+                                        Đăng ký làm chủ sân
+                                    </Button>
+                                </Card>
+                            </div>
+                        )}
+
                         <div>
                             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 pl-1">Cài đặt</h3>
                             <div className="space-y-3">

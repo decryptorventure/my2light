@@ -24,6 +24,14 @@ const MyBookings = lazy(() => import('./pages/MyBookings').then(m => ({ default:
 const Wallet = lazy(() => import('./pages/Wallet').then(m => ({ default: m.Wallet })));
 const PaymentCallback = lazy(() => import('./pages/PaymentCallback').then(m => ({ default: m.PaymentCallback })));
 
+// Admin pages
+const BecomeCourtOwner = lazy(() => import('./pages/BecomeCourtOwner').then(m => ({ default: m.BecomeCourtOwner })));
+const AdminLayout = lazy(() => import('./components/admin/layout/AdminLayout').then(m => ({ default: m.AdminLayout })));
+const Dashboard = lazy(() => import('./pages/admin/Dashboard').then(m => ({ default: m.Dashboard })));
+
+// Auth components
+import { ProtectedRoute } from './components/auth/ProtectedRoute';
+
 // Components
 import { BottomNav } from './components/Layout/BottomNav';
 import { IOSInstallPrompt } from './components/Layout/IOSInstallPrompt';
@@ -64,6 +72,24 @@ const AnimatedRoutes = () => {
           <Route path="/wallet" element={<Wallet />} />
           <Route path="/payment-callback" element={<PaymentCallback />} />
           <Route path="/notifications" element={<Notifications />} />
+
+          {/* Court Owner Registration */}
+          <Route path="/become-court-owner" element={<BecomeCourtOwner />} />
+
+          {/* Admin Routes */}
+          <Route path="/admin" element={
+            <ProtectedRoute allowedRoles={['court_owner', 'both']}>
+              <AdminLayout />
+            </ProtectedRoute>
+          }>
+            <Route path="dashboard" element={<Dashboard />} />
+            <Route path="courts" element={<div className="text-white">Courts Page - Coming Soon</div>} />
+            <Route path="bookings" element={<div className="text-white">Bookings Page - Coming Soon</div>} />
+            <Route path="packages" element={<div className="text-white">Packages Page - Coming Soon</div>} />
+            <Route path="revenue" element={<div className="text-white">Revenue Page - Coming Soon</div>} />
+            <Route path="settings" element={<div className="text-white">Settings Page - Coming Soon</div>} />
+          </Route>
+
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </Suspense>

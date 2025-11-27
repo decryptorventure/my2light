@@ -1,4 +1,5 @@
 
+
 export interface User {
   id: string;
   name: string;
@@ -9,6 +10,7 @@ export interface User {
   courtsVisited: number;
   credits: number; // Số dư ví (VND)
   membershipTier: 'free' | 'pro' | 'elite';
+  role?: 'player' | 'court_owner' | 'both'; // NEW: User role
 }
 
 export interface Court {

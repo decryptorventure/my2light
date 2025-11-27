@@ -93,7 +93,8 @@ export const ApiService = {
         hoursPlayed: Number(hoursPlayed.toFixed(1)),
         courtsVisited: visitedCourts.size,
         credits: data.credits || 0,
-        membershipTier: (data.membership_tier as any) || 'free'
+        membershipTier: (data.membership_tier as any) || 'free',
+        role: (data.role as any) || 'player' // NEW: Include role
       };
 
       return { success: true, data: user };
