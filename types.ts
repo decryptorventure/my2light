@@ -113,3 +113,28 @@ export interface ApiResponse<T> {
   message?: string;
   error?: string;
 }
+
+export interface VideoSegment {
+  id: string;
+  recording_session_id: string;
+  user_id: string;
+  start_time: number;
+  end_time: number;
+  duration: number;
+  status: 'pending' | 'uploaded' | 'processed' | 'failed';
+  created_at: string;
+  video_url?: string;
+  thumbnail_url?: string;
+  isSelected?: boolean; // Client-side only
+}
+
+export interface VideoProcessingJob {
+  id: string;
+  user_id: string;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  created_at: string;
+  updated_at: string;
+  result_url?: string;
+  error?: string;
+  metadata?: any;
+}
