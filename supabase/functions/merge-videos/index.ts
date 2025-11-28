@@ -111,6 +111,32 @@ serve(async (req) => {
             })
             .eq('id', job.id)
 
+        // Calculate total duration from segments
+        const totalDuration = segments.reduce((sum: number, seg: any) => sum + (seg.duration || 0), 0)
+
+        // Create highlight record so video appears in Gallery/Dashboard
+        const { data: highlight, error: highlightError } = await supabaseClient
+            .from('highlights')
+            .insert({
+                user_id: user.id,
+                court_id: segments[0].court_id || null, // Use court from first segment if available
+                video_url: publicUrl,
+                thumbnail_url: null, // Will be generated later
+                duration_sec: totalDuration,
+                likes: 0,
+                views: 0,
+                is_public: true,
+                title: `Highlight từ ${segments.length} khoảnh khắc`,
+                description: `Video được ghép từ ${segments.length} segments được đánh dấu trong trận đấu`
+            })
+            .select()
+            .single()
+
+        if (highlightError) {
+            console.error('Failed to create highlight:', highlightError)
+            // Don't throw error - video is still processed, just log the issue
+        }
+
         // Create notification
         await supabaseClient
             .from('notifications')
@@ -119,7 +145,11 @@ serve(async (req) => {
                 type: 'video_ready',
                 title: 'Video đã sẵn sàng! 🎥',
                 message: 'Video highlight của bạn đã được xử lý xong',
-                data: { job_id: job.id, video_url: publicUrl }
+                data: {
+                    job_id: job.id,
+                    video_url: publicUrl,
+                    highlight_id: highlight?.id
+                }
             })
 
         return new Response(
