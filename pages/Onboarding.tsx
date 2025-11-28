@@ -57,15 +57,29 @@ export const Onboarding: React.FC = () => {
         navigate('/home');
     };
 
-    const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
+            setLoading(true);
+
+            // Show preview immediately
             const reader = new FileReader();
             reader.onloadend = () => {
                 setAvatar(reader.result as string);
-                celebrate({ particleCount: 50 });
             };
             reader.readAsDataURL(file);
+
+            // Upload to server
+            const response = await ApiService.uploadAvatar(file);
+            if (response.success && response.data) {
+                setAvatar(response.data); // Use uploaded URL
+                celebrate({ particleCount: 50 });
+            } else {
+                console.error('Avatar upload failed:', response.error);
+                // Keep local preview if upload fails
+            }
+
+            setLoading(false);
         }
     };
 

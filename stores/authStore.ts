@@ -26,7 +26,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         try {
             set({ isLoading: true });
 
-            // Get initial session
+            // Get initial session - Supabase automatically persists sessions in localStorage by default
+            // This enables auto-login when user returns to the app
             const { data: { session } } = await supabase.auth.getSession();
             set({ session });
 

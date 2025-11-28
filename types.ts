@@ -107,9 +107,45 @@ export interface UserMembership {
   package?: Package; // Joined package
 }
 
+
 export interface ApiResponse<T> {
   data: T;
   success: boolean;
   message?: string;
   error?: string;
+}
+
+export interface VideoSegment {
+  id: string;
+  recording_session_id: string;
+  user_id: string;
+  start_time: number; // seconds
+  end_time: number;
+  duration: number;
+  video_url?: string;
+  status: 'pending' | 'uploaded' | 'processing' | 'ready' | 'failed';
+  created_at: string;
+  isSelected?: boolean; // Client-side only
+}
+
+export interface VideoProcessingJob {
+  id: string;
+  user_id: string;
+  segment_ids: string[];
+  output_url?: string;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  error_message?: string;
+  created_at: string;
+  completed_at?: string;
+}
+
+export interface Notification {
+  id: string;
+  user_id: string;
+  type: string;
+  title: string;
+  message?: string;
+  data?: any;
+  is_read: boolean;
+  created_at: string;
 }
