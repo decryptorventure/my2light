@@ -60,7 +60,7 @@ export const VideoSegmentService = {
     /**
      * Trigger the merge-videos Edge Function
      */
-    async mergeVideos(segmentIds: string[]): Promise<{ success: boolean; jobId?: string; error?: string }> {
+    async mergeVideos(segmentIds: string[]): Promise<{ success: boolean; jobId?: string; videoUrl?: string; error?: string }> {
         try {
             const { data, error } = await supabase.functions.invoke('merge-videos', {
                 body: { segmentIds }

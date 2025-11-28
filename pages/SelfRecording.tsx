@@ -32,6 +32,7 @@ export const SelfRecording: React.FC = () => {
   const [fullRecordingBlob, setFullRecordingBlob] = useState<Blob | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [keywordDetection, setKeywordDetection] = useState(false);
+  const [mergedVideoUrl, setMergedVideoUrl] = useState<string | null>(null);
 
   // Camera
   const { stream, permissionGranted, switchCamera } = useCamera({
@@ -167,6 +168,10 @@ export const SelfRecording: React.FC = () => {
         // Continue to show success even if merge fails
       } else {
         showToast('Video đang được xử lý...', 'success');
+        // Store merged video URL if available
+        if (mergeResult.videoUrl) {
+          setMergedVideoUrl(mergeResult.videoUrl);
+        }
       }
 
       // 4. Simulate processing time
@@ -291,8 +296,8 @@ export const SelfRecording: React.FC = () => {
                           className="flex flex-col items-center gap-2 group"
                         >
                           <div className={`w-14 h-14 rounded-full flex items-center justify-center transition ${recordingStatus === 'paused'
-                              ? 'bg-lime-400 text-slate-900'
-                              : 'bg-slate-800/80 text-white backdrop-blur-sm'
+                            ? 'bg-lime-400 text-slate-900'
+                            : 'bg-slate-800/80 text-white backdrop-blur-sm'
                             }`}>
                             {recordingStatus === 'paused' ? <Play size={24} fill="currentColor" /> : <Pause size={24} fill="currentColor" />}
                           </div>
@@ -360,6 +365,7 @@ export const SelfRecording: React.FC = () => {
               <DoneStep
                 onGoHome={() => navigate('/home')}
                 onViewGallery={() => navigate('/gallery')}
+                videoUrl={mergedVideoUrl}
               />
             )}
           </AnimatePresence>
@@ -440,6 +446,22 @@ const ReviewStep: React.FC<{
 }> = ({ segments, onToggleSelection, onSave, onCancel }) => {
   const selectedCount = segments.filter(s => s.isSelected).length;
 
+  const handleSelectAll = () => {
+    segments.forEach(seg => {
+      if (!seg.isSelected) {
+        onToggleSelection(seg.id);
+      }
+    });
+  };
+
+  const handleDeselectAll = () => {
+    segments.forEach(seg => {
+      if (seg.isSelected) {
+        onToggleSelection(seg.id);
+      }
+    });
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -453,6 +475,24 @@ const ReviewStep: React.FC<{
         <p className="text-slate-400 text-sm mb-4">
           Đã đánh dấu {segments.length} khoảnh khắc. Chọn những clip bạn muốn giữ lại.
         </p>
+
+        {/* Select All / Deselect All Buttons */}
+        {segments.length > 0 && (
+          <div className="flex gap-2 mb-4">
+            <button
+              onClick={handleSelectAll}
+              className="flex-1 px-4 py-2 bg-lime-400/10 border border-lime-400/30 text-lime-400 rounded-lg text-sm font-bold hover:bg-lime-400/20 transition"
+            >
+              Chọn tất cả
+            </button>
+            <button
+              onClick={handleDeselectAll}
+              className="flex-1 px-4 py-2 bg-slate-700/50 border border-slate-600 text-slate-300 rounded-lg text-sm font-bold hover:bg-slate-700 transition"
+            >
+              Bỏ chọn tất cả
+            </button>
+          </div>
+        )}
 
         {segments.length === 0 ? (
           <div className="text-center py-8 text-slate-500">
@@ -543,43 +583,87 @@ const ProcessingStep: React.FC = () => (
 const DoneStep: React.FC<{
   onGoHome: () => void;
   onViewGallery: () => void;
-}> = ({ onGoHome, onViewGallery }) => (
-  <motion.div
-    initial={{ opacity: 0, scale: 0.9 }}
-    animate={{ opacity: 1, scale: 1 }}
-    className="fixed inset-0 bg-slate-900 flex flex-col items-center justify-center px-6"
-  >
+  videoUrl: string | null;
+}> = ({ onGoHome, onViewGallery, videoUrl }) => {
+  const { showToast } = useToast();
+
+  const handleDownload = async () => {
+    if (!videoUrl) {
+      showToast('Video chưa sẵn sàng để tải xuống', 'error');
+      return;
+    }
+
+    try {
+      // Fetch the video
+      const response = await fetch(videoUrl);
+      const blob = await response.blob();
+
+      // Create download link
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `highlight-${Date.now()}.webm`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      showToast('Video đã được tải xuống! 📥', 'success');
+    } catch (error) {
+      console.error('Download error:', error);
+      showToast('Lỗi khi tải video', 'error');
+    }
+  };
+
+  return (
     <motion.div
-      initial={{ scale: 0 }}
-      animate={{ scale: 1 }}
-      transition={{ type: 'spring', delay: 0.2 }}
-      className="w-32 h-32 bg-gradient-to-br from-lime-400 to-green-500 rounded-full flex items-center justify-center mb-6 shadow-xl"
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      className="fixed inset-0 bg-slate-900 flex flex-col items-center justify-center px-6"
     >
-      <Check size={64} className="text-slate-900" strokeWidth={3} />
+      <motion.div
+        initial={{ scale: 0 }}
+        animate={{ scale: 1 }}
+        transition={{ type: 'spring', delay: 0.2 }}
+        className="w-32 h-32 bg-gradient-to-br from-lime-400 to-green-500 rounded-full flex items-center justify-center mb-6 shadow-xl"
+      >
+        <Check size={64} className="text-slate-900" strokeWidth={3} />
+      </motion.div>
+
+      <h2 className="text-3xl font-black text-white mb-3">Hoàn thành! 🎉</h2>
+      <p className="text-slate-400 mb-8 text-center max-w-sm">
+        Video đã được xử lý và sẵn sàng để xem
+      </p>
+
+      <div className="space-y-3 w-full max-w-sm">
+        <Button
+          onClick={onViewGallery}
+          icon={<Sparkles size={20} />}
+          size="xl"
+          className="w-full"
+        >
+          Xem trong Gallery
+        </Button>
+        {videoUrl && (
+          <Button
+            onClick={handleDownload}
+            variant="outline"
+            icon={<Download size={20} />}
+            size="xl"
+            className="w-full"
+          >
+            Tải xuống
+          </Button>
+        )}
+        <Button
+          onClick={onGoHome}
+          variant="outline"
+          size="xl"
+          className="w-full"
+        >
+          Về trang chủ
+        </Button>
+      </div>
     </motion.div>
-
-    <h2 className="text-3xl font-black text-white mb-3">Hoàn thành! 🎉</h2>
-    <p className="text-slate-400 mb-8 text-center max-w-sm">
-      Video đã được xử lý và sẵn sàng để xem
-    </p>
-
-    <div className="space-y-3 w-full max-w-sm">
-      <Button
-        onClick={onViewGallery}
-        icon={<Sparkles size={20} />}
-        size="xl"
-        className="w-full"
-      >
-        Xem trong Gallery
-      </Button>
-      <Button
-        onClick={onGoHome}
-        variant="outline"
-        size="xl"
-        className="w-full"
-      >
-        Về trang chủ
-      </Button>
-    </div>
-  </motion.div>
-);
+  );
+};
