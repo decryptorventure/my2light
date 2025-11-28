@@ -56,14 +56,22 @@ export const QRScan: React.FC = () => {
       // 3. Check for upcoming booking (starting soon)
       const upcomingBooking = await ApiService.getUpcomingBooking(cleanId);
       if (upcomingBooking.success && upcomingBooking.data) {
-        await ApiService.checkInBooking(upcomingBooking.data.id);
-        showToast(`Check-in thành công!`, 'success');
-        navigate('/active-session');
+        // Show confirmation before check-in to avoid accidental check-ins
+        const confirmCheckIn = window.confirm(`Bạn có lịch đặt sân lúc ${new Date(upcomingBooking.data.startTime).toLocaleTimeString()}. Check-in ngay?`);
+        if (confirmCheckIn) {
+          await ApiService.checkInBooking(upcomingBooking.data.id);
+          showToast(`Check-in thành công! Chúc bạn chơi vui vẻ.`, 'success');
+          navigate('/active-session');
+        }
         return;
       }
 
-      // 4. No booking found -> Proceed to new booking
+      // 4. No booking found -> Proceed to new booking or Quick Play
       showToast('Đã tìm thấy sân: ' + courtRes.data.name, 'success');
+
+      // Check if user has membership (mock for now, real implementation would check user_memberships)
+      // If membership exists, we could skip payment
+
       setStep('package');
     } else {
       console.error('Scan failed:', courtRes.error);

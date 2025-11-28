@@ -129,15 +129,16 @@ export const Booking: React.FC = () => {
             if (res.success) {
                 showToast('Đặt sân thành công! 🎉', 'success');
 
-                // Check if starting soon (within 30 mins)
-                const now = Date.now();
-                const isStartingSoon = startTime.getTime() - now < 30 * 60000;
-
-                if (isStartingSoon) {
-                    navigate('/active-session');
-                } else {
-                    navigate('/home');
-                }
+                // Navigate to success page with details
+                navigate('/booking-success', {
+                    state: {
+                        courtName: court.name,
+                        date: selectedDate.toLocaleDateString('vi-VN', { weekday: 'long', day: 'numeric', month: 'long' }),
+                        time: selectedTime,
+                        totalPrice: totalPrice,
+                        packageName: selectedPkg?.name
+                    }
+                });
             } else {
                 showToast(res.error || 'Đặt sân thất bại', 'error');
             }

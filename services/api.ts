@@ -343,16 +343,20 @@ export const ApiService = {
     const startTime = new Date(startTimeTimestamp);
     const endTime = new Date(startTime.getTime() + durationHours * 60 * 60000);
 
-    // Check for overlapping bookings
+    // Check for overlapping bookings (both active and confirmed)
     const { data: conflicts, error: conflictError } = await supabase
       .from('bookings')
       .select('id')
       .eq('court_id', courtId)
-      .eq('status', 'active')
+      .in('status', ['confirmed', 'active'])
       .or(`and(start_time.lte.${endTime.toISOString()},end_time.gte.${startTime.toISOString()})`);
 
     if (conflictError) {
       console.error("Error checking conflicts:", conflictError);
+      // If it's a schema cache error, provide helpful message
+      if (conflictError.message?.includes('schema cache')) {
+        throw new Error('Database schema needs refresh. Please contact support or try again in a few moments.');
+      }
       throw new Error('Could not verify court availability');
     }
 

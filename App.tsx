@@ -1,7 +1,6 @@
 import React, { useEffect, Suspense, lazy } from 'react';
 import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
-import { supabase } from './lib/supabase';
 import { useAuthStore } from './stores/authStore';
 
 // Critical pages - load immediately
@@ -20,6 +19,9 @@ const MyHighlights = lazy(() => import('./pages/MyHighlights').then(m => ({ defa
 const Profile = lazy(() => import('./pages/Profile').then(m => ({ default: m.Profile })));
 const SelfRecording = lazy(() => import('./pages/SelfRecording').then(m => ({ default: m.SelfRecording })));
 const Booking = lazy(() => import('./pages/Booking').then(m => ({ default: m.Booking })));
+const BookingSuccess = lazy(() => import('./pages/BookingSuccess').then(m => ({ default: m.BookingSuccess })));
+const MatchFinding = lazy(() => import('./pages/MatchFinding').then(m => ({ default: m.MatchFinding })));
+const Memberships = lazy(() => import('./pages/Memberships').then(m => ({ default: m.Memberships })));
 const Notifications = lazy(() => import('./pages/Notifications').then(m => ({ default: m.Notifications })));
 const MyBookings = lazy(() => import('./pages/MyBookings').then(m => ({ default: m.MyBookings })));
 const Wallet = lazy(() => import('./pages/Wallet').then(m => ({ default: m.Wallet })));
@@ -78,7 +80,10 @@ const AnimatedRoutes = () => {
           <Route path="/my-highlights" element={<MyHighlights />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/self-recording" element={<SelfRecording />} />
+          <Route path="/match-finding" element={<MatchFinding />} />
+          <Route path="/memberships" element={<Memberships />} />
           <Route path="/booking/:id" element={<Booking />} />
+          <Route path="/booking-success" element={<BookingSuccess />} />
           <Route path="/my-bookings" element={<MyBookings />} />
           <Route path="/wallet" element={<Wallet />} />
           <Route path="/payment-callback" element={<PaymentCallback />} />
@@ -98,7 +103,6 @@ const AnimatedRoutes = () => {
             <Route path="bookings" element={<BookingsManagement />} />
             <Route path="packages" element={<div className="text-white">Packages Page - Coming Soon</div>} />
             <Route path="revenue" element={<div className="text-white">Revenue Page - Coming Soon</div>} />
-            <Route path="settings" element={<div className="text-white">Settings Page - Coming Soon</div>} />
             <Route path="settings" element={<div className="text-white">Settings Page - Coming Soon</div>} />
           </Route>
 

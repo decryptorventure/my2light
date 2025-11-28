@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Settings, LogOut, Clock, Zap, Map as MapIcon, Edit2, Calendar, CreditCard, ChevronDown, Camera, Wallet, Activity } from 'lucide-react';
+import { Settings, LogOut, Clock, Zap, Map as MapIcon, Edit2, Calendar, CreditCard, ChevronDown, Camera, Wallet, Activity, Crown } from 'lucide-react';
 import { PageTransition } from '../components/Layout/PageTransition';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
@@ -334,6 +334,14 @@ export const Profile: React.FC = () => {
                                 >
                                     <span>Lịch Đặt Sân</span>
                                     <Calendar size={16} className="text-slate-500" />
+                                </Button>
+                                <Button
+                                    variant="secondary"
+                                    className="w-full justify-between bg-slate-800/50 border-slate-700"
+                                    onClick={() => navigate('/memberships')}
+                                >
+                                    <span>Gói Hội Viên</span>
+                                    <Crown size={16} className="text-yellow-500" />
                                 </Button>
                                 <Button
                                     variant="secondary"

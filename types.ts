@@ -1,5 +1,4 @@
 
-
 export interface User {
   id: string;
   name: string;
@@ -59,11 +58,14 @@ export interface Highlight {
 export interface Package {
   id: string;
   name: string;
-  durationMinutes: number;
   price: number;
+  durationMinutes: number;
   description: string;
   isBestValue?: boolean;
-  type?: 'standard' | 'full_match'; // New field
+  features: string[];
+  type?: 'per_booking' | 'monthly' | 'session_pack' | 'fixed_slot';
+  session_count?: number;
+  validity_days?: number;
 }
 
 export interface Booking {
@@ -78,6 +80,31 @@ export interface Booking {
   courtName?: string; // Expanded for UI
   packageName?: string; // Expanded for UI
   packageType?: 'standard' | 'full_match'; // New field
+}
+
+export interface MatchRequest {
+  id: string;
+  user_id: string;
+  court_id?: string;
+  preferred_time: string;
+  skill_level: 'beginner' | 'intermediate' | 'advanced' | 'pro';
+  match_type: 'singles' | 'doubles' | 'any';
+  gender: 'male' | 'female' | 'mixed' | 'any';
+  status: 'open' | 'matched' | 'cancelled' | 'expired';
+  description?: string;
+  created_at: string;
+  profiles?: any; // Joined profile (using any to avoid circular dependency or simple object)
+}
+
+export interface UserMembership {
+  id: string;
+  user_id: string;
+  package_id: string;
+  remaining_sessions: number;
+  start_date: string;
+  end_date?: string;
+  status: 'active' | 'expired' | 'used_up';
+  package?: Package; // Joined package
 }
 
 export interface ApiResponse<T> {

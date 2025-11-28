@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation, matchPath } from 'react-router-dom';
-import { Home, Play, User, Users } from 'lucide-react';
+import { Home, Play, User, Users, Swords } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAuthStore } from '../../stores/authStore';
 import { SocialService } from '../../services/social';
@@ -27,6 +27,7 @@ export const BottomNav: React.FC = () => {
   const navItems = [
     { icon: Home, label: 'Trang chủ', path: '/home' },
     { icon: Users, label: 'Cộng đồng', path: '/social', badge: pendingCount },
+    { icon: Swords, label: 'Tìm kèo', path: '/match-finding' },
     { icon: Play, label: 'Thư viện', path: '/my-highlights' },
     { icon: User, label: 'Cá nhân', path: '/profile' },
   ];
