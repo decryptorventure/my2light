@@ -49,9 +49,9 @@ const COURTS: Court[] = [
 ];
 
 const PACKAGES: Package[] = [
-  { id: 'p1', name: 'Giao Hữu Nhanh', durationMinutes: 60, price: 30000, description: 'Phù hợp khởi động hoặc chơi nhanh' },
-  { id: 'p2', name: 'Trận Đấu Pro', durationMinutes: 120, price: 50000, isBestValue: true, description: 'Gói tiêu chuẩn cho trận đấu đầy đủ' },
-  { id: 'p3', name: 'Marathon Thể Lực', durationMinutes: 180, price: 70000, description: 'Dành cho những chiến binh bền bỉ' },
+  { id: 'p1', name: 'Giao Hữu Nhanh', durationMinutes: 60, price: 30000, description: 'Phù hợp khởi động hoặc chơi nhanh', features: ['Sân tiêu chuẩn', 'Nước uống miễn phí'] },
+  { id: 'p2', name: 'Trận Đấu Pro', durationMinutes: 120, price: 50000, isBestValue: true, description: 'Gói tiêu chuẩn cho trận đấu đầy đủ', features: ['Sân tiêu chuẩn', 'Nước uống miễn phí', 'Khăn lạnh'] },
+  { id: 'p3', name: 'Marathon Thể Lực', durationMinutes: 180, price: 70000, description: 'Dành cho những chiến binh bền bỉ', features: ['Sân tiêu chuẩn', 'Nước uống miễn phí', 'Khăn lạnh', 'Tủ đồ cá nhân'] },
 ];
 
 const INITIAL_HIGHLIGHTS: Highlight[] = [
@@ -127,7 +127,7 @@ export const ApiService = {
     // Trong thực tế, sẽ gọi API lấy danh sách sân dựa trên GPS
     return { success: true, data: COURTS };
   },
-  
+
   getCourtById: async (id: string): Promise<ApiResponse<Court | undefined>> => {
     await wait(DELAY_MS / 2);
     const court = COURTS.find(c => c.id === id);
@@ -144,22 +144,22 @@ export const ApiService = {
     await wait(DELAY_MS); // Feed load lâu hơn chút
     const stored = localStorage.getItem('my2light_highlights');
     let data = stored ? JSON.parse(stored) : INITIAL_HIGHLIGHTS;
-    
+
     // Sắp xếp mới nhất trước
-    data = data.sort((a: Highlight, b: Highlight) => 
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    data = data.sort((a: Highlight, b: Highlight) =>
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
-    
+
     return { success: true, data: data.slice(0, limit) };
   },
 
   createHighlight: async (courtId: string): Promise<ApiResponse<Highlight>> => {
     // Không cần delay nhiều vì cần phản hồi nhanh cho người dùng
-    await wait(200); 
-    
+    await wait(200);
+
     const userRes = await ApiService.getUserProfile();
     const courtRes = await ApiService.getCourtById(courtId);
-    
+
     const newHighlight: Highlight = {
       id: `h_new_${Date.now()}`,
       userId: userRes.data.id,
@@ -193,27 +193,27 @@ export const ApiService = {
     await wait(DELAY_MS / 2);
     const stored = localStorage.getItem('my2light_active_booking');
     if (!stored) return { success: true, data: null };
-    
+
     const booking: Booking = JSON.parse(stored);
-    
+
     // Check expiry
     if (Date.now() > booking.endTime) {
       localStorage.removeItem('my2light_active_booking');
       return { success: true, data: null };
     }
-    
+
     return { success: true, data: booking };
   },
 
   createBooking: async (packageId: string, courtId: string): Promise<ApiResponse<Booking>> => {
     await wait(1500); // Giả lập thanh toán tốn thời gian
-    
+
     const pkg = PACKAGES.find(p => p.id === packageId);
     if (!pkg) throw new Error("Gói không hợp lệ");
 
     const startTime = Date.now();
-    const endTime = startTime + (pkg.durationMinutes * 60 * 1000); 
-    
+    const endTime = startTime + (pkg.durationMinutes * 60 * 1000);
+
     const booking: Booking = {
       id: `b_${Date.now()}`,
       userId: 'u1',
@@ -226,7 +226,7 @@ export const ApiService = {
     };
 
     localStorage.setItem('my2light_active_booking', JSON.stringify(booking));
-    
+
     // Trừ tiền user
     const userRes = await ApiService.getUserProfile();
     const updatedUser = { ...userRes.data, credits: userRes.data.credits - pkg.price };

@@ -311,7 +311,8 @@ export const ApiService = {
           price: p.price,
           description: p.description,
           isBestValue: p.is_best_value,
-          type: p.name.includes('Full') ? 'full_match' : 'standard'
+          features: p.features || [],
+          type: 'per_booking'
         }))
       };
     } catch (e) {
