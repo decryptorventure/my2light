@@ -330,22 +330,6 @@ export const Profile: React.FC = () => {
                                 <Button
                                     variant="secondary"
                                     className="w-full justify-between bg-slate-800/50 border-slate-700"
-                                    onClick={() => navigate('/my-bookings')}
-                                >
-                                    <span>Lịch Đặt Sân</span>
-                                    <Calendar size={16} className="text-slate-500" />
-                                </Button>
-                                <Button
-                                    variant="secondary"
-                                    className="w-full justify-between bg-slate-800/50 border-slate-700"
-                                    onClick={() => navigate('/memberships')}
-                                >
-                                    <span>Gói Hội Viên</span>
-                                    <Crown size={16} className="text-yellow-500" />
-                                </Button>
-                                <Button
-                                    variant="secondary"
-                                    className="w-full justify-between bg-slate-800/50 border-slate-700"
                                     onClick={() => navigate('/wallet')}
                                 >
                                     <span>Ví My2Light</span>

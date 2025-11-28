@@ -21,13 +21,10 @@ const SelfRecording = lazy(() => import('./pages/SelfRecording').then(m => ({ de
 const Booking = lazy(() => import('./pages/Booking').then(m => ({ default: m.Booking })));
 const BookingSuccess = lazy(() => import('./pages/BookingSuccess').then(m => ({ default: m.BookingSuccess })));
 const MatchFinding = lazy(() => import('./pages/MatchFinding').then(m => ({ default: m.MatchFinding })));
-const Memberships = lazy(() => import('./pages/Memberships').then(m => ({ default: m.Memberships })));
 const Notifications = lazy(() => import('./pages/Notifications').then(m => ({ default: m.Notifications })));
 const MyBookings = lazy(() => import('./pages/MyBookings').then(m => ({ default: m.MyBookings })));
 const Wallet = lazy(() => import('./pages/Wallet').then(m => ({ default: m.Wallet })));
 const PaymentCallback = lazy(() => import('./pages/PaymentCallback').then(m => ({ default: m.PaymentCallback })));
-
-// Admin pages
 const BecomeCourtOwner = lazy(() => import('./pages/BecomeCourtOwner').then(m => ({ default: m.BecomeCourtOwner })));
 const AdminLayout = lazy(() => import('./components/admin/layout/AdminLayout').then(m => ({ default: m.AdminLayout })));
 const Dashboard = lazy(() => import('./pages/admin/Dashboard').then(m => ({ default: m.Dashboard })));
@@ -81,30 +78,11 @@ const AnimatedRoutes = () => {
           <Route path="/profile" element={<Profile />} />
           <Route path="/self-recording" element={<SelfRecording />} />
           <Route path="/match-finding" element={<MatchFinding />} />
-          <Route path="/memberships" element={<Memberships />} />
           <Route path="/booking/:id" element={<Booking />} />
           <Route path="/booking-success" element={<BookingSuccess />} />
           <Route path="/my-bookings" element={<MyBookings />} />
           <Route path="/wallet" element={<Wallet />} />
           <Route path="/payment-callback" element={<PaymentCallback />} />
-          <Route path="/notifications" element={<Notifications />} />
-
-          {/* Court Owner Registration */}
-          <Route path="/become-court-owner" element={<BecomeCourtOwner />} />
-
-          {/* Admin Routes */}
-          <Route path="/admin" element={
-            <ProtectedRoute allowedRoles={['court_owner', 'both']}>
-              <AdminLayout />
-            </ProtectedRoute>
-          }>
-            <Route path="dashboard" element={<Dashboard />} />
-            <Route path="courts" element={<CourtsManagement />} />
-            <Route path="bookings" element={<BookingsManagement />} />
-            <Route path="packages" element={<div className="text-white">Packages Page - Coming Soon</div>} />
-            <Route path="revenue" element={<div className="text-white">Revenue Page - Coming Soon</div>} />
-            <Route path="settings" element={<div className="text-white">Settings Page - Coming Soon</div>} />
-          </Route>
 
           {/* Social Routes */}
           <Route path="/social" element={<SocialLayout />}>
@@ -121,7 +99,7 @@ const AnimatedRoutes = () => {
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </Suspense>
-    </AnimatePresence>
+    </AnimatePresence >
   );
 };
 
