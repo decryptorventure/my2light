@@ -26,6 +26,8 @@ export const Profile: React.FC = () => {
     const [isEditOpen, setIsEditOpen] = useState(false);
     const [editName, setEditName] = useState('');
     const [editPhone, setEditPhone] = useState('');
+    const [editBio, setEditBio] = useState('');
+    const [isPublic, setIsPublic] = useState(true);
 
     useEffect(() => {
         loadData();
@@ -38,6 +40,8 @@ export const Profile: React.FC = () => {
             setUser(res.data);
             setEditName(res.data.name);
             setEditPhone(res.data.phone);
+            setEditBio(res.data.bio || '');
+            setIsPublic(res.data.isPublic ?? true);
         }
 
         // Load history
@@ -53,9 +57,20 @@ export const Profile: React.FC = () => {
     };
 
     const handleSaveProfile = async () => {
-        const res = await ApiService.updateUserProfile({ name: editName, phone: editPhone });
+        const res = await ApiService.updateUserProfile({
+            name: editName,
+            phone: editPhone,
+            bio: editBio,
+            is_public: isPublic
+        });
         if (res.success) {
-            setUser(prev => prev ? { ...prev, name: editName, phone: editPhone } : null);
+            setUser(prev => prev ? {
+                ...prev,
+                name: editName,
+                phone: editPhone,
+                bio: editBio,
+                isPublic
+            } : null);
             setIsEditOpen(false);
             showToast('Cập nhật hồ sơ thành công!', 'success');
         } else {
@@ -165,11 +180,28 @@ export const Profile: React.FC = () => {
                         />
                     </div>
                     <h2 className="text-2xl font-bold text-white text-center">{user.name}</h2>
-                    <div className="flex items-center gap-2 mt-1">
+                    <div className="flex items-center gap-2 mt-1 mb-2">
                         <span className="text-lime-400 font-bold text-xs uppercase tracking-wider bg-lime-400/10 px-2 py-1 rounded border border-lime-400/20">
                             {user.membershipTier} Member
                         </span>
                         <span className="text-slate-500 text-xs">{user.phone || 'Chưa có SĐT'}</span>
+                    </div>
+
+                    {user.bio && (
+                        <p className="text-slate-400 text-sm text-center max-w-xs mb-4">
+                            {user.bio}
+                        </p>
+                    )}
+
+                    <div className="flex items-center gap-6 text-sm mb-2">
+                        <button onClick={() => navigate('/social/connections?tab=followers')} className="flex flex-col items-center">
+                            <span className="font-bold text-white text-lg">{user.followersCount || 0}</span>
+                            <span className="text-slate-500 text-xs">Người theo dõi</span>
+                        </button>
+                        <button onClick={() => navigate('/social/connections?tab=following')} className="flex flex-col items-center">
+                            <span className="font-bold text-white text-lg">{user.followingCount || 0}</span>
+                            <span className="text-slate-500 text-xs">Đang theo dõi</span>
+                        </button>
                     </div>
                 </div>
 
@@ -385,6 +417,24 @@ export const Profile: React.FC = () => {
                                 onChange={(e) => setEditPhone(e.target.value)}
                                 className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white focus:outline-none focus:border-lime-400"
                             />
+                        </div>
+                        <div>
+                            <label className="block text-sm text-slate-400 mb-1">Giới thiệu (Bio)</label>
+                            <textarea
+                                value={editBio}
+                                onChange={(e) => setEditBio(e.target.value)}
+                                className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white focus:outline-none focus:border-lime-400 h-24 resize-none"
+                                placeholder="Viết gì đó về bạn..."
+                            />
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <label className="text-sm text-slate-400">Công khai hồ sơ</label>
+                            <button
+                                onClick={() => setIsPublic(!isPublic)}
+                                className={`w-12 h-6 rounded-full transition-colors relative ${isPublic ? 'bg-lime-400' : 'bg-slate-700'}`}
+                            >
+                                <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${isPublic ? 'left-7' : 'left-1'}`} />
+                            </button>
                         </div>
                         <Button onClick={handleSaveProfile} className="w-full mt-4">Lưu thay đổi</Button>
                     </div>

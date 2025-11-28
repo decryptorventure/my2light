@@ -7,6 +7,8 @@ import { CourtDetails, CourtFormData } from '../../types/admin';
 import { useToast } from '../ui/Toast';
 import { X } from 'lucide-react';
 
+import { ImageUpload } from '../ui/ImageUpload';
+
 interface CourtFormModalProps {
     court: CourtDetails | null;
     onClose: () => void;
@@ -29,7 +31,6 @@ export const CourtFormModal: React.FC<CourtFormModalProps> = ({ court, onClose, 
     const { showToast } = useToast();
     const [loading, setLoading] = useState(false);
     const [imageUrls, setImageUrls] = useState<string[]>([]);
-    const [newImageUrl, setNewImageUrl] = useState('');
 
     const [formData, setFormData] = useState<CourtFormData>({
         name: '',
@@ -101,17 +102,6 @@ export const CourtFormModal: React.FC<CourtFormModalProps> = ({ court, onClose, 
                 ? prev.facilities.filter(f => f !== facility)
                 : [...prev.facilities, facility]
         }));
-    };
-
-    const handleAddImage = () => {
-        if (newImageUrl && !imageUrls.includes(newImageUrl)) {
-            setImageUrls([...imageUrls, newImageUrl]);
-            setNewImageUrl('');
-        }
-    };
-
-    const handleRemoveImage = (index: number) => {
-        setImageUrls(imageUrls.filter((_, i) => i !== index));
     };
 
     return (
@@ -218,44 +208,12 @@ export const CourtFormModal: React.FC<CourtFormModalProps> = ({ court, onClose, 
                     {/* Images */}
                     <div className="space-y-4">
                         <h3 className="text-lg font-semibold text-white">Hình ảnh</h3>
-
-                        <div className="flex gap-2">
-                            <Input
-                                value={newImageUrl}
-                                onChange={(e) => setNewImageUrl(e.target.value)}
-                                placeholder="Nhập URL hình ảnh"
-                                className="flex-1"
-                            />
-                            <Button
-                                type="button"
-                                onClick={handleAddImage}
-                                variant="secondary"
-                                disabled={!newImageUrl}
-                            >
-                                Thêm
-                            </Button>
-                        </div>
-
-                        {imageUrls.length > 0 && (
-                            <div className="grid grid-cols-3 gap-3">
-                                {imageUrls.map((url, index) => (
-                                    <div key={index} className="relative group">
-                                        <img
-                                            src={url}
-                                            alt={`Image ${index + 1}`}
-                                            className="w-full h-24 object-cover rounded-lg"
-                                        />
-                                        <button
-                                            type="button"
-                                            onClick={() => handleRemoveImage(index)}
-                                            className="absolute top-1 right-1 w-6 h-6 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                                        >
-                                            <X size={14} />
-                                        </button>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
+                        <ImageUpload
+                            value={imageUrls}
+                            onChange={setImageUrls}
+                            maxFiles={5}
+                            bucket="courts"
+                        />
                     </div>
 
                     {/* Settings */}

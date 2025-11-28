@@ -11,6 +11,11 @@ export interface User {
   credits: number; // Số dư ví (VND)
   membershipTier: 'free' | 'pro' | 'elite';
   role?: 'player' | 'court_owner' | 'both'; // NEW: User role
+  // Social fields
+  bio?: string;
+  isPublic?: boolean;
+  followersCount?: number;
+  followingCount?: number;
 }
 
 export interface Court {
@@ -48,6 +53,7 @@ export interface Highlight {
   isPublic?: boolean; // Privacy setting
   description?: string; // Video description
   title?: string; // Video title
+  comments?: number; // Comment count
 }
 
 export interface Package {

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
     ChevronLeft, Play, Globe, Lock, Trash2, Share2, Download,
     Edit3, MoreVertical, Grid3x3, List, SlidersHorizontal,
-    TrendingUp, Clock, Heart, Eye, Plus, Camera
+    TrendingUp, Clock, Heart, Eye, Plus, Camera, MessageCircle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PageTransition } from '../components/Layout/PageTransition';
@@ -332,6 +332,10 @@ const HighlightItem: React.FC<{
                             {highlight.likes}
                         </span>
                         <span className="flex items-center gap-1">
+                            <MessageCircle size={14} />
+                            {highlight.comments || 0}
+                        </span>
+                        <span className="flex items-center gap-1">
                             <Clock size={14} />
                             00:{highlight.durationSec}
                         </span>
@@ -364,9 +368,15 @@ const HighlightItem: React.FC<{
             </button>
 
             <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between">
-                <div className="flex items-center gap-1 text-white text-xs font-bold bg-black/60 px-2 py-1 rounded-full">
-                    <Play size={10} className="fill-white" />
-                    00:{highlight.durationSec}
+                <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1 text-white text-xs font-bold bg-black/60 px-2 py-1 rounded-full">
+                        <Heart size={10} className="fill-white" />
+                        {highlight.likes}
+                    </div>
+                    <div className="flex items-center gap-1 text-white text-xs font-bold bg-black/60 px-2 py-1 rounded-full">
+                        <MessageCircle size={10} className="fill-white" />
+                        {highlight.comments || 0}
+                    </div>
                 </div>
                 <div className="text-white text-xs font-bold bg-black/60 px-2 py-1 rounded-full">
                     {highlight.views || 0} views

@@ -15,6 +15,7 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.39.0",
     "canvas-confetti": "^1.9.4",
+    "date-fns": "^4.1.0",
     "dotenv": "^17.2.3",
     "firebase": "^12.6.0",
     "framer-motion": "^10.16.16",

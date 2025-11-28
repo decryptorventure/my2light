@@ -94,7 +94,11 @@ export const ApiService = {
         courtsVisited: visitedCourts.size,
         credits: data.credits || 0,
         membershipTier: (data.membership_tier as any) || 'free',
-        role: (data.role as any) || 'player' // NEW: Include role
+        role: (data.role as any) || 'player', // NEW: Include role
+        bio: data.bio,
+        isPublic: data.is_public,
+        followersCount: data.followers_count || 0,
+        followingCount: data.following_count || 0
       };
 
       return { success: true, data: user };
@@ -124,6 +128,8 @@ export const ApiService = {
     avatar: string;
     credits: number;
     has_onboarded: boolean;
+    bio: string;
+    is_public: boolean;
   }>): Promise<ApiResponse<boolean>> => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { success: false, data: false };
@@ -142,6 +148,8 @@ export const ApiService = {
       if (updates.avatar !== undefined) dbUpdates.avatar = updates.avatar;
       if (updates.credits !== undefined) dbUpdates.credits = updates.credits;
       if (updates.has_onboarded !== undefined) dbUpdates.has_onboarded = updates.has_onboarded;
+      if (updates.bio !== undefined) dbUpdates.bio = updates.bio;
+      if (updates.is_public !== undefined) dbUpdates.is_public = updates.is_public;
 
       if (!existingProfile) {
         // 2. Create new profile with defaults + updates
@@ -641,7 +649,8 @@ export const ApiService = {
         .select(`
             *,
             court:courts(name),
-            profile:profiles(name, avatar)
+            profile:profiles(name, avatar),
+            comments:highlight_comments(count)
         `)
         .order('created_at', { ascending: false })
         .limit(limit);
@@ -664,7 +673,8 @@ export const ApiService = {
         userAvatar: h.profile?.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=fallback',
         userName: h.profile?.name || 'Người chơi',
         isLiked: false,
-        isPublic: h.is_public !== false // Default to true if not set
+        isPublic: h.is_public !== false, // Default to true if not set
+        comments: h.comments?.[0]?.count || 0 // Fetch count from joined query
       }));
 
       return { success: true, data: highlights };

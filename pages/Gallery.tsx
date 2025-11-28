@@ -9,8 +9,12 @@ import { PageTransition } from '../components/Layout/PageTransition';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 import { Button } from '../components/ui/Button';
 import { ApiService } from '../services/api';
+import { SocialService } from '../services/social';
 import { Highlight } from '../types';
 import { celebrate } from '../lib/confetti';
+import { CommentSection } from '../components/social/CommentSection';
+import { useToast } from '../components/ui/Toast';
+import { LikeAnimation } from '../components/ui/LikeAnimation';
 
 export const Gallery: React.FC = () => {
   const navigate = useNavigate();
@@ -102,6 +106,7 @@ interface VideoCardProps {
 }
 
 const VideoCard: React.FC<VideoCardProps> = ({ highlight, index }) => {
+  const { showToast } = useToast();
   const [isPlaying, setIsPlaying] = useState(false);
   const [isPreviewMode, setIsPreviewMode] = useState(true);
   const [liked, setLiked] = useState(highlight.isLiked || false);
@@ -109,6 +114,7 @@ const VideoCard: React.FC<VideoCardProps> = ({ highlight, index }) => {
   const [likesCount, setLikesCount] = useState(highlight.likes);
   const [showComments, setShowComments] = useState(false);
   const [showShare, setShowShare] = useState(false);
+  const [showLikeAnim, setShowLikeAnim] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   // Swipe gesture
@@ -150,7 +156,9 @@ const VideoCard: React.FC<VideoCardProps> = ({ highlight, index }) => {
     }
   };
 
-  const togglePlay = () => {
+  const togglePlay = (e: React.MouseEvent) => {
+    if (e.detail === 2) return; // Handled by double tap
+
     if (videoRef.current) {
       if (isPreviewMode) {
         // Switch to full view mode
@@ -174,6 +182,7 @@ const VideoCard: React.FC<VideoCardProps> = ({ highlight, index }) => {
   const handleLike = async () => {
     if (!liked) {
       celebrate({ particleCount: 20, spread: 40 });
+      setShowLikeAnim(true);
     }
 
     // Optimistic update
@@ -182,12 +191,23 @@ const VideoCard: React.FC<VideoCardProps> = ({ highlight, index }) => {
     setLikesCount(prev => newLikedState ? prev + 1 : prev - 1);
 
     // API call
-    await ApiService.toggleLike(highlight.id, likesCount, newLikedState);
+    if (newLikedState) {
+      await SocialService.likeHighlight(highlight.id);
+    } else {
+      await SocialService.unlikeHighlight(highlight.id);
+    }
+  };
+
+  const handleDoubleTap = (e: React.MouseEvent) => {
+    if (e.detail === 2) {
+      if (!liked) handleLike();
+      else setShowLikeAnim(true);
+    }
   };
 
   const handleSave = () => {
     setSaved(!saved);
-    // API call here
+    showToast(saved ? 'Đã bỏ lưu' : 'Đã lưu highlight', 'success');
   };
 
   return (
@@ -203,6 +223,7 @@ const VideoCard: React.FC<VideoCardProps> = ({ highlight, index }) => {
         }
         x.set(0);
       }}
+      onClick={handleDoubleTap}
     >
       {/* Video */}
       <video
@@ -216,6 +237,8 @@ const VideoCard: React.FC<VideoCardProps> = ({ highlight, index }) => {
         onClick={togglePlay}
         onTimeUpdate={handleTimeUpdate}
       />
+
+      <LikeAnimation isActive={showLikeAnim} onComplete={() => setShowLikeAnim(false)} />
 
       {/* Play overlay */}
       {!isPlaying && !isPreviewMode && (
@@ -241,8 +264,8 @@ const VideoCard: React.FC<VideoCardProps> = ({ highlight, index }) => {
       )}
 
       {/* Bottom gradient overlay */}
-      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/80 to-transparent p-6 pb-8">
-        <div className="flex items-end gap-4">
+      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/80 to-transparent p-6 pb-8 pointer-events-none">
+        <div className="flex items-end gap-4 pointer-events-auto">
           {/* Info */}
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-2">
@@ -295,12 +318,22 @@ const VideoCard: React.FC<VideoCardProps> = ({ highlight, index }) => {
               onClick={() => setShowComments(true)}
               className="flex flex-col items-center gap-1"
             >
-              <div className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center">
+              <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center hover:bg-white/30 transition-colors">
                 <MessageCircle size={20} className="text-white" />
               </div>
-              <span className="text-xs text-white font-bold">
-                {Math.floor(Math.random() * 20)}
-              </span>
+              <span className="text-xs text-white font-bold">0</span>
+            </motion.button>
+
+            {/* Share */}
+            <motion.button
+              whileTap={{ scale: 0.9 }}
+              onClick={() => setShowShare(true)}
+              className="flex flex-col items-center gap-1"
+            >
+              <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center hover:bg-white/30 transition-colors">
+                <Share2 size={20} className="text-white" />
+              </div>
+              <span className="text-xs text-white font-bold">Share</span>
             </motion.button>
 
             {/* Save */}
@@ -317,133 +350,15 @@ const VideoCard: React.FC<VideoCardProps> = ({ highlight, index }) => {
                 />
               </div>
             </motion.button>
-
-            {/* Share */}
-            <motion.button
-              whileTap={{ scale: 0.9 }}
-              onClick={() => setShowShare(true)}
-              className="flex flex-col items-center gap-1"
-            >
-              <div className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center">
-                <Share2 size={20} className="text-white" />
-              </div>
-            </motion.button>
-
-            {/* More */}
-            <motion.button
-              whileTap={{ scale: 0.9 }}
-              className="flex flex-col items-center gap-1"
-            >
-              <div className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center">
-                <MoreVertical size={20} className="text-white" />
-              </div>
-            </motion.button>
           </div>
         </div>
       </div>
 
-      {/* Comments Modal */}
-      <AnimatePresence>
-        {showComments && (
-          <CommentsModal
-            onClose={() => setShowComments(false)}
-            highlightId={highlight.id}
-          />
-        )}
-      </AnimatePresence>
-
-      {/* Share Modal */}
-      <AnimatePresence>
-        {showShare && (
-          <ShareModal
-            onClose={() => setShowShare(false)}
-            highlight={highlight}
-          />
-        )}
-      </AnimatePresence>
+      <CommentSection
+        highlightId={highlight.id}
+        isOpen={showComments}
+        onClose={() => setShowComments(false)}
+      />
     </motion.div>
   );
 };
-
-// Comments Modal Component
-const CommentsModal: React.FC<{ onClose: () => void; highlightId: string }> = ({ onClose, highlightId }) => {
-  const [comment, setComment] = useState('');
-
-  return (
-    <motion.div
-      initial={{ y: '100%' }}
-      animate={{ y: 0 }}
-      exit={{ y: '100%' }}
-      transition={{ type: 'spring', damping: 25 }}
-      className="absolute inset-x-0 bottom-0 bg-slate-900 rounded-t-3xl z-50 max-h-[70vh] overflow-y-auto"
-    >
-      <div className="sticky top-0 bg-slate-900 border-b border-slate-800 p-4 flex items-center justify-between">
-        <h3 className="font-bold text-white">Bình luận</h3>
-        <button onClick={onClose} className="text-slate-400 hover:text-white">
-          <X size={24} />
-        </button>
-      </div>
-
-      <div className="p-4 space-y-4">
-        <div className="text-center text-slate-500 text-sm py-8">
-          Chưa có bình luận nào
-        </div>
-      </div>
-
-      <div className="sticky bottom-0 bg-slate-900 border-t border-slate-800 p-4 pb-safe">
-        <div className="flex gap-2">
-          <input
-            value={comment}
-            onChange={(e) => setComment(e.target.value)}
-            placeholder="Thêm bình luận..."
-            className="flex-1 bg-slate-800 border border-slate-700 rounded-full px-4 py-2 text-white focus:outline-none focus:border-lime-400"
-          />
-          <Button variant="primary" size="icon" className="rounded-full">
-            <MessageCircle size={20} />
-          </Button>
-        </div>
-      </div>
-    </motion.div>
-  );
-};
-
-// Share Modal Component
-const ShareModal: React.FC<{ onClose: () => void; highlight: Highlight }> = ({ onClose, highlight }) => {
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="absolute inset-0 bg-black/80 backdrop-blur-sm flex items-end z-50"
-      onClick={onClose}
-    >
-      <motion.div
-        initial={{ y: '100%' }}
-        animate={{ y: 0 }}
-        exit={{ y: '100%' }}
-        transition={{ type: 'spring', damping: 25 }}
-        className="w-full bg-slate-900 rounded-t-3xl p-6 pb-safe"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <h3 className="font-bold text-white mb-4 text-center">Chia sẻ</h3>
-        <div className="grid grid-cols-4 gap-4 mb-4">
-          <ShareButton icon={Download} label="Tải về" />
-          <ShareButton icon={MessageCircle} label="Message" />
-          <ShareButton icon={Share2} label="Link" />
-        </div>
-        <Button variant="ghost" onClick={onClose} className="w-full">
-          Hủy
-        </Button>
-      </motion.div>
-    </motion.div>
-  );
-};
-
-const ShareButton: React.FC<{ icon: any; label: string }> = ({ icon: Icon, label }) => (
-  <button className="flex flex-col items-center gap-2">
-    <div className="w-16 h-16 bg-slate-800 rounded-2xl flex items-center justify-center hover:bg-slate-700 transition-colors">
-      <Icon size={24} className="text-white" />
-    </div>
-    <span className="text-xs text-slate-400">{label}</span>
-  </button>
-);

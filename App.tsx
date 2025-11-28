@@ -32,6 +32,14 @@ const Dashboard = lazy(() => import('./pages/admin/Dashboard').then(m => ({ defa
 const CourtsManagement = lazy(() => import('./pages/admin/CourtsManagement').then(m => ({ default: m.CourtsManagement })));
 const BookingsManagement = lazy(() => import('./pages/admin/BookingsManagement').then(m => ({ default: m.BookingsManagement })));
 
+// Social pages
+const SocialLayout = lazy(() => import('./pages/Social').then(m => ({ default: m.SocialLayout })));
+const Feed = lazy(() => import('./pages/social/Feed').then(m => ({ default: m.Feed })));
+const Discover = lazy(() => import('./pages/social/Discover').then(m => ({ default: m.Discover })));
+const Connections = lazy(() => import('./pages/social/Connections').then(m => ({ default: m.Connections })));
+const PlayerProfile = lazy(() => import('./pages/PlayerProfile').then(m => ({ default: m.PlayerProfile })));
+const HighlightDetail = lazy(() => import('./pages/HighlightDetail').then(m => ({ default: m.HighlightDetail })));
+
 // Auth components
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 
@@ -91,7 +99,20 @@ const AnimatedRoutes = () => {
             <Route path="packages" element={<div className="text-white">Packages Page - Coming Soon</div>} />
             <Route path="revenue" element={<div className="text-white">Revenue Page - Coming Soon</div>} />
             <Route path="settings" element={<div className="text-white">Settings Page - Coming Soon</div>} />
+            <Route path="settings" element={<div className="text-white">Settings Page - Coming Soon</div>} />
           </Route>
+
+          {/* Social Routes */}
+          <Route path="/social" element={<SocialLayout />}>
+            <Route index element={<Navigate to="feed" replace />} />
+            <Route path="feed" element={<Feed />} />
+            <Route path="discover" element={<Discover />} />
+            <Route path="connections" element={<Connections />} />
+            <Route path="leaderboard" element={<div className="text-white p-4">Leaderboard - Coming Soon</div>} />
+          </Route>
+
+          <Route path="/player/:userId" element={<PlayerProfile />} />
+          <Route path="/highlight/:id" element={<HighlightDetail />} />
 
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
