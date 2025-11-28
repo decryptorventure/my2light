@@ -75,193 +75,201 @@ export const SelfRecording: React.FC = () => {
     celebrate({ particleCount: 50, spread: 60 });
   };
 
-  stopRecording();
-};
+  const handleStart = async () => {
+    setStep('recording');
+    await startRecording();
+  };
 
-const toggleSegmentSelection = (id: string) => {
-  setSegments(prev => prev.map(seg =>
-    seg.id === id ? { ...seg, isSelected: !seg.isSelected } : seg
-  ));
-};
+  const handleStop = () => {
+    stopRecording();
+  };
 
-const handleSaveSelected = async () => {
-  const selected = segments.filter(s => s.isSelected);
-  if (selected.length === 0) {
-    showToast('vui lòng chọn ít nhất 1 segment', 'error');
-    return;
-  }
 
-  setStep('processing');
 
-  try {
-    // TODO: Call Edge Function to merge segments
-    // For now, just simulate success
-    await new Promise(resolve => setTimeout(resolve, 2000));
+  const toggleSegmentSelection = (id: string) => {
+    setSegments(prev => prev.map(seg =>
+      seg.id === id ? { ...seg, isSelected: !seg.isSelected } : seg
+    ));
+  };
 
-    fireworks();
-    setStep('done');
-  } catch (error) {
-    console.error(error);
-    showToast('Lỗi khi xử lý video', 'error');
-    setStep('review');
-  }
-};
+  const handleSaveSelected = async () => {
+    const selected = segments.filter(s => s.isSelected);
+    if (selected.length === 0) {
+      showToast('vui lòng chọn ít nhất 1 segment', 'error');
+      return;
+    }
 
-const formatTime = (seconds: number) => {
-  const mins = Math.floor(seconds / 60);
-  const secs = seconds % 60;
-  return `${mins}:${secs.toString().padStart(2, '0')}`;
-};
+    setStep('processing');
 
-return (
-  <PageTransition>
-    <div className="min-h-screen bg-slate-900">
-      {/* Header */}
-      <div className="fixed top-0 left-0 right-0 z-50 bg-slate-900/95 backdrop-blur-md border-b border-slate-800 px-4 py-3 pt-safe">
-        <div className="flex items-center justify-between">
-          <button onClick={() => navigate(-1)} className="p-2 -ml-2 text-white">
-            <ChevronLeft size={24} />
-          </button>
-          <h1 className="font-bold text-white">Tự Quay</h1>
-          <div className="w-10" />
+    try {
+      // TODO: Call Edge Function to merge segments
+      // For now, just simulate success
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      fireworks();
+      setStep('done');
+    } catch (error) {
+      console.error(error);
+      showToast('Lỗi khi xử lý video', 'error');
+      setStep('review');
+    }
+  };
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  return (
+    <PageTransition>
+      <div className="min-h-screen bg-slate-900">
+        {/* Header */}
+        <div className="fixed top-0 left-0 right-0 z-50 bg-slate-900/95 backdrop-blur-md border-b border-slate-800 px-4 py-3 pt-safe">
+          <div className="flex items-center justify-between">
+            <button onClick={() => navigate(-1)} className="p-2 -ml-2 text-white">
+              <ChevronLeft size={24} />
+            </button>
+            <h1 className="font-bold text-white">Tự Quay</h1>
+            <div className="w-10" />
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="pt-20 pb-safe">
+          <AnimatePresence mode="wait">
+            {(step === 'ready' || step === 'recording') && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 bg-black flex flex-col pt-16"
+              >
+                {/* Camera Preview */}
+                <div className="flex-1 relative">
+                  <video
+                    ref={videoRef}
+                    className="w-full h-full object-cover"
+                    autoPlay
+                    playsInline
+                    muted
+                  />
+
+                  {/* Recording Overlay */}
+                  {step === 'recording' && (
+                    <div className="absolute top-4 left-0 right-0 flex flex-col items-center gap-2">
+                      <div className="bg-black/60 backdrop-blur-md rounded-full px-4 py-2 flex items-center gap-3">
+                        <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse" />
+                        <span className="text-xl font-mono font-black text-white">
+                          {formatTime(recordedTime)}
+                        </span>
+                      </div>
+
+                      {segments.length > 0 && (
+                        < motion.div
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          className="bg-lime-400/90 rounded-full px-3 py-1 flex items-center gap-2"
+                        >
+                          <Sparkles size={14} className="text-slate-900" />
+                          <span className="text-sm font-bold text-slate-900">
+                            {segments.length} Highlights
+                          </span>
+                        </motion.div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Camera Switch */}
+                  <div className="absolute bottom-4 right-4">
+                    <button
+                      onClick={switchCamera}
+                      className="p-3 bg-black/50 backdrop-blur rounded-full text-white"
+                    >
+                      <RefreshCw size={20} />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Controls */}
+                <div className="p-6 bg-gradient-to-t from-black via-black/90 to-transparent pb-safe space-y-4">
+                  {step === 'recording' && (
+                    <>
+                      {/* Rollback Time Selector */}
+                      <div className="flex items-center justify-center gap-2">
+                        <Clock size={16} className="text-slate-400" />
+                        {[15, 30, 60].map(time => (
+                          <button
+                            key={time}
+                            onClick={() => setRollbackTime(time)}
+                            className={`px-4 py-2 rounded-full text-sm font-bold transition ${rollbackTime === time
+                              ? 'bg-lime-400 text-slate-900'
+                              : 'bg-slate-800 text-slate-400'
+                              }`}
+                          >
+                            {time}s
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Mark Highlight Button */}
+                      <Button
+                        onClick={handleMarkHighlight}
+                        className="w-full bg-lime-400 hover:bg-lime-500 text-slate-900 font-bold py-6 shadow-xl"
+                        icon={<Sparkles size={24} />}
+                      >
+                        Đánh dấu Highlight ({rollbackTime}s)
+                      </Button>
+
+                      {/* Stop Button */}
+                      <Button
+                        variant="danger"
+                        onClick={handleStop}
+                        className="w-full py-6"
+                        icon={<Square size={24} />}
+                      >
+                        Dừng quay
+                      </Button>
+                    </>
+                  )}
+
+                  {step === 'ready' && (
+                    <Button
+                      onClick={handleStart}
+                      size="xl"
+                      className="w-full"
+                      disabled={!permissionGranted}
+                      icon={<Play size={24} />}
+                    >
+                      Bắt đầu quay
+                    </Button>
+                  )}
+                </div>
+              </motion.div>
+            )}
+
+            {step === 'review' && (
+              <ReviewStep
+                segments={segments}
+                onToggleSelection={toggleSegmentSelection}
+                onSave={handleSaveSelected}
+                onCancel={() => navigate(-1)}
+              />
+            )}
+
+            {step === 'processing' && <ProcessingStep />}
+
+            {step === 'done' && (
+              <DoneStep
+                onGoHome={() => navigate('/home')}
+                onViewGallery={() => navigate('/gallery')}
+              />
+            )}
+          </AnimatePresence>
         </div>
       </div>
-
-      {/* Content */}
-      <div className="pt-20 pb-safe">
-        <AnimatePresence mode="wait">
-          {(step === 'ready' || step === 'recording') && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black flex flex-col pt-16"
-            >
-              {/* Camera Preview */}
-              <div className="flex-1 relative">
-                <video
-                  ref={videoRef}
-                  className="w-full h-full object-cover"
-                  autoPlay
-                  playsInline
-                  muted
-                />
-
-                {/* Recording Overlay */}
-                {step === 'recording' && (
-                  <div className="absolute top-4 left-0 right-0 flex flex-col items-center gap-2">
-                    <div className="bg-black/60 backdrop-blur-md rounded-full px-4 py-2 flex items-center gap-3">
-                      <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse" />
-                      <span className="text-xl font-mono font-black text-white">
-                        {formatTime(recordedTime)}
-                      </span>
-                    </div>
-
-                    {segments.length > 0 && (
-                      < motion.div
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        className="bg-lime-400/90 rounded-full px-3 py-1 flex items-center gap-2"
-                      >
-                        <Sparkles size={14} className="text-slate-900" />
-                        <span className="text-sm font-bold text-slate-900">
-                          {segments.length} Highlights
-                        </span>
-                      </motion.div>
-                    )}
-                  </div>
-                )}
-
-                {/* Camera Switch */}
-                <div className="absolute bottom-4 right-4">
-                  <button
-                    onClick={switchCamera}
-                    className="p-3 bg-black/50 backdrop-blur rounded-full text-white"
-                  >
-                    <RefreshCw size={20} />
-                  </button>
-                </div>
-              </div>
-
-              {/* Controls */}
-              <div className="p-6 bg-gradient-to-t from-black via-black/90 to-transparent pb-safe space-y-4">
-                {step === 'recording' && (
-                  <>
-                    {/* Rollback Time Selector */}
-                    <div className="flex items-center justify-center gap-2">
-                      <Clock size={16} className="text-slate-400" />
-                      {[15, 30, 60].map(time => (
-                        <button
-                          key={time}
-                          onClick={() => setRollbackTime(time)}
-                          className={`px-4 py-2 rounded-full text-sm font-bold transition ${rollbackTime === time
-                            ? 'bg-lime-400 text-slate-900'
-                            : 'bg-slate-800 text-slate-400'
-                            }`}
-                        >
-                          {time}s
-                        </button>
-                      ))}
-                    </div>
-
-                    {/* Mark Highlight Button */}
-                    <Button
-                      onClick={handleMarkHighlight}
-                      className="w-full bg-lime-400 hover:bg-lime-500 text-slate-900 font-bold py-6 shadow-xl"
-                      icon={<Sparkles size={24} />}
-                    >
-                      Đánh dấu Highlight ({rollbackTime}s)
-                    </Button>
-
-                    {/* Stop Button */}
-                    <Button
-                      variant="danger"
-                      onClick={handleStop}
-                      className="w-full py-6"
-                      icon={<Square size={24} />}
-                    >
-                      Dừng quay
-                    </Button>
-                  </>
-                )}
-
-                {step === 'ready' && (
-                  <Button
-                    onClick={handleStart}
-                    size="xl"
-                    className="w-full"
-                    disabled={!permissionGranted}
-                    icon={<Play size={24} />}
-                  >
-                    Bắt đầu quay
-                  </Button>
-                )}
-              </div>
-            </motion.div>
-          )}
-
-          {step === 'review' && (
-            <ReviewStep
-              segments={segments}
-              onToggleSelection={toggleSegmentSelection}
-              onSave={handleSaveSelected}
-              onCancel={() => navigate(-1)}
-            />
-          )}
-
-          {step === 'processing' && <ProcessingStep />}
-
-          {step === 'done' && (
-            <DoneStep
-              onGoHome={() => navigate('/home')}
-              onViewGallery={() => navigate('/gallery')}
-            />
-          )}
-        </AnimatePresence>
-      </div>
-    </div>
-  </PageTransition>
-);
+    </PageTransition>
+  );
 };
 
 // Review Step - Multi-select segments

@@ -101,7 +101,7 @@ export const VideoSegmentService = {
                 return { success: false, error: 'Not authenticated' };
             }
 
-            const response = await fetch(`${supabase.supabaseUrl}/functions/v1/merge-videos`, {
+            const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/merge-videos`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${session.access_token}`,
