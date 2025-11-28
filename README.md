@@ -1,230 +1,222 @@
-# my2light - Version 3.2 Documentation
+# my2light - Basketball Highlight Recording App
 
-## 📋 Tổng quan dự án
+[![Version](https://img.shields.io/badge/version-3.5.0-blue.svg)](docs/CHANGELOG_v3.5.md)
+[![Status](https://img.shields.io/badge/status-production-green.svg)]()
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)]()
 
-**my2light** là một Progressive Web App (PWA) được xây dựng bằng React + TypeScript + Vite, tích hợp Supabase cho backend và authentication.
+**my2light** is a mobile-first web application that enables basketball players to record their games, mark highlights in real-time, and share their best moments with the community.
 
-### Công nghệ sử dụng
-- **Frontend**: React 18, TypeScript
-- **Build Tool**: Vite
-- **Styling**: Tailwind CSS v3
-- **Routing**: React Router DOM v6 (HashRouter)
-- **Animations**: Framer Motion
-- **Icons**: Lucide React
-- **Backend/Auth**: Supabase
-- **Deployment**: Vercel
-- **Code Quality**: ESLint + Prettier
+## 🚀 Quick Start
 
----
+### Prerequisites
 
-## 🚀 Cài đặt và Chạy dự án
+- Node.js 18+ and npm
+- Supabase account
+- Modern browser (Chrome/Edge/Safari 14.1+)
 
-### 1. Clone repository
+### Installation
+
 ```bash
-git clone https://github.com/decryptorventure/my2light.git
-cd my2light
-```
+# Clone the repository
+git clone <repository-url>
+cd my2light-app
 
-### 2. Cài đặt dependencies
-```bash
+# Install dependencies
 npm install
-```
 
-### 3. Cấu hình Environment Variables
-Tạo file `.env.local` từ `.env.example`:
-```bash
-cp .env.example .env.local
-```
+# Set up environment variables
+cp .env.example .env
+# Edit .env with your Supabase credentials
 
-Sau đó điền thông tin Supabase vào `.env.local`:
-```
-VITE_SUPABASE_URL=your_supabase_url_here
-VITE_SUPABASE_ANON_KEY=your_supabase_anon_key_here
-```
-
-### 4. Chạy development server
-```bash
+# Run development server
 npm run dev
 ```
 
-Ứng dụng sẽ chạy tại: `http://localhost:5173/`
+Visit `http://localhost:5173` to see the app.
 
-### 5. Build production
+### Build for Production
+
 ```bash
 npm run build
 ```
 
-### 6. Preview production build
-```bash
-npm run preview
-```
+## ✨ Features (v3.5)
 
----
-
-## 📁 Cấu trúc dự án
-
-```
-my2light-app/
-├── components/          # UI components
-│   ├── Layout/         # BottomNav, IOSInstallPrompt
-│   └── ui/             # Card, Modal, LoadingSpinner, Transition
-├── pages/              # Route components
-│   ├── Splash.tsx
-│   ├── Login.tsx
-│   ├── Home.tsx
-│   ├── QRScan.tsx
-│   ├── ActiveSession.tsx
-│   ├── Gallery.tsx
-│   ├── Profile.tsx
-│   └── SelfRecording.tsx
-├── services/           # API services
-│   ├── api.ts          # API calls
-│   └── mockDb.ts       # Mock data
-├── lib/                # Configuration
-│   └── supabase.ts     # Supabase client
-├── App.tsx             # Main app component
-├── index.tsx           # Entry point
-├── types.ts            # TypeScript types
-├── index.css           # Tailwind directives
-├── tailwind.config.js  # Tailwind configuration
-├── postcss.config.js   # PostCSS configuration
-├── .eslintrc.json      # ESLint configuration
-├── .prettierrc         # Prettier configuration
-├── vite.config.ts      # Vite configuration
-└── vercel.json         # Vercel deployment config
-```
-
----
-
-## 🛠️ Scripts có sẵn
-
-```bash
-npm run dev      # Chạy development server
-npm run build    # Build production
-npm run preview  # Preview production build
-npm run lint     # Kiểm tra code với ESLint
-npm run format   # Format code với Prettier
-```
-
----
-
-## 🌐 Deployment
-
-### Deploy lên Vercel
-
-1. **Đăng nhập Vercel CLI**:
-```bash
-vercel login
-```
-
-2. **Deploy dự án**:
-```bash
-vercel
-```
-
-3. **Deploy production**:
-```bash
-vercel --prod
-```
-
-### Hoặc deploy qua Vercel Dashboard:
-1. Truy cập [vercel.com](https://vercel.com)
-2. Import repository từ GitHub
-3. Vercel sẽ tự động detect Vite và deploy
-
-**Lưu ý**: Nhớ thêm Environment Variables (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`) trong Vercel Dashboard.
-
----
-
-## 📝 Các tối ưu đã thực hiện (Version 1.0)
-
-### ✅ 1. Tailwind CSS Configuration
-- ✅ Di chuyển config từ inline trong `index.html` sang `tailwind.config.js`
-- ✅ Tạo `postcss.config.js` cho PostCSS
-- ✅ Tạo `index.css` với Tailwind directives
-
-### ✅ 2. Code Quality Tools
-- ✅ Cài đặt ESLint với TypeScript và React plugins
-- ✅ Cài đặt Prettier cho code formatting
-- ✅ Thêm scripts `lint` và `format` vào `package.json`
-
-### ✅ 3. Environment Setup
-- ✅ Tạo `.env.example` template
-- ✅ Cấu hình Git repository
-- ✅ Kết nối với GitHub repository
-- ✅ Cài đặt Vercel CLI
-
-### ✅ 4. Git & GitHub
-- ✅ Khởi tạo Git repository
-- ✅ Kết nối với remote repository
-- ✅ Push code lên GitHub
-- ✅ Resolve merge conflicts
-
----
-
-## � Các cập nhật mới (Version 3.2)
-
-### 1. UI/UX Optimizations
-- ✨ **Onboarding Mới**: Thêm bước chọn "Lối chơi" (Tấn công/Phòng thủ/Toàn diện).
-- 📅 **Booking Thông minh**: Lọc giờ quá khứ, fix lỗi highlight gói dịch vụ.
-- 💰 **Ví & Thanh toán**: Hiển thị số dư thực tế, cảnh báo khi không đủ tiền.
-
-### 2. Creative Features (Profile)
-- 📱 **Stories**: Tính năng Stories hiển thị highlight clips dạng dọc.
-- 🏅 **Gamification Badges**: Hệ thống huy hiệu tương tác (Smasher, Early Bird, Fair Play...).
-- 👆 **Badge Details**: Popup chi tiết điều kiện mở khóa và trạng thái huy hiệu.
-
-### 3. Admin Improvements
-- 🧭 **Navigation**: Tách biệt Admin Navigation khỏi User BottomNav.
-- 📱 **Mobile Experience**: Sidebar dạng trượt cho Admin Dashboard trên mobile.
-
----
-
-## �🔮 Kế hoạch tối ưu tiếp theo (Version 2.0)
-
-### 1. State Management
-- [ ] Implement AuthContext cho global auth state
-- [ ] Tạo custom hooks cho reusable logic
-
-### 2. Performance Optimization
-- [ ] Implement code splitting với React.lazy
-- [ ] Add Suspense boundaries
-- [ ] Optimize images và assets
-
-### 3. Testing
-- [ ] Setup Vitest cho unit testing
-- [ ] Add React Testing Library
-- [ ] Write tests cho critical components
-
-### 4. CI/CD
-- [ ] Setup GitHub Actions
-- [ ] Automated testing trước khi deploy
-- [ ] Automated deployment
-
----
-
-## 📞 Liên hệ & Support
-
-- **GitHub**: [decryptorventure/my2light](https://github.com/decryptorventure/my2light)
-- **Supabase Project**: [Dashboard](https://supabase.com/dashboard)
-- **Vercel Dashboard**: [vercel.com/dashboard](https://vercel.com/dashboard)
-
----
-
+- 🎥 **Segment-Based Recording**: Mark highlights in real-time while recording
+- ⏱️ **Rollback Time Selection**: Choose 15s/30s/60s for each highlight
+- 📹 **Video Preview**: Preview segments before saving with full video player
+- ⚡ **Bulk Operations**: Select All / Deselect All buttons
+- 💾 **Download**: Download merged videos directly to device
+- 🔄 **Server-Side Merging**: Automatic video processing via Edge Functions
+- 🎨 **Modern UI**: Dark theme with smooth animations
 
 ## 📚 Documentation
 
-- **Development Guide**: [docs/DEVELOPMENT_GUIDE.md](docs/DEVELOPMENT_GUIDE.md) - Setup, environment variables, and debugging.
-- **Database History**: [docs/DATABASE_HISTORY.sql](docs/DATABASE_HISTORY.sql) - Consolidated SQL history.
-- **Performance**: [docs/PERFORMANCE.md](docs/PERFORMANCE.md) - Optimization details.
-- **Deployment**: [docs/VERCEL_DEPLOY.md](docs/VERCEL_DEPLOY.md) - Vercel deployment guide.
-- **Changelog**: [docs/CHANGELOG.md](docs/CHANGELOG.md) - Version history.
+- **[Getting Started](docs/DEVELOPER_HANDOVER.md)** - Complete developer guide
+- **[Changelog](docs/CHANGELOG_v3.5.md)** - Version history and technical details
+- **[Release Notes](docs/RELEASE_NOTES_v3.5.md)** - User-facing features
 
-## 🛠 Scripts
+### For New Developers
 
-- `scripts/check-env.sh`: Check development environment.
-- `scripts/test-db.ts`: Test database connection.
+Start here: **[docs/DEVELOPER_HANDOVER.md](docs/DEVELOPER_HANDOVER.md)**
+
+This comprehensive guide covers:
+- Project structure
+- Tech stack details
+- Database schema
+- API documentation
+- Deployment procedures
+- Troubleshooting
+
+## 🏗️ Tech Stack
+
+- **Frontend**: React 18 + TypeScript + Vite
+- **Styling**: Tailwind CSS
+- **Backend**: Supabase (PostgreSQL + Auth + Storage + Edge Functions)
+- **Animations**: Framer Motion
+- **Media**: MediaRecorder API (WebRTC)
+
+## 🗄️ Database Setup
+
+### Running Migrations
+
+Run these SQL files in your Supabase SQL Editor in order:
+
+```sql
+migrations/009_fix_highlights_duration.sql
+migrations/010_video_segments_and_notifications.sql
+migrations/011_fix_trigger_duration.sql
+migrations/012_create_raw_segments_bucket.sql
+```
+
+### Create Storage Buckets
+
+1. **`videos`** bucket (if not exists)
+   - Public bucket for merged highlight videos
+
+2. **`raw_segments`** bucket (required for v3.5)
+   - Public bucket
+   - File size limit: 100MB
+   - Allowed MIME types: `video/webm,video/mp4`
+
+See [Video Save Fix Guide](docs/DEVELOPER_HANDOVER.md#deployment) for detailed setup.
+
+## ⚙️ Environment Variables
+
+Create a `.env` file in the root directory:
+
+```env
+VITE_SUPABASE_URL=your_supabase_project_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
+
+## 🚀 Deployment
+
+### Edge Functions
+
+Deploy the video merging function:
+
+```bash
+npx supabase login
+npx supabase functions deploy merge-videos
+```
+
+### Frontend
+
+```bash
+# Build
+npm run build
+
+# Deploy dist/ folder to your hosting (Vercel, Netlify, etc.)
+```
+
+## 🧪 Testing
+
+### Manual Testing
+
+1. Open the app in a modern browser
+2. Navigate to "Self Recording"
+3. Allow camera permissions
+4. Record and mark highlights
+5. Review, select, and save
+
+### Browser Compatibility
+
+✅ Chrome (v90+)  
+✅ Edge (v90+)  
+✅ Safari (v14.1+)  
+⚠️ Firefox (limited MediaRecorder support)
+
+## 📁 Project Structure
+
+```
+my2light-app/
+├── docs/                    # Documentation
+├── migrations/              # Database migrations
+├── public/                  # Static assets
+├── src/
+│   ├── components/          # React components
+│   ├── hooks/              # Custom hooks
+│   ├── pages/              # Route pages
+│   ├── services/           # API services
+│   └── types.ts            # TypeScript types
+├── supabase/
+│   └── functions/          # Edge Functions
+└── package.json
+```
+
+## 🐛 Troubleshooting
+
+### Common Issues
+
+**Camera not working?**
+- Ensure you're using HTTPS (required for getUserMedia)
+- Check browser permissions
+- Try Chrome/Edge (best support)
+
+**Video not saving?**
+- Check Supabase dashboard for Edge Function logs
+- Verify `raw_segments` bucket exists
+- Ensure migrations are applied
+
+**Build errors?**
+```bash
+rm -rf node_modules dist
+npm install
+npm run build
+```
+
+See [Developer Handover Guide](docs/DEVELOPER_HANDOVER.md#troubleshooting) for more solutions.
+
+## 🔜 Roadmap
+
+- [ ] Voice-activated highlight detection
+- [ ] Automatic thumbnail generation
+- [ ] FFmpeg-based video processing
+- [ ] Advanced video editing (trim, filters)
+- [ ] AI-powered highlight detection
+- [ ] Offline mode / PWA support
 
 ## 📄 License
 
-Private Project - All Rights Reserved
+MIT License - see LICENSE file for details
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## 📞 Support
+
+- Documentation: [docs/](docs/)
+- Issues: GitHub Issues
+- Contact: [Your Contact Info]
+
+---
+
+**Version 3.5.0** - Recording Revolution 🎥🏀
+
+Made with ❤️ for basketball players
