@@ -8,7 +8,7 @@ import { SkeletonHighlightCard } from '../components/ui/Skeleton';
 import { CommentSection } from '../components/social/CommentSection';
 import { LikeAnimation } from '../components/ui/LikeAnimation';
 import { formatDistanceToNow } from 'date-fns';
-import { vi } from 'date-fns/locale';
+import { vi } from 'date-fns/locale/vi';
 
 export const HighlightDetail: React.FC = () => {
     const { id } = useParams<{ id: string }>();

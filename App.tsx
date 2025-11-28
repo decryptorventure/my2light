@@ -42,6 +42,11 @@ const HighlightDetail = lazy(() => import('./pages/HighlightDetail').then(m => (
 // Auth components
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 
+// React Query
+import { QueryClientProvider } from '@tanstack/react-query';
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+import { queryClient } from './lib/queryClient';
+
 // Components
 import { BottomNav } from './components/Layout/BottomNav';
 import { IOSInstallPrompt } from './components/Layout/IOSInstallPrompt';
@@ -122,18 +127,22 @@ const App: React.FC = () => {
 
   return (
     <ErrorBoundary>
-      <NotificationProvider>
-        <HashRouter>
-          <ToastProvider>
-            <div className="bg-slate-900 min-h-screen text-slate-100 font-sans selection:bg-lime-400/30 pt-safe-top pb-safe-bottom">
-              <AnimatedRoutes />
-              <BottomNav />
-              <IOSInstallPrompt />
-              <NotificationPermissionPrompt />
-            </div>
-          </ToastProvider>
-        </HashRouter>
-      </NotificationProvider>
+      <QueryClientProvider client={queryClient}>
+        <NotificationProvider>
+          <HashRouter>
+            <ToastProvider>
+              <div className="bg-slate-900 min-h-screen text-slate-100 font-sans selection:bg-lime-400/30 pt-safe-top pb-safe-bottom">
+                <AnimatedRoutes />
+                <BottomNav />
+                <IOSInstallPrompt />
+                <NotificationPermissionPrompt />
+              </div>
+            </ToastProvider>
+          </HashRouter>
+        </NotificationProvider>
+        {/* React Query DevTools - only in development */}
+        {import.meta.env.MODE === 'development' && <ReactQueryDevtools initialIsOpen={false} />}
+      </QueryClientProvider>
     </ErrorBoundary>
   );
 };

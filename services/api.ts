@@ -806,21 +806,80 @@ export const ApiService = {
         return { success: false, error: updateError.message };
       }
 
-      // TODO: In production, create a transaction record in transactions table
-      // await supabase.from('transactions').insert({
-      //   user_id: user.id,
-      //   transaction_id: transactionId,
-      //   type: 'topup',
-      //   amount: amount,
-      //   method: method,
-      //   status: 'completed',
-      //   created_at: new Date().toISOString()
-      // });
+      // Create transaction record in transactions table
+      const { error: transactionError } = await supabase
+        .from('transactions')
+        .insert({
+          user_id: user.id,
+          type: 'credit_purchase',
+          amount: amount,
+          status: 'completed',
+          payment_method: method,
+          reference_id: transactionId,
+          metadata: {
+            timestamp: new Date().toISOString(),
+            previous_balance: userData.credits,
+            new_balance: newBalance
+          }
+        });
+
+      if (transactionError) {
+        console.error('Failed to create transaction record:', transactionError);
+        // Note: We don't fail the top-up if transaction recording fails
+        // The credits have already been added successfully
+      }
 
       return { success: true };
+
     } catch (error) {
       console.error('Process top-up error:', error);
       return { success: false, error: 'Failed to process top-up' };
+    }
+  },
+
+  // Get transaction history
+  getTransactionHistory: async (limit: number = 50): Promise<ApiResponse<any[]>> => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return { success: false, data: [], error: 'Not authenticated' };
+
+      const { data, error } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(limit);
+
+      if (error) {
+        console.error('Get transaction history error:', error);
+        return { success: false, data: [], error: error.message };
+      }
+
+      return { success: true, data: data || [] };
+    } catch (error: any) {
+      console.error('Get transaction history exception:', error);
+      return { success: false, data: [], error: error.message || 'Failed to fetch transaction history' };
+    }
+  },
+
+  // Get transaction summary
+  getTransactionSummary: async (): Promise<ApiResponse<any>> => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return { success: false, data: null, error: 'Not authenticated' };
+
+      const { data, error } = await supabase
+        .rpc('get_transaction_summary', { p_user_id: user.id });
+
+      if (error) {
+        console.error('Get transaction summary error:', error);
+        return { success: false, data: null, error: error.message };
+      }
+
+      return { success: true, data: data && data.length > 0 ? data[0] : null };
+    } catch (error: any) {
+      console.error('Get transaction summary exception:', error);
+      return { success: false, data: null, error: error.message || 'Failed to fetch transaction summary' };
     }
   }
 };

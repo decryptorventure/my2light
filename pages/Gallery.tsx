@@ -15,24 +15,14 @@ import { celebrate } from '../lib/confetti';
 import { CommentSection } from '../components/social/CommentSection';
 import { useToast } from '../components/ui/Toast';
 import { LikeAnimation } from '../components/ui/LikeAnimation';
+import { useHighlights } from '../src/hooks/useApi';
 
 export const Gallery: React.FC = () => {
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
-  const [highlights, setHighlights] = useState<Highlight[]>([]);
   const [activeFilter, setActiveFilter] = useState<'all' | 'mine' | 'trending' | 'friends'>('all');
 
-  useEffect(() => {
-    const fetchHighlights = async () => {
-      setLoading(true);
-      const res = await ApiService.getHighlights(20);
-      if (res.success) {
-        setHighlights(res.data);
-      }
-      setLoading(false);
-    };
-    fetchHighlights();
-  }, [activeFilter]);
+  // React Query - automatic caching, refetching, loading states!
+  const { data: highlights = [], isLoading: loading } = useHighlights(20);
 
   const filters = [
     { id: 'all', label: 'Tất cả', icon: Eye },
@@ -272,6 +262,7 @@ const VideoCard: React.FC<VideoCardProps> = ({ highlight, index }) => {
               <img
                 src={highlight.userAvatar || 'https://cdn-icons-png.flaticon.com/512/3307/3307873.png'}
                 alt="User"
+                loading="lazy"
                 className="w-10 h-10 rounded-full border-2 border-white/30"
               />
               <div>

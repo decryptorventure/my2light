@@ -149,13 +149,56 @@ export const AdminService = {
                 revenue = bookings?.reduce((sum, b) => sum + b.total_amount, 0) || 0;
             }
 
+            // Calculate real occupancy rate
+            let occupancyRate = 0;
+            if (courtIds.length > 0 && courts && courts.length > 0) {
+                // Calculate occupancy for the month
+                const { data: courtsWithHours } = await supabase
+                    .from('courts')
+                    .select('id, open_time, close_time')
+                    .in('id', courtIds);
+
+                if (courtsWithHours && courtsWithHours.length > 0) {
+                    // Total available hours across all courts for the month
+                    const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
+                    let totalAvailableHours = 0;
+
+                    courtsWithHours.forEach(court => {
+                        const openHour = parseInt(court.open_time?.split(':')[0] || '6');
+                        const closeHour = parseInt(court.close_time?.split(':')[0] || '22');
+                        const dailyHours = closeHour - openHour;
+                        totalAvailableHours += dailyHours * daysInMonth;
+                    });
+
+                    // Get all bookings for the month
+                    const { data: monthBookings } = await supabase
+                        .from('bookings')
+                        .select('start_time, end_time')
+                        .in('court_id', courtIds)
+                        .gte('created_at', startOfMonth.toISOString())
+                        .in('status', ['active', 'completed']);
+
+                    let totalBookedHours = 0;
+                    if (monthBookings && monthBookings.length > 0) {
+                        monthBookings.forEach((booking: any) => {
+                            const duration = (new Date(booking.end_time).getTime() - new Date(booking.start_time).getTime()) / (1000 * 60 * 60);
+                            totalBookedHours += duration;
+                        });
+                    }
+
+                    occupancyRate = totalAvailableHours > 0
+                        ? Math.round((totalBookedHours / totalAvailableHours) * 100)
+                        : 0;
+                }
+            }
+
             return {
                 success: true,
                 data: {
                     totalCourts: courtsCount || 0,
                     totalBookings: bookingsCount,
                     monthlyRevenue: revenue,
-                    occupancyRate: 75 // TODO: Calculate real occupancy rate
+                    occupancyRate
                 }
             };
         } catch (e) {

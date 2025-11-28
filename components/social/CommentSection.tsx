@@ -5,7 +5,7 @@ import { SocialService } from '../../services/social';
 import { HighlightComment } from '../../types/social';
 import { useAuthStore } from '../../stores/authStore';
 import { formatDistanceToNow } from 'date-fns';
-import { vi } from 'date-fns/locale';
+import { vi } from 'date-fns/locale/vi';
 
 interface CommentSectionProps {
     highlightId: string;

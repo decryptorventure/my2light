@@ -1,0 +1,50 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Run linter
+echo "🔍 Running ESLint..."
+npm run lint || {
+  echo "❌ ESLint failed. Please fix the errors before committing."
+  exit 1
+}
+
+# Run type check
+echo "🔍 Running TypeScript check..."
+npx tsc --noEmit || {
+  echo "❌ TypeScript check failed. Please fix the type errors."
+  exit 1
+}
+
+# Run tests
+echo "🧪 Running tests..."
+npm test -- --run --reporter=verbose || {
+  echo "❌ Tests failed. Please fix the failing tests."
+  exit 1
+}
+
+# Check test coverage
+echo "📊 Checking test coverage..."
+npm test -- --run --coverage --reporter=json > coverage-tmp.json 2>&1
+
+COVERAGE=$(cat coverage/coverage-summary.json | grep -o '"pct":[0-9.]*' | head -1 | grep -o '[0-9.]*')
+
+if [ -n "$COVERAGE" ]; then
+  echo "Current coverage: $COVERAGE%"
+  
+  # Minimum coverage threshold
+  THRESHOLD=50
+  
+  if (( $(echo "$COVERAGE < $THRESHOLD" | bc -l) )); then
+    echo "⚠️  Warning: Coverage is below $THRESHOLD%. Current: $COVERAGE%"
+    echo "Consider adding more tests before committing."
+  else
+    echo "✅ Coverage check passed: $COVERAGE%"
+  fi
+else
+  echo "⚠️  Could not determine coverage"
+fi
+
+rm -f coverage-tmp.json
+
+echo "✅ All pre-commit checks passed!"
+echo "📦 Preparing commit..."

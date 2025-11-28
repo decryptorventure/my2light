@@ -2,7 +2,7 @@ import React from 'react';
 import { Heart, MessageCircle, Share2, UserPlus, MoreHorizontal } from 'lucide-react';
 import { Activity } from '../../types/social';
 import { formatDistanceToNow } from 'date-fns';
-import { vi } from 'date-fns/locale';
+import { vi } from 'date-fns/locale/vi';
 
 interface ActivityCardProps {
     activity: Activity;

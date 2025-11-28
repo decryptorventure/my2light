@@ -2,6 +2,14 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
+import { initSentry } from './lib/sentry';
+import { initWebVitals } from './lib/performance';
+
+// Initialize Sentry BEFORE rendering React app
+initSentry();
+
+// Initialize Web Vitals monitoring
+initWebVitals();
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {

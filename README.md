@@ -1,8 +1,12 @@
 # my2light - Basketball Highlight Recording App
 
-[![Version](https://img.shields.io/badge/version-3.5.0-blue.svg)](docs/CHANGELOG_v3.5.md)
+[![Version](https://img.shields.io/badge/version-3.6.0-blue.svg)](docs/RELEASE_NOTES_v3.6.md)
 [![Status](https://img.shields.io/badge/status-production-green.svg)]()
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)]()
+[![Tests](https://img.shields.io/badge/tests-passing-brightgreen.svg)]()
+[![Coverage](https://img.shields.io/badge/coverage-50%25-yellow.svg)]()
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.2-blue.svg)]()
+[![React](https://img.shields.io/badge/React-18-blue.svg)]()
 
 **my2light** is a mobile-first web application that enables basketball players to record their games, mark highlights in real-time, and share their best moments with the community.
 
