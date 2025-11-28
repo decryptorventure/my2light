@@ -14,6 +14,7 @@ import { useCamera } from '../hooks/useCamera';
 import { useMediaRecorder } from '../hooks/useMediaRecorder';
 import { VideoSegment } from '../types';
 import { Modal } from '../components/ui/Modal';
+import { VideoSegmentService } from '../services/videoSegments';
 
 type RecordingStep = 'ready' | 'recording' | 'review' | 'processing' | 'done';
 
@@ -27,7 +28,7 @@ export const SelfRecording: React.FC = () => {
   const [rollbackTime, setRollbackTime] = useState(15); // seconds
   const [segments, setSegments] = useState<VideoSegment[]>([]);
   const [recordingSessionId] = useState(() => crypto.randomUUID());
-  const [, setFullRecordingBlob] = useState<Blob | null>(null);
+  const [fullRecordingBlob, setFullRecordingBlob] = useState<Blob | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [keywordDetection, setKeywordDetection] = useState(false);
 
@@ -110,15 +111,59 @@ export const SelfRecording: React.FC = () => {
     setStep('processing');
 
     try {
-      // TODO: Call Edge Function to merge segments
-      // For now, just simulate success
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // 1. Upload segments to Supabase Storage
+      const uploadPromises = selected.map(async (segment) => {
+        // In a real app, we would extract the specific time range from fullRecordingBlob
+        // For now, we'll simulate it by using the full blob (or a slice if possible)
+        // NOTE: Slicing a webm blob by byte range doesn't give a valid video file for that time range
+        // Proper implementation requires FFmpeg.wasm or server-side processing
+        // We will upload the full blob as a placeholder for each segment, 
+        // but in reality the server merge function would need to handle the cutting.
+
+        if (!fullRecordingBlob) throw new Error('No recording blob found');
+
+        // Upload
+        const publicUrl = await VideoSegmentService.uploadSegment(
+          fullRecordingBlob,
+          segment.id,
+          'temp-user-id' // TODO: Get real user ID from auth store
+        );
+
+        if (!publicUrl) throw new Error(`Failed to upload segment ${segment.id}`);
+
+        // Update segment with URL
+        return { ...segment, video_url: publicUrl, status: 'uploaded' as const };
+      });
+
+      const uploadedSegments = await Promise.all(uploadPromises);
+
+      // 2. Save metadata to database
+      const savePromises = uploadedSegments.map(segment =>
+        VideoSegmentService.saveSegmentMetadata(segment)
+      );
+
+      await Promise.all(savePromises);
+
+      // 3. Trigger merge job
+      const segmentIds = uploadedSegments.map(s => s.id);
+      const mergeResult = await VideoSegmentService.mergeVideos(segmentIds);
+
+      if (!mergeResult.success) {
+        throw new Error(mergeResult.error || 'Merge failed');
+      }
+
+      // 4. Poll for completion (simplified for now)
+      // In a real app, we might use a subscription or just show "Processing" and let user leave
+      // For this demo, we'll wait a bit then show success
+
+      // Simulate processing time
+      await new Promise(resolve => setTimeout(resolve, 3000));
 
       fireworks();
       setStep('done');
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      showToast('Lỗi khi xử lý video', 'error');
+      showToast(error.message || 'Lỗi khi xử lý video', 'error');
       setStep('review');
     }
   };
