@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ApiService } from '../../services/api';
+import { AdminService } from '../../services/admin';
 import type { Highlight } from '../../types';
 
 // Query keys - centralized for cache management
@@ -22,7 +23,41 @@ export const queryKeys = {
         history: (limit: number) => [...queryKeys.transactions.all, 'history', limit] as const,
         summary: () => [...queryKeys.transactions.all, 'summary'] as const,
     },
+    bookings: {
+        all: ['bookings'] as const,
+        history: () => [...queryKeys.bookings.all, 'history'] as const,
+    },
+    admin: {
+        courts: ['admin', 'courts'] as const,
+    },
 };
+
+// ... (existing hooks)
+
+
+
+// Admin Hooks
+export function useAdminCourts() {
+    return useQuery({
+        queryKey: queryKeys.admin.courts,
+        queryFn: async () => {
+            const result = await AdminService.getCourts();
+            return result.data;
+        },
+        staleTime: 300000, // 5 minutes
+    });
+}
+
+export function useDeleteCourt() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: (courtId: string) => AdminService.deleteCourt(courtId),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: queryKeys.admin.courts });
+        },
+    });
+}
 
 // Highlight Hooks
 export function useHighlights(limit: number = 20) {
@@ -93,5 +128,16 @@ export function useTransactionSummary() {
             return result.data;
         },
         staleTime: 300000,
+    });
+}
+
+export function useBookingHistory() {
+    return useQuery({
+        queryKey: queryKeys.bookings.history(),
+        queryFn: async () => {
+            const result = await ApiService.getBookingHistory();
+            return result.data;
+        },
+        staleTime: 60000,
     });
 }

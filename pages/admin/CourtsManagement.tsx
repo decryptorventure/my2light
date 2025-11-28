@@ -6,30 +6,21 @@ import { CourtFormModal } from '../../components/admin/CourtFormModal';
 import { AdminService } from '../../services/admin';
 import { CourtDetails } from '../../types/admin';
 import { useToast } from '../../components/ui/Toast';
+import { useAdminCourts, useDeleteCourt } from '../../src/hooks/useApi';
 import { Building2, Plus, Edit2, Trash2, MapPin, DollarSign, Clock, MoreVertical, Star } from 'lucide-react';
 
 export const CourtsManagement: React.FC = () => {
     const { showToast } = useToast();
-    const [courts, setCourts] = useState<CourtDetails[]>([]);
-    const [loading, setLoading] = useState(true);
+
+    // React Query Hooks
+    const { data: courts = [], isLoading, refetch } = useAdminCourts();
+    const deleteCourtMutation = useDeleteCourt();
+
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingCourt, setEditingCourt] = useState<CourtDetails | null>(null);
     const [deletingId, setDeletingId] = useState<string | null>(null);
 
-    useEffect(() => {
-        loadCourts();
-    }, []);
-
-    const loadCourts = async () => {
-        setLoading(true);
-        const res = await AdminService.getCourts();
-        if (res.success) {
-            setCourts(res.data);
-        } else {
-            showToast(res.error || 'Không thể tải danh sách sân', 'error');
-        }
-        setLoading(false);
-    };
+    const loading = isLoading;
 
     const handleAdd = () => {
         setEditingCourt(null);
@@ -45,21 +36,20 @@ export const CourtsManagement: React.FC = () => {
         if (!confirm('Bạn có chắc muốn xóa sân này?')) return;
 
         setDeletingId(courtId);
-        const res = await AdminService.deleteCourt(courtId);
-        setDeletingId(null);
-
-        if (res.success) {
+        try {
+            await deleteCourtMutation.mutateAsync(courtId);
             showToast('Đã xóa sân thành công', 'success');
-            loadCourts();
-        } else {
-            showToast(res.error || 'Không thể xóa sân', 'error');
+        } catch (error: any) {
+            showToast(error.message || 'Không thể xóa sân', 'error');
+        } finally {
+            setDeletingId(null);
         }
     };
 
     const handleFormSuccess = () => {
         setIsFormOpen(false);
         setEditingCourt(null);
-        loadCourts();
+        refetch(); // Refresh list after add/edit
     };
 
     const getStatusBadge = (status: string, isActive: boolean) => {

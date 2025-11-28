@@ -9,6 +9,7 @@ import { StatCircle } from '../components/ui/CircularProgress';
 import { Stories } from '../components/ui/Stories';
 import { Badges } from '../components/ui/Badges';
 import { ApiService } from '../services/api';
+import { useCurrentUser, useBookingHistory, useUpdateUserProfile } from '../hooks/useApi';
 import { User, Booking } from '../types';
 import { supabase } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
@@ -17,10 +18,12 @@ import { useToast } from '../components/ui/Toast';
 export const Profile: React.FC = () => {
     const navigate = useNavigate();
     const { showToast } = useToast();
-    const [loading, setLoading] = useState(true);
-    const [user, setUser] = useState<User | null>(null);
-    const [bookings, setBookings] = useState<Booking[]>([]);
     const [activeTab, setActiveTab] = useState<'info' | 'history'>('info');
+
+    // React Query Hooks
+    const { data: user, isLoading: isUserLoading } = useCurrentUser();
+    const { data: bookings = [], isLoading: isBookingsLoading } = useBookingHistory();
+    const updateProfileMutation = useUpdateUserProfile();
 
     // Edit States
     const [isEditOpen, setIsEditOpen] = useState(false);
@@ -29,27 +32,17 @@ export const Profile: React.FC = () => {
     const [editBio, setEditBio] = useState('');
     const [isPublic, setIsPublic] = useState(true);
 
+    // Sync user data to edit states when user loads
     useEffect(() => {
-        loadData();
-    }, []);
-
-    const loadData = async () => {
-        setLoading(true);
-        const res = await ApiService.getCurrentUser();
-        if (res.success) {
-            setUser(res.data);
-            setEditName(res.data.name);
-            setEditPhone(res.data.phone);
-            setEditBio(res.data.bio || '');
-            setIsPublic(res.data.isPublic ?? true);
+        if (user) {
+            setEditName(user.name);
+            setEditPhone(user.phone);
+            setEditBio(user.bio || '');
+            setIsPublic(user.isPublic ?? true);
         }
+    }, [user]);
 
-        // Load history
-        const historyRes = await ApiService.getBookingHistory();
-        if (historyRes.success) setBookings(historyRes.data);
-
-        setLoading(false);
-    };
+    const loading = isUserLoading || isBookingsLoading;
 
     const handleLogout = async () => {
         await supabase.auth.signOut();
@@ -57,23 +50,16 @@ export const Profile: React.FC = () => {
     };
 
     const handleSaveProfile = async () => {
-        const res = await ApiService.updateUserProfile({
-            name: editName,
-            phone: editPhone,
-            bio: editBio,
-            is_public: isPublic
-        });
-        if (res.success) {
-            setUser(prev => prev ? {
-                ...prev,
+        try {
+            await updateProfileMutation.mutateAsync({
                 name: editName,
                 phone: editPhone,
                 bio: editBio,
-                isPublic
-            } : null);
+                is_public: isPublic
+            });
             setIsEditOpen(false);
             showToast('Cập nhật hồ sơ thành công!', 'success');
-        } else {
+        } catch (error) {
             showToast('Cập nhật thất bại', 'error');
         }
     };
@@ -82,10 +68,12 @@ export const Profile: React.FC = () => {
         // Simulation for MVP
         const amount = 100000;
         if (!user) return;
-        const res = await ApiService.updateUserProfile({ credits: user.credits + amount });
-        if (res.success) {
-            setUser(prev => prev ? { ...prev, credits: prev.credits + amount } : null);
+
+        try {
+            await updateProfileMutation.mutateAsync({ credits: user.credits + amount });
             alert(`Đã nạp thành công ${amount.toLocaleString()}đ vào ví!`);
+        } catch (error) {
+            showToast('Nạp tiền thất bại', 'error');
         }
     };
 
@@ -162,18 +150,15 @@ export const Profile: React.FC = () => {
                                 const file = e.target.files?.[0];
                                 if (file) {
                                     // Simple loading state for avatar
-                                    const oldAvatar = user.avatar;
-                                    setUser(prev => prev ? { ...prev, avatar: 'https://media.tenor.com/On7kvXhzml4AAAAj/loading-gif.gif' } : null);
+                                    // const oldAvatar = user.avatar; // Not needed with React Query optimistic updates or just waiting
+                                    // setUser(prev => prev ? { ...prev, avatar: 'https://media.tenor.com/On7kvXhzml4AAAAj/loading-gif.gif' } : null);
 
                                     const res = await ApiService.uploadAvatar(file);
                                     if (res.success) {
-                                        setUser(prev => prev ? { ...prev, avatar: res.data } : null);
-                                        // Also update profile in DB with new URL
-                                        await ApiService.updateUserProfile({ avatar: res.data });
+                                        await updateProfileMutation.mutateAsync({ avatar: res.data });
                                         showToast('Upload ảnh thành công!', 'success');
                                     } else {
                                         showToast('Upload thất bại!', 'error');
-                                        setUser(prev => prev ? { ...prev, avatar: oldAvatar } : null);
                                     }
                                 }
                             }}
