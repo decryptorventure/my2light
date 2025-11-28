@@ -33,6 +33,7 @@ export const SelfRecording: React.FC = () => {
   const [showSettings, setShowSettings] = useState(false);
   const [keywordDetection, setKeywordDetection] = useState(false);
   const [mergedVideoUrl, setMergedVideoUrl] = useState<string | null>(null);
+  const [previewSegment, setPreviewSegment] = useState<VideoSegment | null>(null);
 
   // Camera
   const { stream, permissionGranted, switchCamera } = useCamera({
@@ -356,6 +357,9 @@ export const SelfRecording: React.FC = () => {
                 onToggleSelection={toggleSegmentSelection}
                 onSave={handleSaveSelected}
                 onCancel={() => navigate(-1)}
+                fullRecordingBlob={fullRecordingBlob}
+                previewSegment={previewSegment}
+                onPreview={setPreviewSegment}
               />
             )}
 
@@ -443,8 +447,12 @@ const ReviewStep: React.FC<{
   onToggleSelection: (id: string) => void;
   onSave: () => void;
   onCancel: () => void;
-}> = ({ segments, onToggleSelection, onSave, onCancel }) => {
+  fullRecordingBlob: Blob | null;
+  previewSegment: VideoSegment | null;
+  onPreview: (segment: VideoSegment | null) => void;
+}> = ({ segments, onToggleSelection, onSave, onCancel, fullRecordingBlob, previewSegment, onPreview }) => {
   const selectedCount = segments.filter(s => s.isSelected).length;
+  const videoRef = React.useRef<HTMLVideoElement>(null);
 
   const handleSelectAll = () => {
     segments.forEach(seg => {
@@ -501,34 +509,121 @@ const ReviewStep: React.FC<{
         ) : (
           <div className="grid grid-cols-2 gap-3">
             {segments.map((seg, idx) => (
-              <button
-                key={seg.id}
-                onClick={() => onToggleSelection(seg.id)}
-                className={`relative aspect-video rounded-xl overflow-hidden border-2 transition ${seg.isSelected
-                  ? 'border-lime-400 shadow-lg shadow-lime-400/20'
-                  : 'border-slate-700'
-                  }`}
-              >
-                {/* Placeholder thumbnail */}
-                <div className="absolute inset-0 bg-gradient-to-br from-slate-700 to-slate-800 flex flex-col items-center justify-center">
-                  <Sparkles size={24} className="text-slate-600 mb-2" />
-                  <span className="text-xs text-slate-500">Highlight #{idx + 1}</span>
-                  <span className="text-xs text-slate-600 font-mono">
-                    {seg.duration}s
-                  </span>
-                </div>
-
-                {/* Selection Indicator */}
-                {seg.isSelected && (
-                  <div className="absolute top-2 right-2 w-6 h-6 bg-lime-400 rounded-full flex items-center justify-center">
-                    <Check size={16} className="text-slate-900" strokeWidth={3} />
+              <div key={seg.id} className="relative">
+                <button
+                  onClick={() => onToggleSelection(seg.id)}
+                  className={`relative aspect-video rounded-xl overflow-hidden border-2 transition w-full ${seg.isSelected
+                      ? 'border-lime-400 shadow-lg shadow-lime-400/20'
+                      : 'border-slate-700'
+                    }`}
+                >
+                  {/* Placeholder thumbnail */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-slate-700 to-slate-800 flex flex-col items-center justify-center">
+                    <Sparkles size={24} className="text-slate-600 mb-2" />
+                    <span className="text-xs text-slate-500">Highlight #{idx + 1}</span>
+                    <span className="text-xs text-slate-600 font-mono">
+                      {seg.duration}s
+                    </span>
                   </div>
-                )}
-              </button>
+
+                  {/* Selection Indicator */}
+                  {seg.isSelected && (
+                    <div className="absolute top-2 right-2 w-6 h-6 bg-lime-400 rounded-full flex items-center justify-center z-10">
+                      <Check size={16} className="text-slate-900" strokeWidth={3} />
+                    </div>
+                  )}
+                </button>
+
+                {/* Preview Button */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onPreview(seg);
+                  }}
+                  className="absolute bottom-2 left-2 bg-black/60 backdrop-blur-sm text-white px-2 py-1 rounded-lg text-xs font-bold hover:bg-black/80 transition flex items-center gap-1 z-10"
+                >
+                  <Play size={12} fill="currentColor" />
+                  Xem
+                </button>
+              </div>
             ))}
           </div>
         )}
       </Card>
+
+      {/* Preview Modal */}
+      <AnimatePresence>
+        {previewSegment && fullRecordingBlob && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm flex items-center justify-center p-6"
+            onClick={() => onPreview(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              className="bg-slate-800 rounded-2xl overflow-hidden max-w-2xl w-full"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Modal Header */}
+              <div className="p-4 border-b border-slate-700 flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-bold text-white">Preview Highlight</h3>
+                  <p className="text-sm text-slate-400">
+                    {previewSegment.start_time}s - {previewSegment.end_time}s ({previewSegment.duration}s)
+                  </p>
+                </div>
+                <button
+                  onClick={() => onPreview(null)}
+                  className="p-2 hover:bg-slate-700 rounded-full transition"
+                >
+                  <X size={20} className="text-slate-400" />
+                </button>
+              </div>
+
+              {/* Video Player */}
+              <div className="bg-black aspect-video">
+                <video
+                  ref={videoRef}
+                  src={URL.createObjectURL(fullRecordingBlob)}
+                  className="w-full h-full"
+                  controls
+                  autoPlay
+                  onLoadedMetadata={() => {
+                    if (videoRef.current) {
+                      videoRef.current.currentTime = previewSegment.start_time;
+                    }
+                  }}
+                />
+              </div>
+
+              {/* Modal Footer */}
+              <div className="p-4 bg-slate-900/50 flex gap-3">
+                <Button
+                  variant="outline"
+                  onClick={() => onPreview(null)}
+                  className="flex-1"
+                >
+                  Đóng
+                </Button>
+                <Button
+                  onClick={() => {
+                    onToggleSelection(previewSegment.id);
+                    onPreview(null);
+                  }}
+                  className="flex-1"
+                  icon={<Check size={16} />}
+                >
+                  {segments.find(s => s.id === previewSegment.id)?.isSelected ? 'Bỏ chọn' : 'Chọn'}
+                </Button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Actions */}
       <div className="fixed bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-slate-900 via-slate-900/95 to-transparent pb-safe space-y-3">
