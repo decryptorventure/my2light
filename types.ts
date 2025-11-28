@@ -33,6 +33,7 @@ export interface Court {
   openTime?: string;
   closeTime?: string;
   totalReviews?: number;
+  features?: string[];
 }
 
 export interface Highlight {
@@ -115,30 +116,6 @@ export interface ApiResponse<T> {
   error?: string;
 }
 
-export interface VideoSegment {
-  id: string;
-  recording_session_id: string;
-  user_id: string;
-  start_time: number; // seconds
-  end_time: number;
-  duration: number;
-  video_url?: string;
-  status: 'pending' | 'uploaded' | 'processing' | 'ready' | 'failed';
-  created_at: string;
-  isSelected?: boolean; // Client-side only
-}
-
-export interface VideoProcessingJob {
-  id: string;
-  user_id: string;
-  segment_ids: string[];
-  output_url?: string;
-  status: 'pending' | 'processing' | 'completed' | 'failed';
-  error_message?: string;
-  created_at: string;
-  completed_at?: string;
-}
-
 export interface Notification {
   id: string;
   user_id: string;
@@ -148,4 +125,29 @@ export interface Notification {
   data?: any;
   is_read: boolean;
   created_at: string;
+}
+
+export interface VideoSegment {
+  id: string;
+  recording_session_id: string;
+  user_id: string;
+  start_time: number;
+  end_time: number;
+  duration: number;
+  status: 'pending' | 'uploaded' | 'processed' | 'failed';
+  created_at: string;
+  video_url?: string;
+  thumbnail_url?: string;
+  isSelected?: boolean; // Client-side only
+}
+
+export interface VideoProcessingJob {
+  id: string;
+  user_id: string;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  created_at: string;
+  updated_at: string;
+  result_url?: string;
+  error?: string;
+  metadata?: any;
 }
