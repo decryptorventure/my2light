@@ -3,7 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { Bell, Menu } from 'lucide-react';
 import { useRole } from '../../../hooks/useRole';
 
-export const AdminHeader: React.FC = () => {
+interface AdminHeaderProps {
+    onMenuClick: () => void;
+}
+
+export const AdminHeader: React.FC<AdminHeaderProps> = ({ onMenuClick }) => {
     const navigate = useNavigate();
     const { activeRole } = useRole();
 
@@ -11,8 +15,11 @@ export const AdminHeader: React.FC = () => {
         <header className="sticky top-0 z-30 bg-slate-900/80 backdrop-blur-md border-b border-slate-800">
             <div className="flex items-center justify-between p-4">
                 {/* Mobile Menu Button */}
-                <button className="lg:hidden w-10 h-10 rounded-lg bg-slate-800 flex items-center justify-center">
-                    <Menu size={20} />
+                <button
+                    onClick={onMenuClick}
+                    className="lg:hidden w-10 h-10 rounded-lg bg-slate-800 flex items-center justify-center hover:bg-slate-700 transition-colors"
+                >
+                    <Menu size={20} className="text-slate-200" />
                 </button>
 
                 {/* Page Title - Hidden on mobile, shown on desktop */}

@@ -11,10 +11,12 @@ import {
 import { supabase } from '../lib/supabase';
 import { useToast } from '../components/ui/Toast';
 import { celebrate } from '../lib/confetti';
+import { useAuthStore } from '../stores/authStore';
 
 export const Login: React.FC = () => {
   const navigate = useNavigate();
   const { showToast } = useToast();
+  const { refreshProfile } = useAuthStore();
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -65,6 +67,9 @@ export const Login: React.FC = () => {
             console.error("Profile creation error:", profileError);
           }
 
+          // Refresh global auth store
+          await refreshProfile();
+
           celebrate({ particleCount: 100 });
           showToast('Đăng ký thành công! 🎉', 'success');
           setTimeout(() => navigate('/onboarding'), 500);
@@ -89,6 +94,9 @@ export const Login: React.FC = () => {
 
           // Force refresh session to ensure latest claims/metadata
           await supabase.auth.refreshSession();
+
+          // Refresh global auth store
+          await refreshProfile();
 
           celebrate({ particleCount: 50 });
           showToast('Đăng nhập thành công! 👋', 'success');

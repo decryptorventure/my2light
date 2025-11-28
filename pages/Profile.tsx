@@ -6,7 +6,8 @@ import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 import { StatCircle } from '../components/ui/CircularProgress';
-import { ActivityHeatmap } from '../components/ui/ActivityHeatmap';
+import { Stories } from '../components/ui/Stories';
+import { Badges } from '../components/ui/Badges';
 import { ApiService } from '../services/api';
 import { User, Booking } from '../types';
 import { supabase } from '../lib/supabase';
@@ -172,13 +173,14 @@ export const Profile: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Activity Streak (Heatmap) - Interactive */}
+                {/* Stories Section - New Creative Feature */}
+                <div className="mb-6">
+                    <Stories />
+                </div>
+
+                {/* Badges Section - Gamification */}
                 <div className="mb-8">
-                    <ActivityHeatmap
-                        data={generateActivityData()}
-                        weeks={12}
-                        onDayClick={(day) => console.log('Clicked day:', day)}
-                    />
+                    <Badges />
                 </div>
 
                 {/* Tabs */}

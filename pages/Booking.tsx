@@ -8,12 +8,14 @@ import { Card } from '../components/ui/Card';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 import { useToast } from '../components/ui/Toast';
 import { ApiService } from '../services/api';
+import { useAuthStore } from '../stores/authStore';
 import { Court, Package } from '../types';
 
 export const Booking: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const { showToast } = useToast();
+    const { user } = useAuthStore();
 
     const [step, setStep] = useState<'datetime' | 'package' | 'payment'>('datetime');
     const [court, setCourt] = useState<Court | null>(null);
@@ -76,11 +78,32 @@ export const Booking: React.FC = () => {
     // Generate time slots (06:00 - 22:00)
     const generateTimeSlots = () => {
         const slots = [];
+        const now = new Date();
+        const isToday = selectedDate.toDateString() === now.toDateString();
+        const currentHour = now.getHours();
+        const currentMinute = now.getMinutes();
+
         for (let i = 6; i <= 22; i++) {
-            slots.push(`${i.toString().padStart(2, '0')}:00`);
-            slots.push(`${i.toString().padStart(2, '0')}:30`);
+            // Check if slot is in the past
+            if (isToday) {
+                if (i < currentHour) continue;
+                if (i === currentHour && currentMinute > 0) {
+                    // Skip XX:00 if we are past it
+                    // But keep XX:30 if we are before 30
+                }
+            }
+
+            // XX:00
+            if (!isToday || i > currentHour || (i === currentHour && currentMinute < 0)) {
+                slots.push(`${i.toString().padStart(2, '0')}:00`);
+            }
+
+            // XX:30
+            if (!isToday || i > currentHour || (i === currentHour && currentMinute < 30)) {
+                slots.push(`${i.toString().padStart(2, '0')}:30`);
+            }
         }
-        return slots;
+        return slots.sort();
     };
 
     const handlePayment = async () => {
@@ -362,11 +385,23 @@ export const Booking: React.FC = () => {
                                     </div>
                                 </Card>
 
-                                <div className="bg-slate-800/50 p-4 rounded-xl flex items-start gap-3">
-                                    <CreditCard className="text-lime-400 mt-1" size={20} />
-                                    <div>
-                                        <p className="font-bold text-sm text-white">Thanh toán qua Ví My2Light</p>
-                                        <p className="text-xs text-slate-400 mt-1">Số dư sẽ được trừ trực tiếp vào ví của bạn.</p>
+                                <div className={`p-4 rounded-xl flex items-start gap-3 ${(user?.credits || 0) >= totalPrice
+                                    ? 'bg-slate-800/50'
+                                    : 'bg-red-500/10 border border-red-500/30'
+                                    }`}>
+                                    <CreditCard className={`${(user?.credits || 0) >= totalPrice ? 'text-lime-400' : 'text-red-400'} mt-1`} size={20} />
+                                    <div className="flex-1">
+                                        <div className="flex justify-between items-center">
+                                            <p className="font-bold text-sm text-white">Ví My2Light</p>
+                                            <p className={`font-bold text-sm ${(user?.credits || 0) >= totalPrice ? 'text-lime-400' : 'text-red-400'}`}>
+                                                Số dư: {(user?.credits || 0).toLocaleString()}đ
+                                            </p>
+                                        </div>
+                                        <p className="text-xs text-slate-400 mt-1">
+                                            {(user?.credits || 0) >= totalPrice
+                                                ? 'Số dư sẽ được trừ trực tiếp vào ví của bạn.'
+                                                : 'Số dư không đủ. Vui lòng nạp thêm.'}
+                                        </p>
                                     </div>
                                 </div>
                             </motion.div>

@@ -2,10 +2,12 @@ import React from 'react';
 import { useNavigate, useLocation, matchPath } from 'react-router-dom';
 import { Home, Play, User } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useAuthStore } from '../../stores/authStore';
 
 export const BottomNav: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useAuthStore();
 
   const navItems = [
     { icon: Home, label: 'Trang chủ', path: '/home' },
@@ -23,7 +25,8 @@ export const BottomNav: React.FC = () => {
     !!matchPath('/court/:id', location.pathname) ||
     !!matchPath('/booking/:id', location.pathname) ||
     location.pathname.startsWith('/booking') ||
-    location.pathname.includes('/booking');
+    location.pathname.includes('/booking') ||
+    location.pathname.startsWith('/admin');
 
   if (isHidden) return null;
 

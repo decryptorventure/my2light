@@ -218,7 +218,10 @@ export const ApiService = {
   // 2. Courts
   getCourts: async (): Promise<ApiResponse<Court[]>> => {
     try {
-      const { data, error } = await supabase.from('courts').select('*');
+      const { data, error } = await supabase
+        .from('courts')
+        .select('*')
+        .eq('is_active', true); // Only show active courts
 
       if (error || !data) {
         console.error("Error fetching courts:", error);
@@ -230,20 +233,33 @@ export const ApiService = {
         name: c.name,
         address: c.address,
         status: c.status,
-        thumbnailUrl: c.thumbnail_url || 'https://images.unsplash.com/photo-1622163642998-1ea36b1dde3b?q=80&w=800&auto=format&fit=crop',
-        distanceKm: Number((Math.random() * 5).toFixed(1)), // Mock distance for now
+        thumbnailUrl: c.thumbnail_url || c.images?.[0] || 'https://images.unsplash.com/photo-1622163642998-1ea36b1dde3b?q=80&w=800&auto=format&fit=crop',
+        distanceKm: c.distance_km || 0,
         pricePerHour: c.price_per_hour,
-        rating: 4.5 // Mock rating
+        rating: c.rating || 0,
+        // Optional fields for detail page
+        images: c.images || [],
+        facilities: c.facilities || [],
+        description: c.description,
+        openTime: c.open_time,
+        closeTime: c.close_time,
+        totalReviews: c.total_reviews || 0
       }));
 
       return { success: true, data: courts };
     } catch (e) {
+      console.error('getCourts error:', e);
       return { success: false, data: [] };
     }
   },
 
   getCourtById: async (id: string): Promise<ApiResponse<Court | undefined>> => {
-    const { data, error } = await supabase.from('courts').select('*').eq('id', id).single();
+    const { data, error } = await supabase
+      .from('courts')
+      .select('*')
+      .eq('id', id)
+      .single();
+
     if (error || !data) {
       console.error('getCourtById error:', error);
       return { success: false, data: undefined, error: error?.message || 'Court not found' };
@@ -256,10 +272,17 @@ export const ApiService = {
         name: data.name,
         address: data.address,
         status: data.status,
-        thumbnailUrl: data.thumbnail_url,
-        distanceKm: 1.2,
+        thumbnailUrl: data.thumbnail_url || data.images?.[0] || 'https://images.unsplash.com/photo-1622163642998-1ea36b1dde3b?q=80&w=800&auto=format&fit=crop',
+        distanceKm: data.distance_km || 0,
         pricePerHour: data.price_per_hour,
-        rating: 4.5
+        rating: data.rating || 0,
+        // Detailed fields
+        images: data.images || [],
+        facilities: data.facilities || [],
+        description: data.description,
+        openTime: data.open_time,
+        closeTime: data.close_time,
+        totalReviews: data.total_reviews || 0
       }
     };
   },

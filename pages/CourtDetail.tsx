@@ -311,9 +311,11 @@ const PackageCard: React.FC<PackageCardProps> = ({
         onClick={onSelect}
         className={`relative p-4 rounded-xl cursor-pointer transition-all ${isSelected
             ? 'bg-lime-400/10 border-2 border-lime-400'
-            : popular
-                ? 'bg-gradient-to-r from-lime-400/10 to-green-400/10 border-2 border-lime-400/50'
-                : 'bg-slate-800/50 border-2 border-slate-700 hover:border-slate-600'
+            : hasAnySelected
+                ? 'bg-slate-800/50 border-2 border-slate-700 opacity-60 hover:opacity-100' // Dim if another is selected
+                : popular
+                    ? 'bg-gradient-to-r from-lime-400/10 to-green-400/10 border-2 border-lime-400/50'
+                    : 'bg-slate-800/50 border-2 border-slate-700 hover:border-slate-600'
             }`}
     >
         {popular && !hasAnySelected && (

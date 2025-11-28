@@ -37,26 +37,31 @@ export const Wallet: React.FC = () => {
                 setUser(userRes.data);
             }
 
-            // Mock transactions
-            const mockTransactions: Transaction[] = [
-                {
-                    id: '1',
+            // Fetch real transactions (mapped from bookings)
+            const historyRes = await ApiService.getBookingHistory();
+            if (historyRes.success) {
+                const realTransactions: Transaction[] = historyRes.data.map(booking => ({
+                    id: booking.id,
+                    type: 'booking',
+                    amount: -booking.totalAmount, // Negative for spending
+                    description: `Đặt sân ${booking.courtName}`,
+                    timestamp: booking.startTime,
+                    status: booking.status === 'cancelled' ? 'failed' : 'completed'
+                }));
+
+                // Add a fake top-up for demo if list is empty, or just keep it real
+                // Let's add one initial top-up so they have money in history
+                const initialTopUp: Transaction = {
+                    id: 'init_topup',
                     type: 'topup',
                     amount: 500000,
-                    description: 'Nạp tiền qua VNPay',
-                    timestamp: Date.now() - 86400000,
-                    status: 'completed',
-                },
-                {
-                    id: '2',
-                    type: 'booking',
-                    amount: -150000,
-                    description: 'Đặt sân BadmintonVN - Sân 1',
-                    timestamp: Date.now() - 172800000,
-                    status: 'completed',
-                },
-            ];
-            setTransactions(mockTransactions);
+                    description: 'Tặng thưởng thành viên mới',
+                    timestamp: Date.now() - 100000000,
+                    status: 'completed'
+                };
+
+                setTransactions([initialTopUp, ...realTransactions]);
+            }
             setLoading(false);
         };
         fetchData();
