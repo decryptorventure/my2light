@@ -177,22 +177,6 @@ export const Profile: React.FC = () => {
                             {user.bio}
                         </p>
                     )}
-
-                    <div className="flex items-center gap-6 text-sm mb-2">
-                        <button onClick={() => navigate('/social/connections?tab=followers')} className="flex flex-col items-center">
-                            <span className="font-bold text-white text-lg">{user.followersCount || 0}</span>
-                            <span className="text-slate-500 text-xs">Người theo dõi</span>
-                        </button>
-                        <button onClick={() => navigate('/social/connections?tab=following')} className="flex flex-col items-center">
-                            <span className="font-bold text-white text-lg">{user.followingCount || 0}</span>
-                            <span className="text-slate-500 text-xs">Đang theo dõi</span>
-                        </button>
-                    </div>
-                </div>
-
-                {/* Stories Section - New Creative Feature */}
-                <div className="mb-6">
-                    <Stories />
                 </div>
 
                 {/* Badges Section - Gamification */}

@@ -15,7 +15,7 @@ import { celebrate } from '../lib/confetti';
 import { CommentSection } from '../components/social/CommentSection';
 import { useToast } from '../components/ui/Toast';
 import { LikeAnimation } from '../components/ui/LikeAnimation';
-import { useHighlights } from '../hooks/useApi';
+import { useHighlights, useCurrentUser } from '../hooks/useApi';
 
 export const Gallery: React.FC = () => {
   const navigate = useNavigate();
@@ -23,6 +23,7 @@ export const Gallery: React.FC = () => {
 
   // React Query - automatic caching, refetching, loading states!
   const { data: highlights = [], isLoading: loading } = useHighlights(20);
+  const { data: currentUser } = useCurrentUser();
 
   const filters = [
     { id: 'all', label: 'Tất cả', icon: Eye },
@@ -45,7 +46,14 @@ export const Gallery: React.FC = () => {
             >
               <ChevronLeft size={20} />
             </button>
-            <h1 className="text-lg font-black text-white">Gallery</h1>
+            <div className="flex flex-col items-center">
+              <h1 className="text-lg font-black text-white">Gallery</h1>
+              <div className="flex items-center gap-3 text-[10px] text-slate-300">
+                <span><b>{currentUser?.followersCount || 0}</b> Followers</span>
+                <span>•</span>
+                <span><b>{currentUser?.followingCount || 0}</b> Following</span>
+              </div>
+            </div>
             <div className="w-10" />
           </div>
 

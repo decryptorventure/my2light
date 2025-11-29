@@ -117,15 +117,8 @@ export const SelfRecording: React.FC = () => {
             <button onClick={() => navigate(-1)} className="p-2 -ml-2 text-white hover:bg-white/10 rounded-full transition">
               <ChevronLeft size={24} />
             </button>
-
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setShowSettings(true)}
-                className="p-2 text-white hover:bg-white/10 rounded-full transition"
-              >
-                <Settings size={24} />
-              </button>
-            </div>
+            <h1 className="text-lg font-bold text-white">Tự quay AI</h1>
+            <div className="w-10" />
           </div>
         )}
 
@@ -142,19 +135,19 @@ export const SelfRecording: React.FC = () => {
                 exit={{ opacity: 0 }}
                 className="flex-1 relative bg-black"
               >
-                {/* Camera Preview */}
-                {(stream || previewStream) ? (
-                  <>
-                    <video
-                      ref={videoRef}
-                      className="w-full h-full object-cover"
-                      autoPlay
-                      playsInline
-                      muted
-                    />
+                {/* Camera Preview - Only show when RECORDING */}
+                {step === 'recording' ? (
+                  (stream || previewStream) ? (
+                    <>
+                      <video
+                        ref={videoRef}
+                        className={`w-full h-full object-cover ${facingMode === 'user' ? 'scale-x-[-1]' : ''}`}
+                        autoPlay
+                        playsInline
+                        muted
+                      />
 
-                    {/* Camera Flip Button - Only show when ready (not recording) */}
-                    {step === 'ready' && (
+                      {/* Camera Flip Button - Show when RECORDING */}
                       <button
                         onClick={() => setFacingMode(prev => prev === 'user' ? 'environment' : 'user')}
                         className="absolute top-24 right-4 z-50 p-3 bg-black/60 backdrop-blur-md rounded-full text-white hover:bg-black/80 transition active:scale-95 shadow-lg border border-white/10"
@@ -162,11 +155,78 @@ export const SelfRecording: React.FC = () => {
                       >
                         <Camera size={24} />
                       </button>
-                    )}
-                  </>
+                    </>
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-slate-900">
+                      <div className="text-slate-500">Đang khởi tạo camera...</div>
+                    </div>
+                  )
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-slate-900">
-                    <div className="text-slate-500">Đang khởi tạo camera...</div>
+                  /* READY STATE - Show Settings instead of Camera */
+                  <div className="w-full h-full bg-slate-900 flex flex-col p-6 pt-24">
+                    <h2 className="text-2xl font-bold text-white mb-6">Cài đặt Quay</h2>
+
+                    <div className="space-y-6 flex-1">
+                      {/* Voice Recognition Toggle */}
+                      <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <Mic size={20} className="text-lime-400" />
+                            <label className="text-white font-bold">Nhận diện giọng nói</label>
+                          </div>
+                          <button
+                            onClick={() => setVoiceEnabled(!voiceEnabled)}
+                            className={`relative w-12 h-6 rounded-full transition ${voiceEnabled ? 'bg-lime-400' : 'bg-slate-700'}`}
+                          >
+                            <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${voiceEnabled ? 'translate-x-6' : ''}`} />
+                          </button>
+                        </div>
+                        <p className="text-xs text-slate-400">
+                          Nói "Highlight" hoặc "Ghi lại" để tự động lưu khoảnh khắc.
+                        </p>
+                      </div>
+
+                      {/* Highlight Duration */}
+                      <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700">
+                        <div className="flex items-center gap-2 mb-4">
+                          <Clock size={20} className="text-lime-400" />
+                          <label className="text-white font-bold">Độ dài highlight</label>
+                        </div>
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-slate-300 text-sm">Lưu lại</span>
+                            <span className="text-white font-mono font-bold">{highlightDuration} giây</span>
+                          </div>
+                          <input
+                            type="range"
+                            min="5"
+                            max="30"
+                            step="5"
+                            value={highlightDuration}
+                            onChange={(e) => setHighlightDuration(parseInt(e.target.value))}
+                            className="w-full accent-lime-400"
+                          />
+                          <div className="flex justify-between text-xs text-slate-500">
+                            <span>5s</span>
+                            <span>15s</span>
+                            <span>30s</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Instructions */}
+                      <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 flex gap-3">
+                        <Info size={20} className="text-blue-400 flex-shrink-0" />
+                        <div className="text-sm text-blue-200">
+                          <p className="font-bold mb-1">Cách hoạt động:</p>
+                          <ul className="list-disc list-inside space-y-1 opacity-80">
+                            <li>Đặt điện thoại cố định</li>
+                            <li>Bấm "Bắt đầu quay"</li>
+                            <li>Hô lệnh hoặc bấm nút khi có pha hay</li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 )}
 
@@ -235,9 +295,6 @@ export const SelfRecording: React.FC = () => {
                       >
                         Bắt đầu quay
                       </Button>
-                      <p className="text-center text-slate-400 text-sm mt-4">
-                        Nhấn quay để bắt đầu ghi lại trận đấu của bạn
-                      </p>
                     </div>
                   )}
                 </div>

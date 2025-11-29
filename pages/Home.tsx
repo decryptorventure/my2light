@@ -125,12 +125,6 @@ export const Home: React.FC = () => {
             <h2 className="text-2xl font-bold">{displayUser.name}</h2>
           </div>
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => navigate('/my-bookings')}
-              className="px-3 py-1.5 rounded-full bg-slate-800 border border-slate-700 text-xs font-bold text-white hover:bg-slate-700 transition-colors"
-            >
-              Lịch sân
-            </button>
 
             <button
               onClick={() => navigate('/notifications')}
