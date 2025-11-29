@@ -156,9 +156,6 @@ describe('ApiService - User Methods', () => {
                 if (table === 'bookings') {
                     return {
                         select: vi.fn().mockReturnThis(),
-                        eq: vi.fn().mockReturnThis(),
-                        // The implementation ends with .eq('status', 'completed') which returns the promise
-                        // We need to make sure the last call returns the data
                         eq: vi.fn().mockImplementation((field, value) => {
                             if (value === 'completed') {
                                 return Promise.resolve({ data: mockBookings, error: null });

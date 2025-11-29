@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ApiService } from '../../services/api';
-import { AdminService } from '../../services/admin';
-import type { Highlight } from '../../types';
+import { ApiService } from '../services/api';
+import { AdminService } from '../services/admin';
+import type { Highlight } from '../types';
 
 // Query keys - centralized for cache management
 export const queryKeys = {

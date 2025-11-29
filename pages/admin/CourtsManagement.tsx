@@ -6,8 +6,10 @@ import { CourtFormModal } from '../../components/admin/CourtFormModal';
 import { AdminService } from '../../services/admin';
 import { CourtDetails } from '../../types/admin';
 import { useToast } from '../../components/ui/Toast';
-import { useAdminCourts, useDeleteCourt } from '../../src/hooks/useApi';
+import { useAdminCourts, useDeleteCourt } from '../../hooks/useApi';
 import { Building2, Plus, Edit2, Trash2, MapPin, DollarSign, Clock, MoreVertical, Star } from 'lucide-react';
+
+import { VenueControl } from '../../components/admin/VenueControl';
 
 export const CourtsManagement: React.FC = () => {
     const { showToast } = useToast();
@@ -83,6 +85,9 @@ export const CourtsManagement: React.FC = () => {
                     Thêm sân mới
                 </Button>
             </div>
+
+            {/* Venue Camera Control */}
+            <VenueControl />
 
             {/* Stats Overview */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

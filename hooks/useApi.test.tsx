@@ -12,11 +12,11 @@ import {
     useAdminCourts,
     useDeleteCourt
 } from './useApi';
-import { ApiService } from '../../services/api';
-import { AdminService } from '../../services/admin';
-import { mockUser, mockCourt, mockHighlight, mockTransaction, mockBooking } from '../test/testUtils';
+import { ApiService } from '../services/api';
+import { AdminService } from '../services/admin';
+import { mockUser, mockCourt, mockHighlight, mockTransaction, mockBooking } from '../src/test/testUtils';
 import React, { ReactNode } from 'react';
-import { CourtDetails } from '../../types/admin';
+import { CourtDetails } from '../types/admin';
 
 const mockCourtDetails: CourtDetails = {
     ...mockCourt,
@@ -30,7 +30,7 @@ const mockCourtDetails: CourtDetails = {
 };
 
 // Mock ApiService
-vi.mock('../../services/api', () => ({
+vi.mock('../services/api', () => ({
     ApiService: {
         getHighlights: vi.fn(),
         getCourts: vi.fn(),
@@ -43,7 +43,7 @@ vi.mock('../../services/api', () => ({
 }));
 
 // Mock AdminService
-vi.mock('../../services/admin', () => ({
+vi.mock('../services/admin', () => ({
     AdminService: {
         getCourts: vi.fn(),
         deleteCourt: vi.fn(),

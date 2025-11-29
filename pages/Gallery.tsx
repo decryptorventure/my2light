@@ -15,7 +15,7 @@ import { celebrate } from '../lib/confetti';
 import { CommentSection } from '../components/social/CommentSection';
 import { useToast } from '../components/ui/Toast';
 import { LikeAnimation } from '../components/ui/LikeAnimation';
-import { useHighlights } from '../src/hooks/useApi';
+import { useHighlights } from '../hooks/useApi';
 
 export const Gallery: React.FC = () => {
   const navigate = useNavigate();

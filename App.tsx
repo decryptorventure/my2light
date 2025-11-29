@@ -55,6 +55,7 @@ import { LoadingSpinner } from './components/ui/LoadingSpinner';
 import { NotificationProvider } from './contexts/NotificationContext';
 import { ErrorBoundary } from './components/ui/ErrorBoundary';
 import { NotificationPermissionPrompt } from './components/modals/NotificationPermissionPrompt';
+import { ReloadPrompt } from './components/ReloadPrompt';
 
 // Suspense fallback component
 const PageLoader = () => (
@@ -88,6 +89,13 @@ const AnimatedRoutes = () => {
           <Route path="/my-bookings" element={<MyBookings />} />
           <Route path="/wallet" element={<Wallet />} />
           <Route path="/payment-callback" element={<PaymentCallback />} />
+          <Route path="/become-court-owner" element={<BecomeCourtOwner />} />
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route index element={<Navigate to="dashboard" replace />} />
+            <Route path="dashboard" element={<Dashboard />} />
+            <Route path="courts" element={<CourtsManagement />} />
+            <Route path="bookings" element={<BookingsManagement />} />
+          </Route>
 
           {/* Social Routes */}
           <Route path="/social" element={<SocialLayout />}>
@@ -135,6 +143,7 @@ const App: React.FC = () => {
                 <AnimatedRoutes />
                 <BottomNav />
                 <IOSInstallPrompt />
+                <ReloadPrompt />
                 <NotificationPermissionPrompt />
               </div>
             </ToastProvider>

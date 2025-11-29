@@ -24,6 +24,50 @@ export const useToast = () => {
     return context;
 };
 
+export interface ToastProps {
+    id?: string;
+    message: string;
+    type: ToastType;
+    onClose: () => void;
+}
+
+export const Toast: React.FC<ToastProps> = ({ message, type, onClose }) => {
+    return (
+        <motion.div
+            initial={{ opacity: 0, y: -20, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
+            layout
+            className={`
+                pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg border backdrop-blur-md min-w-[300px]
+                ${type === 'success' ? 'bg-slate-900/90 border-lime-500/50 text-white' : ''}
+                ${type === 'error' ? 'bg-slate-900/90 border-red-500/50 text-white' : ''}
+                ${type === 'info' ? 'bg-slate-900/90 border-blue-500/50 text-white' : ''}
+            `}
+        >
+            <div className={`
+                p-1 rounded-full 
+                ${type === 'success' ? 'bg-lime-500/20 text-lime-400' : ''}
+                ${type === 'error' ? 'bg-red-500/20 text-red-400' : ''}
+                ${type === 'info' ? 'bg-blue-500/20 text-blue-400' : ''}
+            `}>
+                {type === 'success' && <CheckCircle size={18} />}
+                {type === 'error' && <AlertCircle size={18} />}
+                {type === 'info' && <Info size={18} />}
+            </div>
+
+            <p className="text-sm font-medium flex-1">{message}</p>
+
+            <button
+                onClick={onClose}
+                className="text-slate-400 hover:text-white transition-colors"
+            >
+                <X size={16} />
+            </button>
+        </motion.div>
+    );
+};
+
 export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [toasts, setToasts] = useState<Toast[]>([]);
 
@@ -46,39 +90,13 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex flex-col gap-2 pointer-events-none w-full max-w-sm px-4">
                 <AnimatePresence>
                     {toasts.map((toast) => (
-                        <motion.div
+                        <Toast
                             key={toast.id}
-                            initial={{ opacity: 0, y: -20, scale: 0.9 }}
-                            animate={{ opacity: 1, y: 0, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
-                            layout
-                            className={`
-                pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg border backdrop-blur-md min-w-[300px]
-                ${toast.type === 'success' ? 'bg-slate-900/90 border-lime-500/50 text-white' : ''}
-                ${toast.type === 'error' ? 'bg-slate-900/90 border-red-500/50 text-white' : ''}
-                ${toast.type === 'info' ? 'bg-slate-900/90 border-blue-500/50 text-white' : ''}
-              `}
-                        >
-                            <div className={`
-                p-1 rounded-full 
-                ${toast.type === 'success' ? 'bg-lime-500/20 text-lime-400' : ''}
-                ${toast.type === 'error' ? 'bg-red-500/20 text-red-400' : ''}
-                ${toast.type === 'info' ? 'bg-blue-500/20 text-blue-400' : ''}
-              `}>
-                                {toast.type === 'success' && <CheckCircle size={18} />}
-                                {toast.type === 'error' && <AlertCircle size={18} />}
-                                {toast.type === 'info' && <Info size={18} />}
-                            </div>
-
-                            <p className="text-sm font-medium flex-1">{toast.message}</p>
-
-                            <button
-                                onClick={() => removeToast(toast.id)}
-                                className="text-slate-400 hover:text-white transition-colors"
-                            >
-                                <X size={16} />
-                            </button>
-                        </motion.div>
+                            id={toast.id}
+                            message={toast.message}
+                            type={toast.type}
+                            onClose={() => removeToast(toast.id)}
+                        />
                     ))}
                 </AnimatePresence>
             </div>
