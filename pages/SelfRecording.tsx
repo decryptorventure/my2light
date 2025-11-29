@@ -26,6 +26,7 @@ export const SelfRecording: React.FC = () => {
   const [sessionId] = useState(() => crypto.randomUUID());
   const [showSettings, setShowSettings] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [previewStream, setPreviewStream] = useState<MediaStream | null>(null);
 
   // Recording Hook
   const {
@@ -42,7 +43,35 @@ export const SelfRecording: React.FC = () => {
     onError: (err) => showToast(`Recording error: ${err.message}`, 'error')
   });
 
-  // Effect to attach stream to video element
+  // Effect to initialize camera preview BEFORE recording
+  useEffect(() => {
+    const initPreview = async () => {
+      try {
+        const mediaStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } },
+          audio: true
+        });
+        setPreviewStream(mediaStream);
+        if (videoRef.current) {
+          videoRef.current.srcObject = mediaStream;
+        }
+      } catch (err) {
+        console.error('Failed to get camera preview:', err);
+        showToast('Không thể truy cập camera. Vui lòng cho phép quyền camera.', 'error');
+      }
+    };
+
+    initPreview();
+
+    // Cleanup preview stream on unmount
+    return () => {
+      if (previewStream) {
+        previewStream.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, []);
+
+  // Effect to attach recording stream to video element
   useEffect(() => {
     if (videoRef.current && stream) {
       videoRef.current.srcObject = stream;
@@ -104,7 +133,7 @@ export const SelfRecording: React.FC = () => {
                 className="flex-1 relative bg-black"
               >
                 {/* Camera Preview */}
-                {stream ? (
+                {(stream || previewStream) ? (
                   <video
                     ref={videoRef}
                     className="w-full h-full object-cover"
@@ -114,7 +143,7 @@ export const SelfRecording: React.FC = () => {
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center bg-slate-900">
-                    {step === 'ready' && <div className="text-slate-500">Camera ready...</div>}
+                    <div className="text-slate-500">Đang khởi tạo camera...</div>
                   </div>
                 )}
 

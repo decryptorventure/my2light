@@ -74,16 +74,35 @@ export const useMediaRecorder = ({ onChunkSaved, onError }: UseMediaRecorderProp
             };
             await VideoStorage.saveSessionMetadata(metadata);
 
-            // Create MediaRecorder
-            // Try to use a widely supported mime type
-            const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
-                ? 'video/webm;codecs=vp9'
-                : 'video/webm';
+            // Better mimeType detection with comprehensive fallback
+            const getSupportedMimeType = (): string => {
+                const types = [
+                    'video/webm;codecs=vp9,opus',
+                    'video/webm;codecs=vp8,opus',
+                    'video/webm;codecs=vp8',
+                    'video/webm',
+                    'video/mp4;codecs=h264,aac',
+                    'video/mp4'
+                ];
 
-            const recorder = new MediaRecorder(mediaStream, {
-                mimeType,
-                videoBitsPerSecond: 2500000 // 2.5 Mbps target
-            });
+                for (const type of types) {
+                    if (MediaRecorder.isTypeSupported(type)) {
+                        console.log('Using mimeType:', type);
+                        return type;
+                    }
+                }
+
+                // If no types supported, let browser choose default
+                console.warn('No explicit mimeType supported, using browser default');
+                return '';
+            };
+
+            const mimeType = getSupportedMimeType();
+            const recorderOptions: MediaRecorderOptions = mimeType
+                ? { mimeType, videoBitsPerSecond: 2500000 }
+                : { videoBitsPerSecond: 2500000 };
+
+            const recorder = new MediaRecorder(mediaStream, recorderOptions);
 
             recorder.ondataavailable = async (event) => {
                 if (event.data && event.data.size > 0) {
@@ -115,9 +134,13 @@ export const useMediaRecorder = ({ onChunkSaved, onError }: UseMediaRecorderProp
             setIsRecording(true);
             startTimeRef.current = Date.now();
 
-            // Start duration timer
+            // Start duration timer - FIXED: ensure interval runs properly
+            if (timerIntervalRef.current) {
+                clearInterval(timerIntervalRef.current);
+            }
             timerIntervalRef.current = setInterval(() => {
-                setDuration(Math.floor((Date.now() - startTimeRef.current) / 1000));
+                const elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000);
+                setDuration(elapsed);
             }, 1000);
 
         } catch (err) {
