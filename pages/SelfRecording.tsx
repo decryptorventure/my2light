@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ChevronLeft, Square, Sparkles, Play, Check, Download,
-  RefreshCw, X, Clock, Settings, Pause, Mic, Info, UploadCloud
+  RefreshCw, X, Clock, Settings, Pause, Mic, Info, UploadCloud, Camera
 } from 'lucide-react';
 import { PageTransition } from '../components/Layout/PageTransition';
 import { Button } from '../components/ui/Button';
@@ -31,6 +31,7 @@ export const SelfRecording: React.FC = () => {
   // Settings state
   const [voiceEnabled, setVoiceEnabled] = useState(false);
   const [highlightDuration, setHighlightDuration] = useState(15); // seconds
+  const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user'); // front or back camera
 
   // Recording Hook
   const {
@@ -51,8 +52,13 @@ export const SelfRecording: React.FC = () => {
   useEffect(() => {
     const initPreview = async () => {
       try {
+        // Stop existing stream if switching cameras
+        if (previewStream) {
+          previewStream.getTracks().forEach(track => track.stop());
+        }
+
         const mediaStream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } },
+          video: { facingMode, width: { ideal: 1280 }, height: { ideal: 720 } },
           audio: true
         });
         setPreviewStream(mediaStream);
@@ -138,13 +144,26 @@ export const SelfRecording: React.FC = () => {
               >
                 {/* Camera Preview */}
                 {(stream || previewStream) ? (
-                  <video
-                    ref={videoRef}
-                    className="w-full h-full object-cover"
-                    autoPlay
-                    playsInline
-                    muted
-                  />
+                  <>
+                    <video
+                      ref={videoRef}
+                      className="w-full h-full object-cover"
+                      autoPlay
+                      playsInline
+                      muted
+                    />
+
+                    {/* Camera Flip Button - Only show when ready (not recording) */}
+                    {step === 'ready' && (
+                      <button
+                        onClick={() => setFacingMode(prev => prev === 'user' ? 'environment' : 'user')}
+                        className="absolute top-24 right-4 z-10 p-3 bg-black/60 backdrop-blur-md rounded-full text-white hover:bg-black/80 transition active:scale-95 shadow-lg"
+                        aria-label="Đổi camera"
+                      >
+                        <Camera size={24} />
+                      </button>
+                    )}
+                  </>
                 ) : (
                   <div className="w-full h-full flex items-center justify-center bg-slate-900">
                     <div className="text-slate-500">Đang khởi tạo camera...</div>

@@ -1,4 +1,4 @@
-import { openDB, DBSchema, IDBPDatabase } from 'idb';
+import { openDB, deleteDB, DBSchema, IDBPDatabase } from 'idb';
 
 interface My2LightDB extends DBSchema {
     'video-chunks': {
@@ -27,7 +27,7 @@ export interface SessionMetadata {
 }
 
 const DB_NAME = 'my2light-video-db';
-const DB_VERSION = 1;
+const DB_VERSION = 2; // Bumped to force migration
 
 let dbInstance: IDBPDatabase<My2LightDB> | null = null;
 
@@ -36,8 +36,17 @@ async function getDB(): Promise<IDBPDatabase<My2LightDB>> {
         return dbInstance;
     }
 
+    // Delete old database to ensure clean slate
+    try {
+        await deleteDB(DB_NAME);
+    } catch (e) {
+        console.log('No old database to delete');
+    }
+
     dbInstance = await openDB<My2LightDB>(DB_NAME, DB_VERSION, {
-        upgrade(db) {
+        upgrade(db, oldVersion, newVersion, transaction) {
+            console.log(`Upgrading DB from ${oldVersion} to ${newVersion}`);
+
             // Create object stores if they don't exist
             if (!db.objectStoreNames.contains('video-chunks')) {
                 db.createObjectStore('video-chunks');
