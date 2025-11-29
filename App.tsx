@@ -87,6 +87,7 @@ const AnimatedRoutes = () => {
           <Route path="/booking/:id" element={<Booking />} />
           <Route path="/booking-success" element={<BookingSuccess />} />
           <Route path="/my-bookings" element={<MyBookings />} />
+          <Route path="/notifications" element={<Notifications />} />
           <Route path="/wallet" element={<Wallet />} />
           <Route path="/payment-callback" element={<PaymentCallback />} />
           <Route path="/become-court-owner" element={<BecomeCourtOwner />} />

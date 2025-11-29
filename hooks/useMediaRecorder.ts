@@ -7,7 +7,7 @@ interface UseMediaRecorderProps {
 }
 
 interface UseMediaRecorderReturn {
-    startRecording: (sessionId: string) => Promise<void>;
+    startRecording: (sessionId: string, facingMode?: 'user' | 'environment') => Promise<void>;
     stopRecording: () => Promise<void>;
     addHighlight: () => void;
     isRecording: boolean;
@@ -45,12 +45,12 @@ export const useMediaRecorder = ({ onChunkSaved, onError }: UseMediaRecorderProp
         };
     }, [stream]);
 
-    const startRecording = useCallback(async (sessionId: string) => {
+    const startRecording = useCallback(async (sessionId: string, facingMode: 'user' | 'environment' = 'user') => {
         try {
             setError(null);
             const mediaStream = await navigator.mediaDevices.getUserMedia({
                 video: {
-                    facingMode: 'user', // Default to front camera for self-recording
+                    facingMode,
                     width: { ideal: 1280 },
                     height: { ideal: 720 },
                     frameRate: { ideal: 30 }

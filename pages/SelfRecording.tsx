@@ -88,10 +88,37 @@ export const SelfRecording: React.FC = () => {
     }
   }, [stream]);
 
+  const [thumbnailBlob, setThumbnailBlob] = useState<Blob | null>(null);
+
   const handleStart = async () => {
     try {
-      await startRecording(sessionId);
+      await startRecording(sessionId, facingMode);
       setStep('recording');
+
+      // Capture thumbnail after 2 seconds
+      setTimeout(() => {
+        if (videoRef.current) {
+          try {
+            const canvas = document.createElement('canvas');
+            canvas.width = videoRef.current.videoWidth;
+            canvas.height = videoRef.current.videoHeight;
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+              // Flip if user mode
+              if (facingMode === 'user') {
+                ctx.translate(canvas.width, 0);
+                ctx.scale(-1, 1);
+              }
+              ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+              canvas.toBlob((blob) => {
+                if (blob) setThumbnailBlob(blob);
+              }, 'image/jpeg', 0.8);
+            }
+          } catch (e) {
+            console.error('Failed to capture thumbnail', e);
+          }
+        }
+      }, 2000);
     } catch (err) {
       // Error handled by hook
     }
@@ -305,6 +332,7 @@ export const SelfRecording: React.FC = () => {
             {step === 'uploading' && (
               <UploadStep
                 sessionId={sessionId}
+                thumbnailBlob={thumbnailBlob}
                 onComplete={() => setStep('done')}
                 onProgress={setUploadProgress}
               />
@@ -417,9 +445,10 @@ const formatTime = (seconds: number) => {
 
 const UploadStep: React.FC<{
   sessionId: string;
+  thumbnailBlob: Blob | null;
   onComplete: () => void;
   onProgress: (p: number) => void;
-}> = ({ sessionId, onComplete, onProgress }) => {
+}> = ({ sessionId, thumbnailBlob, onComplete, onProgress }) => {
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
@@ -431,7 +460,7 @@ const UploadStep: React.FC<{
         await UploadService.uploadSession(sessionId, (p) => {
           setProgress(p);
           onProgress(p);
-        });
+        }, thumbnailBlob);
         // Clear local data after success
         await UploadService.clearLocalSession(sessionId);
         onComplete();

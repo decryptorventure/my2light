@@ -2,7 +2,7 @@ import { supabase } from '../lib/supabase';
 import { VideoStorage, VideoChunk, SessionMetadata } from '../lib/storage';
 
 export const UploadService = {
-    async uploadSession(sessionId: string, onProgress?: (progress: number) => void): Promise<string | null> {
+    async uploadSession(sessionId: string, onProgress?: (progress: number) => void, thumbnailBlob?: Blob | null): Promise<string | null> {
         try {
             const metadata = await VideoStorage.getSessionMetadata(sessionId);
             if (!metadata) throw new Error('Session metadata not found');
@@ -12,7 +12,7 @@ export const UploadService = {
 
             // 1. Upload Chunks
             let uploadedBytes = 0;
-            const totalBytes = chunks.reduce((acc, chunk) => acc + chunk.blob.size, 0);
+            const totalBytes = chunks.reduce((acc, chunk) => acc + chunk.blob.size, 0) + (thumbnailBlob?.size || 0);
 
             const uploadPromises = chunks.map(async (chunk) => {
                 const path = `raw/${sessionId}/${chunk.chunkId}.webm`;
@@ -32,6 +32,24 @@ export const UploadService = {
             });
 
             await Promise.all(uploadPromises);
+
+            // 1.5 Upload Thumbnail (if exists)
+            let thumbnailUrl = 'https://images.unsplash.com/photo-1542652694-40abf526446e?q=80&w=500&auto=format&fit=crop'; // Default
+            if (thumbnailBlob) {
+                const thumbPath = `raw/${sessionId}/thumbnail.jpg`;
+                const { error: thumbError } = await supabase.storage
+                    .from('videos')
+                    .upload(thumbPath, thumbnailBlob, { upsert: true });
+
+                if (!thumbError) {
+                    const { data: { publicUrl } } = supabase.storage
+                        .from('videos')
+                        .getPublicUrl(thumbPath);
+                    thumbnailUrl = publicUrl;
+                    uploadedBytes += thumbnailBlob.size;
+                    if (onProgress) onProgress((uploadedBytes / totalBytes) * 0.9);
+                }
+            }
 
             // 2. Upload Metadata
             const metadataPath = `raw/${sessionId}/metadata.json`;
@@ -55,7 +73,7 @@ export const UploadService = {
                     user_id: (await supabase.auth.getUser()).data.user?.id,
                     title: `Highlight ${new Date().toLocaleString('vi-VN')}`,
                     description: 'Tự động quay bằng AI Voice',
-                    thumbnail_url: 'https://images.unsplash.com/photo-1542652694-40abf526446e?q=80&w=500&auto=format&fit=crop', // Placeholder
+                    thumbnail_url: thumbnailUrl,
                     video_url: publicUrl,
                     duration_sec: Math.round((metadata.chunkCount * 5)), // Approx duration
                     is_public: true

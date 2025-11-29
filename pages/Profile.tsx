@@ -193,166 +193,132 @@ export const Profile: React.FC = () => {
                         Thông tin
                     </button>
                     <button
-                        onClick={() => setActiveTab('history')}
-                        className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${activeTab === 'history' ? 'bg-slate-700 text-white shadow' : 'text-slate-400'}`}
+                        onClick={() => navigate('/my-bookings')}
+                        className="flex-1 py-2 text-sm font-bold rounded-lg text-slate-400 hover:text-white hover:bg-slate-700/50 transition-all"
                     >
                         Lịch sử đấu
                     </button>
                 </div>
 
-                {activeTab === 'info' ? (
-                    <div className="space-y-6 animate-in slide-in-from-left-4 fade-in duration-300">
-                        <div className="grid grid-cols-3 gap-4">
-                            <StatCircle
-                                icon={<Zap size={20} />}
-                                label="Highlight"
-                                value={user.totalHighlights}
-                                max={50}
-                                color="warning"
-                                size={100}
-                            />
-                            <StatCircle
-                                icon={<Clock size={20} />}
-                                label="Giờ chơi"
-                                value={user.hoursPlayed}
-                                max={100}
-                                color="info"
-                                size={100}
-                            />
-                            <StatCircle
-                                icon={<MapIcon size={20} />}
-                                label="Sân đã đến"
-                                value={user.courtsVisited}
-                                max={20}
-                                color="success"
-                                size={100}
-                            />
-                        </div>
-
-                        <div>
-                            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 pl-1">Ví của tôi</h3>
-                            <Card className="p-0 overflow-hidden bg-gradient-to-r from-slate-800 to-slate-900 border-slate-700">
-                                <div className="p-5 flex justify-between items-center">
-                                    <div>
-                                        <p className="text-slate-400 text-xs mb-1">Số dư khả dụng</p>
-                                        <span className="font-black text-2xl text-lime-400">{user.credits.toLocaleString()}đ</span>
-                                    </div>
-                                    <Button size="sm" onClick={handleTopUp} className="bg-lime-400 text-slate-900 hover:bg-lime-300 font-bold">
-                                        Nạp thêm
-                                    </Button>
-                                </div>
-                            </Card>
-                        </div>
-
-                        {/* Role Management Section */}
-                        {(user.role === 'court_owner' || user.role === 'both') && (
-                            <div>
-                                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 pl-1">Quản lý sân</h3>
-                                <Card className="p-5 bg-gradient-to-r from-blue-500/10 to-purple-500/10 border-blue-500/30">
-                                    <div className="flex items-center gap-3 mb-3">
-                                        <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
-                                            <Activity size={20} className="text-blue-400" />
-                                        </div>
-                                        <div className="flex-1">
-                                            <h4 className="font-bold text-white">Dashboard Chủ Sân</h4>
-                                            <p className="text-xs text-slate-400">Quản lý sân và booking</p>
-                                        </div>
-                                    </div>
-                                    <Button
-                                        onClick={() => navigate('/admin/dashboard')}
-                                        className="w-full bg-blue-500 hover:bg-blue-600"
-                                    >
-                                        Mở Dashboard
-                                    </Button>
-                                </Card>
-                            </div>
-                        )}
-
-                        {/* Become Court Owner - Show if user is only player */}
-                        {user.role === 'player' && (
-                            <div>
-                                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 pl-1">Dành cho chủ sân</h3>
-                                <Card className="p-5 bg-gradient-to-r from-lime-400/10 to-green-400/10 border-lime-400/30">
-                                    <div className="flex items-center gap-3 mb-3">
-                                        <div className="w-10 h-10 rounded-lg bg-lime-400/20 flex items-center justify-center">
-                                            <Activity size={20} className="text-lime-400" />
-                                        </div>
-                                        <div className="flex-1">
-                                            <h4 className="font-bold text-white">Bạn là chủ sân?</h4>
-                                            <p className="text-xs text-slate-400">Đăng ký ngay để quản lý sân</p>
-                                        </div>
-                                    </div>
-                                    <Button
-                                        onClick={() => navigate('/become-court-owner')}
-                                        variant="outline"
-                                        className="w-full border-lime-400 text-lime-400 hover:bg-lime-400/10"
-                                    >
-                                        Đăng ký làm chủ sân
-                                    </Button>
-                                </Card>
-                            </div>
-                        )}
-
-                        <div>
-                            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 pl-1">Cài đặt</h3>
-                            <div className="space-y-3">
-                                <Button
-                                    variant="secondary"
-                                    className="w-full justify-between bg-slate-800/50 border-slate-700"
-                                    onClick={() => navigate('/wallet')}
-                                >
-                                    <span>Ví My2Light</span>
-                                    <Wallet size={16} className="text-slate-500" />
-                                </Button>
-                                <Button variant="secondary" className="w-full justify-between bg-slate-800/50 border-slate-700">
-                                    <span>Liên kết ngân hàng</span>
-                                    <CreditCard size={16} className="text-slate-500" />
-                                </Button>
-                            </div>
-                        </div>
-
-                        <Button
-                            variant="ghost"
-                            onClick={handleLogout}
-                            className="w-full flex items-center justify-center gap-2 text-red-500 hover:text-red-400 hover:bg-red-500/10"
-                        >
-                            <LogOut size={18} />
-                            Đăng xuất
-                        </Button>
+                <div className="space-y-6 animate-in slide-in-from-left-4 fade-in duration-300">
+                    <div className="grid grid-cols-3 gap-4">
+                        <StatCircle
+                            icon={<Zap size={20} />}
+                            label="Highlight"
+                            value={user.totalHighlights}
+                            max={50}
+                            color="warning"
+                            size={100}
+                        />
+                        <StatCircle
+                            icon={<Clock size={20} />}
+                            label="Giờ chơi"
+                            value={user.hoursPlayed}
+                            max={100}
+                            color="info"
+                            size={100}
+                        />
+                        <StatCircle
+                            icon={<MapIcon size={20} />}
+                            label="Sân đã đến"
+                            value={user.courtsVisited}
+                            max={20}
+                            color="success"
+                            size={100}
+                        />
                     </div>
-                ) : (
-                    <div className="space-y-4 animate-in slide-in-from-right-4 fade-in duration-300">
-                        {bookings.length === 0 ? (
-                            <div className="text-center py-12 text-slate-500">
-                                <Calendar size={48} className="mx-auto mb-4 opacity-20" />
-                                <p>Chưa có lịch sử đặt sân nào.</p>
+
+                    <div>
+                        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 pl-1">Ví của tôi</h3>
+                        <Card className="p-0 overflow-hidden bg-gradient-to-r from-slate-800 to-slate-900 border-slate-700">
+                            <div className="p-5 flex justify-between items-center">
+                                <div>
+                                    <p className="text-slate-400 text-xs mb-1">Số dư khả dụng</p>
+                                    <span className="font-black text-2xl text-lime-400">{user.credits.toLocaleString()}đ</span>
+                                </div>
+                                <Button size="sm" onClick={handleTopUp} className="bg-lime-400 text-slate-900 hover:bg-lime-300 font-bold">
+                                    Nạp thêm
+                                </Button>
                             </div>
-                        ) : (
-                            bookings.map(booking => (
-                                <Card key={booking.id} className="p-4 flex gap-4 bg-slate-800/50 border-slate-700">
-                                    <div className="w-12 h-12 rounded-lg bg-slate-700 flex items-center justify-center flex-shrink-0 font-bold text-slate-400 text-xs flex-col">
-                                        <span>{new Date(booking.startTime).getDate()}</span>
-                                        <span className="uppercase">{new Date(booking.startTime).toLocaleString('en-US', { month: 'short' })}</span>
+                        </Card>
+                    </div>
+
+                    {/* Role Management Section */}
+                    {(user.role === 'court_owner' || user.role === 'both') && (
+                        <div>
+                            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 pl-1">Quản lý sân</h3>
+                            <Card className="p-5 bg-gradient-to-r from-blue-500/10 to-purple-500/10 border-blue-500/30">
+                                <div className="flex items-center gap-3 mb-3">
+                                    <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
+                                        <Activity size={20} className="text-blue-400" />
                                     </div>
                                     <div className="flex-1">
-                                        <h4 className="font-bold text-white text-sm">{booking.courtName}</h4>
-                                        <p className="text-xs text-slate-400 mb-1">{booking.packageName}</p>
-                                        <div className="flex items-center gap-2">
-                                            <span className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase ${booking.status === 'completed' ? 'bg-green-500/20 text-green-500' :
-                                                booking.status === 'active' ? 'bg-blue-500/20 text-blue-500' : 'bg-slate-600 text-slate-300'
-                                                }`}>
-                                                {booking.status}
-                                            </span>
-                                            <span className="text-xs font-medium text-slate-300">
-                                                -{booking.totalAmount.toLocaleString()}đ
-                                            </span>
-                                        </div>
+                                        <h4 className="font-bold text-white">Dashboard Chủ Sân</h4>
+                                        <p className="text-xs text-slate-400">Quản lý sân và booking</p>
                                     </div>
-                                </Card>
-                            ))
-                        )}
+                                </div>
+                                <Button
+                                    onClick={() => navigate('/admin/dashboard')}
+                                    className="w-full bg-blue-500 hover:bg-blue-600"
+                                >
+                                    Mở Dashboard
+                                </Button>
+                            </Card>
+                        </div>
+                    )}
+
+                    {/* Become Court Owner - Show if user is only player */}
+                    {user.role === 'player' && (
+                        <div>
+                            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 pl-1">Dành cho chủ sân</h3>
+                            <Card className="p-5 bg-gradient-to-r from-lime-400/10 to-green-400/10 border-lime-400/30">
+                                <div className="flex items-center gap-3 mb-3">
+                                    <div className="w-10 h-10 rounded-lg bg-lime-400/20 flex items-center justify-center">
+                                        <Activity size={20} className="text-lime-400" />
+                                    </div>
+                                    <div className="flex-1">
+                                        <h4 className="font-bold text-white">Bạn là chủ sân?</h4>
+                                        <p className="text-xs text-slate-400">Đăng ký ngay để quản lý sân</p>
+                                    </div>
+                                </div>
+                                <Button
+                                    onClick={() => navigate('/become-court-owner')}
+                                    variant="outline"
+                                    className="w-full border-lime-400 text-lime-400 hover:bg-lime-400/10"
+                                >
+                                    Đăng ký làm chủ sân
+                                </Button>
+                            </Card>
+                        </div>
+                    )}
+
+                    <div>
+                        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 pl-1">Cài đặt</h3>
+                        <div className="space-y-3">
+                            <Button
+                                variant="secondary"
+                                className="w-full justify-between bg-slate-800/50 border-slate-700"
+                                onClick={() => navigate('/wallet')}
+                            >
+                                <span>Ví My2Light</span>
+                                <Wallet size={16} className="text-slate-500" />
+                            </Button>
+                            <Button variant="secondary" className="w-full justify-between bg-slate-800/50 border-slate-700">
+                                <span>Liên kết ngân hàng</span>
+                                <CreditCard size={16} className="text-slate-500" />
+                            </Button>
+                        </div>
                     </div>
-                )}
+
+                    <Button
+                        variant="ghost"
+                        onClick={handleLogout}
+                        className="w-full flex items-center justify-center gap-2 text-red-500 hover:text-red-400 hover:bg-red-500/10"
+                    >
+                        <LogOut size={18} />
+                        Đăng xuất
+                    </Button>
+                </div>
 
                 {/* Edit Profile Modal */}
                 <Modal

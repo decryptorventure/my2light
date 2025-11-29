@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  Heart, Share2, Download, MessageCircle, ChevronLeft,
-  Eye, TrendingUp, Users, Bookmark, MoreVertical, X
+  Heart, Share2, MessageCircle, ChevronLeft,
+  Eye, TrendingUp, Users, Bookmark, MoreVertical, X, Globe, Lock, List, Grid, Camera, Play
 } from 'lucide-react';
-import { motion, AnimatePresence, useMotionValue, useTransform } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { PageTransition } from '../components/Layout/PageTransition';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
@@ -16,80 +16,145 @@ import { CommentSection } from '../components/social/CommentSection';
 import { useToast } from '../components/ui/Toast';
 import { LikeAnimation } from '../components/ui/LikeAnimation';
 import { useHighlights, useCurrentUser } from '../hooks/useApi';
+import { StatCircle } from '../components/ui/CircularProgress';
 
 export const Gallery: React.FC = () => {
   const navigate = useNavigate();
-  const [activeFilter, setActiveFilter] = useState<'all' | 'mine' | 'trending' | 'friends'>('all');
+  const [activeFilter, setActiveFilter] = useState<'all' | 'public' | 'private'>('all');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
-  // React Query - automatic caching, refetching, loading states!
-  const { data: highlights = [], isLoading: loading } = useHighlights(20);
-  const { data: currentUser } = useCurrentUser();
+  // Data
+  const { data: highlights = [], isLoading: loading } = useHighlights(50);
+  const { data: user } = useCurrentUser();
 
-  const filters = [
-    { id: 'all', label: 'Tất cả', icon: Eye },
-    { id: 'mine', label: 'Của tôi', icon: Bookmark },
-    { id: 'trending', label: 'Trending', icon: TrendingUp },
-    { id: 'friends', label: 'Bạn bè', icon: Users }
-  ];
+  // Filter logic
+  const filteredHighlights = highlights.filter(h => {
+    if (activeFilter === 'public') return h.isPublic;
+    if (activeFilter === 'private') return !h.isPublic;
+    return true;
+  });
+
+  // Stats calculation
+  const stats = {
+    videos: highlights.length,
+    views: highlights.reduce((acc, h) => acc + (h.views || 0), 0),
+    likes: highlights.reduce((acc, h) => acc + (h.likes || 0), 0),
+    public: highlights.filter(h => h.isPublic).length
+  };
 
   if (loading) return <LoadingSpinner fullScreen />;
 
   return (
     <PageTransition>
-      <div className="fixed inset-0 bg-black">
+      <div className="min-h-screen bg-slate-900 pb-24">
         {/* Header */}
-        <div className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-b from-black/80 via-black/60 to-transparent pt-safe">
-          <div className="flex items-center justify-between p-4 pb-2">
+        <div className="bg-slate-900 sticky top-0 z-40 border-b border-slate-800">
+          <div className="flex items-center justify-between p-4 pt-safe">
             <button
               onClick={() => navigate('/home')}
-              className="w-10 h-10 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center text-white hover:bg-white/20 transition-colors"
+              className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center hover:bg-slate-700 transition-colors"
             >
-              <ChevronLeft size={20} />
+              <ChevronLeft size={20} className="text-slate-300" />
             </button>
-            <div className="flex flex-col items-center">
-              <h1 className="text-lg font-black text-white">Gallery</h1>
-              <div className="flex items-center gap-3 text-[10px] text-slate-300">
-                <span><b>{currentUser?.followersCount || 0}</b> Followers</span>
-                <span>•</span>
-                <span><b>{currentUser?.followingCount || 0}</b> Following</span>
-              </div>
-            </div>
-            <div className="w-10" />
+            <h1 className="text-lg font-bold text-white">Thư Viện Của Tôi</h1>
+            <button className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center hover:bg-slate-700 transition-colors">
+              <MoreVertical size={20} className="text-slate-300" />
+            </button>
           </div>
 
-          {/* Filter Tabs */}
-          <div className="flex gap-2 px-4 pb-3 overflow-x-auto no-scrollbar">
-            {filters.map((filter) => {
-              const Icon = filter.icon;
-              const isActive = activeFilter === filter.id;
+          {/* User Info & Stats */}
+          <div className="px-6 pb-6">
+            <div className="flex items-center gap-4 mb-6">
+              <div className="relative">
+                <div className="w-16 h-16 rounded-full border-2 border-lime-400 p-0.5">
+                  <img
+                    src={user?.avatar || 'https://via.placeholder.com/150'}
+                    alt="Avatar"
+                    className="w-full h-full rounded-full object-cover"
+                  />
+                </div>
+                <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-lime-400 rounded-full flex items-center justify-center border-2 border-slate-900">
+                  <Camera size={12} className="text-slate-900" />
+                </div>
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-white">{user?.name}</h2>
+                <p className="text-slate-400 text-sm">@{user?.name?.toLowerCase().replace(/\s/g, '') || 'username'}</p>
 
-              return (
-                <motion.button
-                  key={filter.id}
-                  onClick={() => setActiveFilter(filter.id as any)}
-                  className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all ${isActive
-                    ? 'bg-lime-400 text-slate-900'
-                    : 'bg-white/10 text-white hover:bg-white/20'
-                    }`}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  <Icon size={16} />
-                  <span>{filter.label}</span>
-                </motion.button>
-              );
-            })}
+                {/* Followers/Following - Added per request */}
+                <div className="flex items-center gap-4 mt-2 text-xs">
+                  <button onClick={() => navigate('/social/connections?tab=followers')} className="flex items-center gap-1 hover:text-lime-400 transition-colors">
+                    <span className="font-bold text-white">{user?.followersCount || 0}</span>
+                    <span className="text-slate-500">Người theo dõi</span>
+                  </button>
+                  <button onClick={() => navigate('/social/connections?tab=following')} className="flex items-center gap-1 hover:text-lime-400 transition-colors">
+                    <span className="font-bold text-white">{user?.followingCount || 0}</span>
+                    <span className="text-slate-500">Đang theo dõi</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Circular Stats */}
+            <div className="grid grid-cols-4 gap-2">
+              <StatItem icon={<Play size={16} />} value={stats.videos} label="VIDEOS" color="text-lime-400" />
+              <StatItem icon={<Eye size={16} />} value={stats.views} label="LƯỢT XEM" color="text-blue-400" />
+              <StatItem icon={<Heart size={16} />} value={stats.likes} label="LƯỢT THÍCH" color="text-red-400" />
+              <StatItem icon={<Globe size={16} />} value={stats.public} label="CÔNG KHAI" color="text-green-400" />
+            </div>
+          </div>
+
+          {/* Filters */}
+          <div className="px-4 pb-2 flex items-center justify-between gap-2 overflow-x-auto no-scrollbar">
+            <div className="flex bg-slate-800/50 p-1 rounded-xl">
+              <FilterTab active={activeFilter === 'all'} onClick={() => setActiveFilter('all')}>
+                Tất cả
+              </FilterTab>
+              <FilterTab active={activeFilter === 'public'} onClick={() => setActiveFilter('public')}>
+                Công khai
+              </FilterTab>
+              <FilterTab active={activeFilter === 'private'} onClick={() => setActiveFilter('private')}>
+                Riêng tư
+              </FilterTab>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <div className="h-8 w-[1px] bg-slate-800 mx-1" />
+              <button
+                onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
+                className="p-2 rounded-lg bg-slate-800 text-slate-400 hover:text-white transition-colors"
+              >
+                {viewMode === 'grid' ? <List size={20} /> : <Grid size={20} />}
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* Video Feed */}
-        <div className="h-screen overflow-y-scroll snap-y snap-mandatory no-scrollbar pt-28 pb-24">
-          {highlights.length === 0 ? (
-            <div className="flex h-full items-center justify-center text-slate-500">
-              Chưa có highlight nào
+        {/* Content Grid */}
+        <div className={`p-4 ${viewMode === 'grid' ? 'grid grid-cols-2 gap-3' : 'space-y-4'}`}>
+          {filteredHighlights.length === 0 ? (
+            <div className="col-span-full py-12 text-center text-slate-500">
+              <div className="w-16 h-16 bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Camera size={32} className="opacity-50" />
+              </div>
+              <p>Chưa có video nào</p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-4"
+                onClick={() => navigate('/self-recording')}
+              >
+                Quay video ngay
+              </Button>
             </div>
           ) : (
-            highlights.map((highlight, index) => (
-              <VideoCard key={highlight.id} highlight={highlight} index={index} />
+            filteredHighlights.map((highlight) => (
+              <VideoItem
+                key={highlight.id}
+                highlight={highlight}
+                viewMode={viewMode}
+                onClick={() => navigate(`/highlight/${highlight.id}`)}
+              />
             ))
           )}
         </div>
@@ -98,266 +163,86 @@ export const Gallery: React.FC = () => {
   );
 };
 
-interface VideoCardProps {
-  highlight: Highlight;
-  index: number;
-}
+// --- Sub-components ---
 
-const VideoCard: React.FC<VideoCardProps> = ({ highlight, index }) => {
-  const { showToast } = useToast();
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [isPreviewMode, setIsPreviewMode] = useState(true);
-  const [liked, setLiked] = useState(highlight.isLiked || false);
-  const [saved, setSaved] = useState(false);
-  const [likesCount, setLikesCount] = useState(highlight.likes);
-  const [showComments, setShowComments] = useState(false);
-  const [showShare, setShowShare] = useState(false);
-  const [showLikeAnim, setShowLikeAnim] = useState(false);
-  const videoRef = useRef<HTMLVideoElement>(null);
+const StatItem: React.FC<{ icon: React.ReactNode, value: number, label: string, color: string }> = ({ icon, value, label, color }) => (
+  <div className="flex flex-col items-center">
+    <div className="relative w-14 h-14 flex items-center justify-center mb-2">
+      {/* Ring background */}
+      <svg className="absolute inset-0 w-full h-full -rotate-90">
+        <circle cx="28" cy="28" r="24" stroke="currentColor" strokeWidth="4" fill="transparent" className="text-slate-800" />
+        <circle cx="28" cy="28" r="24" stroke="currentColor" strokeWidth="4" fill="transparent" strokeDasharray={150} strokeDashoffset={150 - (150 * 0.7)} className={`${color} opacity-80`} strokeLinecap="round" />
+      </svg>
+      <div className="flex flex-col items-center z-10">
+        <span className="text-xs opacity-70 mb-0.5">{icon}</span>
+        <span className="text-sm font-bold text-white leading-none">{value}</span>
+      </div>
+    </div>
+    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{label}</span>
+  </div>
+);
 
-  // Swipe gesture
-  const x = useMotionValue(0);
-  const opacity = useTransform(x, [-150, 0, 150], [0.5, 1, 0.5]);
+const FilterTab: React.FC<{ active: boolean, onClick: () => void, children: React.ReactNode }> = ({ active, onClick, children }) => (
+  <button
+    onClick={onClick}
+    className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${active ? 'bg-lime-400 text-slate-900 shadow-lg shadow-lime-400/20' : 'text-slate-400 hover:text-white'
+      }`}
+  >
+    {children}
+  </button>
+);
 
-  // Auto-play preview when mounted
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting && videoRef.current) {
-            videoRef.current.play().catch(() => {
-              // Auto-play might fail if not muted, but we set muted={true} initially
-            });
-            setIsPlaying(true);
-          } else if (videoRef.current) {
-            videoRef.current.pause();
-            setIsPlaying(false);
-          }
-        });
-      },
-      { threshold: 0.6 }
-    );
-
-    if (videoRef.current) {
-      observer.observe(videoRef.current);
-    }
-
-    return () => observer.disconnect();
-  }, []);
-
-  const handleTimeUpdate = () => {
-    if (videoRef.current && isPreviewMode) {
-      if (videoRef.current.currentTime >= 5) {
-        videoRef.current.currentTime = 0;
-        videoRef.current.play();
-      }
-    }
-  };
-
-  const togglePlay = (e: React.MouseEvent) => {
-    if (e.detail === 2) return; // Handled by double tap
-
-    if (videoRef.current) {
-      if (isPreviewMode) {
-        // Switch to full view mode
-        setIsPreviewMode(false);
-        videoRef.current.muted = false;
-        videoRef.current.currentTime = 0;
-        videoRef.current.play();
-        setIsPlaying(true);
-      } else {
-        // Normal toggle
-        if (isPlaying) {
-          videoRef.current.pause();
-        } else {
-          videoRef.current.play();
-        }
-        setIsPlaying(!isPlaying);
-      }
-    }
-  };
-
-  const handleLike = async () => {
-    if (!liked) {
-      celebrate({ particleCount: 20, spread: 40 });
-      setShowLikeAnim(true);
-    }
-
-    // Optimistic update
-    const newLikedState = !liked;
-    setLiked(newLikedState);
-    setLikesCount(prev => newLikedState ? prev + 1 : prev - 1);
-
-    // API call
-    if (newLikedState) {
-      await SocialService.likeHighlight(highlight.id);
-    } else {
-      await SocialService.unlikeHighlight(highlight.id);
-    }
-  };
-
-  const handleDoubleTap = (e: React.MouseEvent) => {
-    if (e.detail === 2) {
-      if (!liked) handleLike();
-      else setShowLikeAnim(true);
-    }
-  };
-
-  const handleSave = () => {
-    setSaved(!saved);
-    showToast(saved ? 'Đã bỏ lưu' : 'Đã lưu highlight', 'success');
-  };
-
-  return (
-    <motion.div
-      className="h-screen snap-start flex items-center justify-center relative bg-black"
-      style={{ opacity }}
-      drag="x"
-      dragConstraints={{ left: 0, right: 0 }}
-      dragElastic={0.7}
-      onDragEnd={(e, { offset, velocity }) => {
-        if (Math.abs(offset.x) > 150) {
-          // Skip to next/previous
-        }
-        x.set(0);
-      }}
-      onClick={handleDoubleTap}
-    >
-      {/* Video */}
-      <video
-        ref={videoRef}
-        src={highlight.videoUrl}
-        poster={highlight.thumbnailUrl}
-        className="w-full h-full object-contain"
-        loop={!isPreviewMode}
-        playsInline
-        muted={isPreviewMode}
-        onClick={togglePlay}
-        onTimeUpdate={handleTimeUpdate}
+const VideoItem: React.FC<{ highlight: Highlight, viewMode: 'grid' | 'list', onClick: () => void }> = ({ highlight, viewMode, onClick }) => (
+  <motion.div
+    layout
+    onClick={onClick}
+    className={`group relative overflow-hidden rounded-xl bg-slate-800 cursor-pointer border border-slate-700/50 ${viewMode === 'list' ? 'flex gap-4 p-3 h-28' : 'aspect-[9/16]'
+      }`}
+  >
+    {/* Thumbnail */}
+    <div className={`relative ${viewMode === 'list' ? 'w-20 h-full rounded-lg overflow-hidden flex-shrink-0' : 'w-full h-full'}`}>
+      <img
+        src={highlight.thumbnailUrl}
+        alt={highlight.title}
+        className="w-full h-full object-cover transition-transform group-hover:scale-105"
       />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
 
-      <LikeAnimation isActive={showLikeAnim} onComplete={() => setShowLikeAnim(false)} />
-
-      {/* Play overlay */}
-      {!isPlaying && !isPreviewMode && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="absolute inset-0 flex items-center justify-center bg-black/20"
-          onClick={togglePlay}
-        >
-          <div className="w-20 h-20 bg-white/90 rounded-full flex items-center justify-center backdrop-blur-sm">
-            <div className="w-0 h-0 ml-1 border-t-[12px] border-t-transparent border-l-[20px] border-l-slate-900 border-b-[12px] border-b-transparent" />
-          </div>
-        </motion.div>
-      )}
-
-      {/* Preview Indicator */}
-      {isPreviewMode && isPlaying && (
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
-          <div className="bg-black/50 backdrop-blur-md px-4 py-2 rounded-full text-white text-sm font-medium border border-white/20 animate-pulse">
-            Chạm để xem đầy đủ
-          </div>
-        </div>
-      )}
-
-      {/* Bottom gradient overlay */}
-      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/80 to-transparent p-6 pb-8 pointer-events-none">
-        <div className="flex items-end gap-4 pointer-events-auto">
-          {/* Info */}
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-2">
-              <img
-                src={highlight.userAvatar || 'https://cdn-icons-png.flaticon.com/512/3307/3307873.png'}
-                alt="User"
-                loading="lazy"
-                className="w-10 h-10 rounded-full border-2 border-white/30"
-              />
-              <div>
-                <h3 className="font-bold text-white text-sm leading-tight">
-                  {highlight.userName || 'Unknown'}
-                </h3>
-                <p className="text-xs text-slate-300">{highlight.courtName}</p>
-              </div>
-            </div>
-            <p className="text-sm text-white/90 mb-2 line-clamp-2">
-              {highlight.description || `Highlight ${index + 1}`}
-            </p>
-            <div className="flex items-center gap-3 text-xs text-slate-400">
-              <span className="flex items-center gap-1">
-                <Eye size={14} />
-                {(highlight.views || Math.floor(Math.random() * 1000))} views
-              </span>
-              <span>•</span>
-              <span>00:{highlight.durationSec}s</span>
-            </div>
-          </div>
-
-          {/* Actions */}
-          <div className="flex flex-col items-center gap-4">
-            {/* Like */}
-            <motion.button
-              whileTap={{ scale: 0.9 }}
-              onClick={handleLike}
-              className="flex flex-col items-center gap-1"
-            >
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${liked ? 'bg-red-500' : 'bg-white/20 backdrop-blur-md'
-                }`}>
-                <Heart
-                  size={20}
-                  className={liked ? 'fill-white text-white' : 'text-white'}
-                />
-              </div>
-              <span className="text-xs text-white font-bold tabular-nums">{likesCount}</span>
-            </motion.button>
-
-            {/* Comment */}
-            <motion.button
-              whileTap={{ scale: 0.9 }}
-              onClick={() => setShowComments(true)}
-              className="flex flex-col items-center gap-1"
-            >
-              <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center hover:bg-white/30 transition-colors">
-                <MessageCircle size={20} className="text-white" />
-              </div>
-              <span className="text-xs text-white font-bold">0</span>
-            </motion.button>
-
-            {/* Share */}
-            <motion.button
-              whileTap={{ scale: 0.9 }}
-              onClick={() => setShowShare(true)}
-              className="flex flex-col items-center gap-1"
-            >
-              <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center hover:bg-white/30 transition-colors">
-                <Share2 size={20} className="text-white" />
-              </div>
-              <span className="text-xs text-white font-bold">Share</span>
-            </motion.button>
-
-            {/* Save */}
-            <motion.button
-              whileTap={{ scale: 0.9 }}
-              onClick={handleSave}
-              className="flex flex-col items-center gap-1"
-            >
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${saved ? 'bg-lime-400' : 'bg-white/20 backdrop-blur-md'
-                }`}>
-                <Bookmark
-                  size={20}
-                  className={saved ? 'fill-slate-900 text-slate-900' : 'text-white'}
-                />
-              </div>
-            </motion.button>
-          </div>
-        </div>
+      {/* Duration Badge */}
+      <div className="absolute bottom-2 right-2 px-1.5 py-0.5 bg-black/60 backdrop-blur rounded text-[10px] font-mono text-white">
+        00:{highlight.durationSec}
       </div>
 
-      <CommentSection
-        highlightId={highlight.id}
-        isOpen={showComments}
-        onClose={() => setShowComments(false)}
-      />
-    </motion.div>
-  );
-};
+      {/* Status Icon */}
+      <div className="absolute top-2 right-2">
+        {highlight.isPublic ? (
+          <Globe size={14} className="text-lime-400 drop-shadow-md" />
+        ) : (
+          <Lock size={14} className="text-slate-400 drop-shadow-md" />
+        )}
+      </div>
+    </div>
+
+    {/* Info (List Mode) */}
+    {viewMode === 'list' && (
+      <div className="flex-1 flex flex-col justify-center">
+        <h3 className="font-bold text-white text-sm line-clamp-2 mb-1">{highlight.title || 'Untitled Highlight'}</h3>
+        <p className="text-xs text-slate-400 mb-2">{new Date(highlight.createdAt).toLocaleDateString()}</p>
+        <div className="flex items-center gap-3 text-xs text-slate-500">
+          <span className="flex items-center gap-1"><Eye size={12} /> {highlight.views}</span>
+          <span className="flex items-center gap-1"><Heart size={12} /> {highlight.likes}</span>
+        </div>
+      </div>
+    )}
+
+    {/* Overlay Info (Grid Mode) */}
+    {viewMode === 'grid' && (
+      <div className="absolute bottom-0 left-0 right-0 p-3">
+        <div className="flex items-center gap-2 text-xs text-white/90 font-medium">
+          <Play size={12} className="fill-white" />
+          <span>{highlight.views}</span>
+        </div>
+      </div>
+    )}
+  </motion.div>
+);

@@ -28,7 +28,7 @@ export const BottomNav: React.FC = () => {
     { icon: Home, label: 'Trang chủ', path: '/home' },
     { icon: Users, label: 'Cộng đồng', path: '/social', badge: pendingCount },
     { icon: Swords, label: 'Tìm kèo', path: '/match-finding' },
-    { icon: Play, label: 'Thư viện', path: '/my-highlights' },
+    { icon: Play, label: 'Thư viện', path: '/gallery' },
     { icon: User, label: 'Cá nhân', path: '/profile' },
   ];
 

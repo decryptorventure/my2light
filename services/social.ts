@@ -78,8 +78,8 @@ export const SocialService = {
                 .from('player_connections')
                 .select(`
                     *,
-                    requester:profiles!requester_id(id, full_name, avatar_url, skill_level),
-                    receiver:profiles!receiver_id(id, full_name, avatar_url, skill_level)
+                    requester:profiles!requester_id(id, name, avatar_url, skill_level),
+                    receiver:profiles!receiver_id(id, name, avatar_url, skill_level)
                 `)
                 .or(`requester_id.eq.${userId},receiver_id.eq.${userId}`)
                 .eq('status', status);
@@ -93,7 +93,7 @@ export const SocialService = {
                 return {
                     id: conn.id,
                     userId: otherUser.id,
-                    name: otherUser.full_name,
+                    name: otherUser.name,
                     avatar: otherUser.avatar_url,
                     skillLevel: otherUser.skill_level,
                     status: conn.status,
@@ -121,7 +121,7 @@ export const SocialService = {
                 .from('player_connections')
                 .select(`
                     *,
-                    requester:profiles!requester_id(id, full_name, avatar_url, skill_level)
+                    requester:profiles!requester_id(id, name, avatar_url, skill_level)
                 `)
                 .eq('receiver_id', user.id)
                 .eq('status', 'pending');
@@ -131,7 +131,7 @@ export const SocialService = {
             const requests = data.map(conn => ({
                 id: conn.id,
                 userId: conn.requester.id,
-                name: conn.requester.full_name,
+                name: conn.requester.name,
                 avatar: conn.requester.avatar_url,
                 skillLevel: conn.requester.skill_level,
                 status: conn.status,
@@ -162,7 +162,6 @@ export const SocialService = {
             return { success: false, error: error.message };
         }
     },
-
     // --- Activity Feed ---
 
     async getFeed(page: number = 1, limit: number = 10): Promise<ApiResponse<Activity[]>> {
@@ -170,31 +169,16 @@ export const SocialService = {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) throw new Error('Not authenticated');
 
-            // Get list of followed users
-            const { data: connections } = await supabase
-                .from('player_connections')
-                .select('requester_id, receiver_id')
-                .or(`requester_id.eq.${user.id},receiver_id.eq.${user.id}`)
-                .eq('status', 'accepted');
-
-            const friendIds = connections?.map(c =>
-                c.requester_id === user.id ? c.receiver_id : c.requester_id
-            ) || [];
-
-            // Include self
-            friendIds.push(user.id);
-
             const from = (page - 1) * limit;
             const to = from + limit - 1;
 
-            // Get activities from friends
+            // Get global activities (public feed)
             const { data, error } = await supabase
                 .from('player_activities')
                 .select(`
                     *,
-                    user:profiles!user_id(id, full_name, avatar_url)
+                    user:profiles!user_id(id, name, avatar_url)
                 `)
-                .in('user_id', friendIds)
                 .order('created_at', { ascending: false })
                 .range(from, to);
 
@@ -308,9 +292,9 @@ export const SocialService = {
                     comment: content
                 })
                 .select(`
-                    *,
-                    user:profiles!user_id(id, full_name, avatar_url)
-                `)
+    *,
+    user: profiles!user_id(id, name, avatar_url)
+        `)
                 .single();
 
             if (error) throw error;
@@ -326,8 +310,8 @@ export const SocialService = {
             const { data, error } = await supabase
                 .from('highlight_comments')
                 .select(`
-                    *,
-                    user:profiles!user_id(id, full_name, avatar_url)
+        *,
+        user: profiles!user_id(id, name, avatar_url)
                 `)
                 .eq('highlight_id', highlightId)
                 .order('created_at', { ascending: true });
@@ -354,7 +338,7 @@ export const SocialService = {
             const { data: connections } = await supabase
                 .from('player_connections')
                 .select('requester_id, receiver_id')
-                .or(`requester_id.eq.${user.id},receiver_id.eq.${user.id}`);
+                .or(`requester_id.eq.${user.id}, receiver_id.eq.${user.id} `);
 
             const connectedIds = new Set(connections?.map(c =>
                 c.requester_id === user.id ? c.receiver_id : c.requester_id
@@ -374,7 +358,7 @@ export const SocialService = {
                 .filter(p => !connectedIds.has(p.id))
                 .map(p => ({
                     id: p.id,
-                    fullName: p.full_name,
+                    fullName: p.name,
                     avatarUrl: p.avatar_url,
                     skillLevel: p.skill_level,
                     bio: p.bio,
@@ -408,7 +392,7 @@ export const SocialService = {
                 const { data: connection } = await supabase
                     .from('player_connections')
                     .select('status')
-                    .or(`and(requester_id.eq.${currentUserId},receiver_id.eq.${userId}),and(requester_id.eq.${userId},receiver_id.eq.${currentUserId})`)
+                    .or(`and(requester_id.eq.${currentUserId}, receiver_id.eq.${userId}), and(requester_id.eq.${userId}, receiver_id.eq.${currentUserId})`)
                     .eq('status', 'accepted')
                     .single();
                 isFollowing = !!connection;
@@ -418,7 +402,7 @@ export const SocialService = {
                 success: true,
                 data: {
                     id: data.id,
-                    fullName: data.full_name,
+                    fullName: data.name,
                     avatarUrl: data.avatar_url,
                     skillLevel: data.skill_level,
                     bio: data.bio,
