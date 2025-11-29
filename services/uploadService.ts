@@ -44,11 +44,30 @@ export const UploadService = {
 
             if (metaError) throw metaError;
 
+            // 3. Create Database Record
+            const { data: { publicUrl } } = supabase.storage
+                .from('videos')
+                .getPublicUrl(`raw/${sessionId}/0.webm`); // Use first chunk as preview for now
+
+            const { error: dbError } = await supabase
+                .from('highlights')
+                .insert({
+                    user_id: (await supabase.auth.getUser()).data.user?.id,
+                    title: `Highlight ${new Date().toLocaleString('vi-VN')}`,
+                    description: 'Tự động quay bằng AI Voice',
+                    thumbnail_url: 'https://images.unsplash.com/photo-1542652694-40abf526446e?q=80&w=500&auto=format&fit=crop', // Placeholder
+                    video_url: publicUrl,
+                    duration_sec: Math.round((metadata.chunkCount * 5)), // Approx duration
+                    is_public: true
+                });
+
+            if (dbError) {
+                console.error('DB Insert Error:', dbError);
+                // Don't fail the whole upload if DB insert fails, but log it
+            }
+
             if (onProgress) onProgress(1); // 100%
 
-            // 3. Trigger Processing (Mock for now, or call Edge Function)
-            // In a real app, a Supabase Database Trigger or Webhook would handle this.
-            // For now, we just return the "folder" path.
             return `raw/${sessionId}`;
 
         } catch (error) {

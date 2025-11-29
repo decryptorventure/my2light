@@ -157,7 +157,7 @@ export const SelfRecording: React.FC = () => {
                     {step === 'ready' && (
                       <button
                         onClick={() => setFacingMode(prev => prev === 'user' ? 'environment' : 'user')}
-                        className="absolute top-24 right-4 z-10 p-3 bg-black/60 backdrop-blur-md rounded-full text-white hover:bg-black/80 transition active:scale-95 shadow-lg"
+                        className="absolute top-24 right-4 z-50 p-3 bg-black/60 backdrop-blur-md rounded-full text-white hover:bg-black/80 transition active:scale-95 shadow-lg border border-white/10"
                         aria-label="Đổi camera"
                       >
                         <Camera size={24} />

@@ -92,9 +92,6 @@ export const Login: React.FC = () => {
             .eq('id', authData.user.id)
             .single();
 
-          // Force refresh session to ensure latest claims/metadata
-          await supabase.auth.refreshSession();
-
           // Refresh global auth store
           await refreshProfile();
 

@@ -126,6 +126,13 @@ export const Home: React.FC = () => {
           </div>
           <div className="flex items-center gap-3">
             <button
+              onClick={() => navigate('/my-bookings')}
+              className="px-3 py-1.5 rounded-full bg-slate-800 border border-slate-700 text-xs font-bold text-white hover:bg-slate-700 transition-colors"
+            >
+              Lịch sân
+            </button>
+
+            <button
               onClick={() => navigate('/notifications')}
               className="w-10 h-10 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center relative hover:bg-slate-700 transition-colors"
             >
