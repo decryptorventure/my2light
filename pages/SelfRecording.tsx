@@ -28,6 +28,10 @@ export const SelfRecording: React.FC = () => {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [previewStream, setPreviewStream] = useState<MediaStream | null>(null);
 
+  // Settings state
+  const [voiceEnabled, setVoiceEnabled] = useState(false);
+  const [highlightDuration, setHighlightDuration] = useState(15); // seconds
+
   // Recording Hook
   const {
     startRecording,
@@ -245,15 +249,80 @@ export const SelfRecording: React.FC = () => {
         <Modal
           isOpen={showSettings}
           onClose={() => setShowSettings(false)}
-          title="Hướng dẫn"
+          title="Cài đặt Quay Video"
         >
-          <div className="space-y-4">
-            <p className="text-slate-300">
-              Quay toàn bộ trận đấu. Khi có pha bóng hay, nhấn nút <b>Highlight</b>.
-              Hệ thống sẽ tự động cắt video sau khi bạn kết thúc.
-            </p>
+          <div className="space-y-6">
+            {/* Voice Recognition Toggle */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Mic size={20} className="text-lime-400" />
+                  <label className="text-white font-medium">Nhận diện giọng nói</label>
+                </div>
+                <button
+                  onClick={() => setVoiceEnabled(!voiceEnabled)}
+                  className={`relative w-12 h-6 rounded-full transition ${voiceEnabled ? 'bg-lime-400' : 'bg-slate-700'
+                    }`}
+                >
+                  <div
+                    className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${voiceEnabled ? 'translate-x-6' : ''
+                      }`}
+                  />
+                </button>
+              </div>
+              <p className="text-sm text-slate-400">
+                Tự động đánh dấu highlight khi bạn nói &quot;Highlight&quot; hoặc &quot;Ghi lại&quot;
+              </p>
+            </div>
+
+            {/* Highlight Duration */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Clock size={20} className="text-lime-400" />
+                <label className="text-white font-medium">Độ dài highlight</label>
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-300 text-sm">Trước điểm đánh dấu</span>
+                  <span className="text-white font-mono">{highlightDuration}s</span>
+                </div>
+                <input
+                  type="range"
+                  min="5"
+                  max="30"
+                  step="5"
+                  value={highlightDuration}
+                  onChange={(e) => setHighlightDuration(parseInt(e.target.value))}
+                  className="w-full"
+                />
+                <div className="flex justify-between text-xs text-slate-500">
+                  <span>5s</span>
+                  <span>15s</span>
+                  <span>30s</span>
+                </div>
+              </div>
+              <p className="text-sm text-slate-400">
+                Thời lượng video trước khi bạn đánh dấu highlight sẽ được lưu lại
+              </p>
+            </div>
+
+            {/* Instructions */}
+            <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-4 space-y-2">
+              <div className="flex items-start gap-2">
+                <Info size={16} className="text-lime-400 mt-0.5" />
+                <div className="text-sm text-slate-300">
+                  <p className="font-medium mb-1">Hướng dẫn:</p>
+                  <ul className="list-disc list-inside space-y-1 text-slate-400">
+                    <li>Quay toàn bộ trận đấu</li>
+                    <li>Nhấn nút <b className="text-white">Highlight</b> khi có pha bóng đẹp</li>
+                    <li>Hệ thống sẽ tự động cắt video sau khi kết thúc</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
             <Button onClick={() => setShowSettings(false)} className="w-full">
-              Đã hiểu
+              Lưu cài đặt
             </Button>
           </div>
         </Modal>
@@ -277,10 +346,12 @@ const UploadStep: React.FC<{
 }> = ({ sessionId, onComplete, onProgress }) => {
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
     const upload = async () => {
       try {
+        setError(null);
         await UploadService.uploadSession(sessionId, (p) => {
           setProgress(p);
           onProgress(p);
@@ -289,11 +360,51 @@ const UploadStep: React.FC<{
         await UploadService.clearLocalSession(sessionId);
         onComplete();
       } catch (err: any) {
-        setError(err.message || 'Upload failed');
+        console.error('Upload error:', err);
+        setError(err.message || 'Lỗi upload video. Vui lòng thử lại.');
       }
     };
     upload();
-  }, [sessionId, onComplete, onProgress]);
+  }, [sessionId, retryCount]);
+
+  if (error) {
+    return (
+      <motion.div
+        key="upload-error"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="flex-1 flex flex-col items-center justify-center bg-slate-900 px-6"
+      >
+        <div className="max-w-md text-center space-y-6">
+          <div className="w-20 h-20 mx-auto bg-red-500/20 rounded-full flex items-center justify-center">
+            <X size={40} className="text-red-500" />
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold text-white mb-2">Lỗi Upload</h2>
+            <p className="text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg p-4 text-sm">
+              {error}
+            </p>
+          </div>
+          <div className="space-y-3">
+            <Button
+              onClick={() => setRetryCount(prev => prev + 1)}
+              className="w-full"
+              icon={<RefreshCw size={20} />}
+            >
+              Thử lại
+            </Button>
+            <Button
+              onClick={() => window.location.href = '/home'}
+              variant="outline"
+              className="w-full"
+            >
+              Quay về trang chủ
+            </Button>
+          </div>
+        </div>
+      </motion.div>
+    );
+  }
 
   return (
     <motion.div

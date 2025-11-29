@@ -1,8 +1,15 @@
-import { set, get, del, keys, createStore } from 'idb-keyval';
+import { openDB, DBSchema, IDBPDatabase } from 'idb';
 
-// Create a custom store for video chunks to avoid conflicts with other data
-const videoStore = createStore('my2light-video-db', 'video-chunks');
-const metadataStore = createStore('my2light-video-db', 'session-metadata');
+interface My2LightDB extends DBSchema {
+    'video-chunks': {
+        key: string;
+        value: VideoChunk;
+    };
+    'session-metadata': {
+        key: string;
+        value: SessionMetadata;
+    };
+}
 
 export interface VideoChunk {
     sessionId: string;
@@ -19,10 +26,36 @@ export interface SessionMetadata {
     highlightEvents: number[]; // Timestamps of user triggers
 }
 
+const DB_NAME = 'my2light-video-db';
+const DB_VERSION = 1;
+
+let dbInstance: IDBPDatabase<My2LightDB> | null = null;
+
+async function getDB(): Promise<IDBPDatabase<My2LightDB>> {
+    if (dbInstance) {
+        return dbInstance;
+    }
+
+    dbInstance = await openDB<My2LightDB>(DB_NAME, DB_VERSION, {
+        upgrade(db) {
+            // Create object stores if they don't exist
+            if (!db.objectStoreNames.contains('video-chunks')) {
+                db.createObjectStore('video-chunks');
+            }
+            if (!db.objectStoreNames.contains('session-metadata')) {
+                db.createObjectStore('session-metadata');
+            }
+        },
+    });
+
+    return dbInstance;
+}
+
 export const VideoStorage = {
     // --- Chunk Management ---
 
     async saveChunk(sessionId: string, chunkId: number, blob: Blob): Promise<void> {
+        const db = await getDB();
         const key = `${sessionId}_chunk_${chunkId}`;
         const data: VideoChunk = {
             sessionId,
@@ -30,26 +63,29 @@ export const VideoStorage = {
             blob,
             timestamp: Date.now(),
         };
-        await set(key, data, videoStore);
+        await db.put('video-chunks', data, key);
     },
 
     async getChunk(sessionId: string, chunkId: number): Promise<VideoChunk | undefined> {
+        const db = await getDB();
         const key = `${sessionId}_chunk_${chunkId}`;
-        return await get(key, videoStore);
+        return await db.get('video-chunks', key);
     },
 
     async deleteChunk(sessionId: string, chunkId: number): Promise<void> {
+        const db = await getDB();
         const key = `${sessionId}_chunk_${chunkId}`;
-        await del(key, videoStore);
+        await db.delete('video-chunks', key);
     },
 
     async getAllChunksForSession(sessionId: string): Promise<VideoChunk[]> {
-        const allKeys = await keys(videoStore);
-        const sessionKeys = allKeys.filter((k) => (k as string).startsWith(`${sessionId}_chunk_`));
+        const db = await getDB();
+        const allKeys = await db.getAllKeys('video-chunks');
+        const sessionKeys = allKeys.filter((k) => k.startsWith(`${sessionId}_chunk_`));
 
         const chunks: VideoChunk[] = [];
         for (const key of sessionKeys) {
-            const chunk = await get(key, videoStore);
+            const chunk = await db.get('video-chunks', key);
             if (chunk) chunks.push(chunk);
         }
 
@@ -57,48 +93,53 @@ export const VideoStorage = {
     },
 
     async clearSessionChunks(sessionId: string): Promise<void> {
-        const allKeys = await keys(videoStore);
-        const sessionKeys = allKeys.filter((k) => (k as string).startsWith(`${sessionId}_chunk_`));
+        const db = await getDB();
+        const allKeys = await db.getAllKeys('video-chunks');
+        const sessionKeys = allKeys.filter((k) => k.startsWith(`${sessionId}_chunk_`));
 
         for (const key of sessionKeys) {
-            await del(key, videoStore);
+            await db.delete('video-chunks', key);
         }
     },
 
     // --- Metadata Management ---
 
     async saveSessionMetadata(metadata: SessionMetadata): Promise<void> {
-        await set(metadata.sessionId, metadata, metadataStore);
+        const db = await getDB();
+        await db.put('session-metadata', metadata, metadata.sessionId);
     },
 
     async getSessionMetadata(sessionId: string): Promise<SessionMetadata | undefined> {
-        return await get(sessionId, metadataStore);
+        const db = await getDB();
+        return await db.get('session-metadata', sessionId);
     },
 
     async getAllSessions(): Promise<SessionMetadata[]> {
-        const allKeys = await keys(metadataStore);
-        const sessions: SessionMetadata[] = [];
-
-        for (const key of allKeys) {
-            const session = await get(key, metadataStore);
-            if (session) sessions.push(session);
-        }
-
-        return sessions.sort((a, b) => b.startTime - a.startTime); // Newest first
+        const db = await getDB();
+        const allValues = await db.getAll('session-metadata');
+        return allValues.sort((a, b) => b.startTime - a.startTime); // Newest first
     },
 
     async deleteSessionMetadata(sessionId: string): Promise<void> {
-        await del(sessionId, metadataStore);
+        const db = await getDB();
+        await db.delete('session-metadata', sessionId);
     },
 
     // --- Cleanup ---
 
     async clearAllData(): Promise<void> {
-        // Be careful with this!
-        const vKeys = await keys(videoStore);
-        for (const k of vKeys) await del(k, videoStore);
+        const db = await getDB();
 
-        const mKeys = await keys(metadataStore);
-        for (const k of mKeys) await del(k, metadataStore);
+        // Clear all video chunks
+        const vKeys = await db.getAllKeys('video-chunks');
+        for (const k of vKeys) {
+            await db.delete('video-chunks', k);
+        }
+
+        // Clear all metadata
+        const mKeys = await db.getAllKeys('session-metadata');
+        for (const k of mKeys) {
+            await db.delete('session-metadata', k);
+        }
     }
 };
