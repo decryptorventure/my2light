@@ -1,15 +1,18 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, lazy, Suspense } from 'react';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
-import { CourtFormModal } from '../../components/admin/CourtFormModal';
-import { AdminService } from '../../services/admin';
 import { CourtDetails } from '../../types/admin';
 import { useToast } from '../../components/ui/Toast';
 import { useAdminCourts, useDeleteCourt } from '../../hooks/useApi';
 import { Building2, Plus, Edit2, Trash2, MapPin, DollarSign, Clock, MoreVertical, Star } from 'lucide-react';
 
-import { VenueControl } from '../../components/admin/VenueControl';
+// ✨ PERFORMANCE OPTIMIZATION: Lazy load heavy components
+// VenueControl imports mqttService (heavy MQTT library)
+// CourtFormModal imports ImageUpload (heavy image processing)
+// These are only needed when user interacts, not on page load
+const VenueControl = lazy(() => import('../../components/admin/VenueControl').then(m => ({ default: m.VenueControl })));
+const CourtFormModal = lazy(() => import('../../components/admin/CourtFormModal').then(m => ({ default: m.CourtFormModal })));
 
 export const CourtsManagement: React.FC = () => {
     const { showToast } = useToast();
@@ -86,8 +89,17 @@ export const CourtsManagement: React.FC = () => {
                 </Button>
             </div>
 
-            {/* Venue Camera Control */}
-            <VenueControl />
+            {/* Venue Camera Control - Lazy Loaded */}
+            <Suspense fallback={
+                <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
+                    <div className="flex items-center justify-center gap-2 text-slate-400">
+                        <LoadingSpinner size="sm" />
+                        <span>Loading camera controls...</span>
+                    </div>
+                </div>
+            }>
+                <VenueControl />
+            </Suspense>
 
             {/* Stats Overview */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -246,16 +258,22 @@ export const CourtsManagement: React.FC = () => {
                 </div>
             )}
 
-            {/* Form Modal */}
+            {/* Form Modal - Lazy Loaded */}
             {isFormOpen && (
-                <CourtFormModal
-                    court={editingCourt}
-                    onClose={() => {
-                        setIsFormOpen(false);
-                        setEditingCourt(null);
-                    }}
-                    onSuccess={handleFormSuccess}
-                />
+                <Suspense fallback={
+                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                        <LoadingSpinner />
+                    </div>
+                }>
+                    <CourtFormModal
+                        court={editingCourt}
+                        onClose={() => {
+                            setIsFormOpen(false);
+                            setEditingCourt(null);
+                        }}
+                        onSuccess={handleFormSuccess}
+                    />
+                </Suspense>
             )}
         </div>
     );
