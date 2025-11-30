@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { CheckCircle, XCircle, Loader } from 'lucide-react';
+import { CheckCircle, XCircle, Loader, Shield } from 'lucide-react';
 import { PageTransition } from '../components/Layout/PageTransition';
 import { Button } from '../components/ui/Button';
 import { PaymentService } from '../services/payment';
+import { handlePaymentWebhook, validateWebhookPayload } from '../services/webhook';
 import { celebrate } from '../lib/confetti';
 
 export const PaymentCallback: React.FC = () => {
@@ -11,20 +12,57 @@ export const PaymentCallback: React.FC = () => {
     const [searchParams] = useSearchParams();
     const [status, setStatus] = useState<'processing' | 'success' | 'failed'>('processing');
     const [message, setMessage] = useState('Đang xử lý thanh toán...');
+    const [securityVerified, setSecurityVerified] = useState(false);
 
     useEffect(() => {
         const processPayment = async () => {
             const transactionId = searchParams.get('transactionId');
+            const bookingId = searchParams.get('bookingId');
             const amount = searchParams.get('amount');
             const method = searchParams.get('method');
             const paymentStatus = searchParams.get('status');
+            const signature = searchParams.get('signature'); // Webhook signature
 
+            // Basic validation
             if (!transactionId || !amount || !method || !paymentStatus) {
                 setStatus('failed');
                 setMessage('Thiếu thông tin giao dịch');
                 return;
             }
 
+            // If signature provided, verify webhook security
+            if (signature) {
+                console.log('[Payment] Webhook signature detected, verifying...');
+
+                const payload = {
+                    bookingId: bookingId || '',
+                    status: paymentStatus,
+                    amount: parseInt(amount),
+                    transactionId
+                };
+
+                // Validate payload structure
+                if (!validateWebhookPayload(payload)) {
+                    setStatus('failed');
+                    setMessage('Dữ liệu giao dịch không hợp lệ');
+                    return;
+                }
+
+                // Handle webhook with signature verification
+                const webhookResult = await handlePaymentWebhook(payload, signature);
+
+                if (!webhookResult.success) {
+                    console.error('[Payment] Webhook verification failed:', webhookResult.error);
+                    setStatus('failed');
+                    setMessage('Xác thực giao dịch thất bại - Signature không hợp lệ');
+                    return;
+                }
+
+                console.log('[Payment] Webhook verified successfully');
+                setSecurityVerified(true);
+            }
+
+            // Process payment (standard flow or after webhook verification)
             const result = await PaymentService.processPaymentCallback(
                 transactionId,
                 parseInt(amount),
@@ -44,6 +82,7 @@ export const PaymentCallback: React.FC = () => {
 
         processPayment();
     }, [searchParams]);
+
 
     return (
         <PageTransition>
@@ -66,6 +105,14 @@ export const PaymentCallback: React.FC = () => {
                         {status === 'failed' && (
                             <div className="w-20 h-20 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
                                 <XCircle className="text-red-500" size={40} />
+                            </div>
+                        )}
+
+                        {/* Security Badge */}
+                        {securityVerified && status === 'success' && (
+                            <div className="flex items-center justify-center gap-2 mb-4 text-green-400 text-sm">
+                                <Shield size={16} />
+                                <span>Đã xác thực bảo mật</span>
                             </div>
                         )}
 
