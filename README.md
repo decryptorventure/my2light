@@ -1,19 +1,17 @@
-# my2light - Basketball Highlight Recording App
+# My2Light - Badminton Court Management & Social Platform
 
-[![Version](https://img.shields.io/badge/version-3.6.0-blue.svg)](docs/RELEASE_NOTES_v3.6.md)
+[![Version](https://img.shields.io/badge/version-3.7.0-blue.svg)](docs/RELEASE_NOTES_v3.7.md)
 [![Status](https://img.shields.io/badge/status-production-green.svg)]()
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)]()
-[![Tests](https://img.shields.io/badge/tests-passing-brightgreen.svg)]()
-[![Coverage](https://img.shields.io/badge/coverage-50%25-yellow.svg)]()
+[![Tests](https://img.shields.io/badge/tests-97%20passing-brightgreen.svg)]()
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.2-blue.svg)]()
 [![React](https://img.shields.io/badge/React-18-blue.svg)]()
 
-**my2light** is a mobile-first web application that enables basketball players to record their games, mark highlights in real-time, and share their best moments with the community.
+**My2Light** is a comprehensive mobile-first web application for badminton players and court owners in Vietnam. It combines court booking, AI-powered highlight recording, and social networking features.
 
 ## 🚀 Quick Start
 
 ### Prerequisites
-
 - Node.js 18+ and npm
 - Supabase account
 - Modern browser (Chrome/Edge/Safari 14.1+)
@@ -21,152 +19,168 @@
 ### Installation
 
 ```bash
-# Clone the repository
+# Clone repository
 git clone <repository-url>
-cd my2light-app
+cd my2light-main
 
 # Install dependencies
 npm install
 
-# Set up environment variables
+# Configure environment
 cp .env.example .env
 # Edit .env with your Supabase credentials
 
-# Run development server
+# Start development server
 npm run dev
 ```
 
 Visit `http://localhost:5173` to see the app.
 
-### Build for Production
+## ✨ Key Features
 
-```bash
-npm run build
-```
+### For Players
+- 🏸 **Court Discovery**: Find nearby badminton courts with filters
+- 📅 **Easy Booking**: Book courts with Rally Mode or Full Match packages
+- 🎥 **Self-Recording**: Record matches with AI voice commands
+- 📱 **Social Feed**: Share highlights and connect with players
+- 📊 **Statistics**: Track your playing history and achievements
 
-## ✨ Features (v3.5)
-
-- 🎥 **Segment-Based Recording**: Mark highlights in real-time while recording
-- ⏱️ **Rollback Time Selection**: Choose 15s/30s/60s for each highlight
-- 📹 **Video Preview**: Preview segments before saving with full video player
-- ⚡ **Bulk Operations**: Select All / Deselect All buttons
-- 💾 **Download**: Download merged videos directly to device
-- 🔄 **Server-Side Merging**: Automatic video processing via Edge Functions
-- 🎨 **Modern UI**: Dark theme with smooth animations
+### For Court Owners
+- 🏢 **Court Management**: Manage multiple courts and facilities
+- 📈 **Analytics Dashboard**: Revenue and occupancy insights
+- 🎬 **Venue Recording**: MQTT-based camera control
+- 💰 **Booking Management**: Handle reservations efficiently
 
 ## 📚 Documentation
 
-- **[Getting Started](docs/DEVELOPER_HANDOVER.md)** - Complete developer guide
-- **[Changelog](docs/CHANGELOG_v3.5.md)** - Version history and technical details
-- **[Release Notes](docs/RELEASE_NOTES_v3.5.md)** - User-facing features
+### Essential Reading
+- **[Project Overview](docs/PROJECT_OVERVIEW.md)** - Business context, tech stack, features
+- **[Architecture](docs/ARCHITECTURE.md)** - System design and data flow
+- **[Developer Guide](docs/DEVELOPER_GUIDE.md)** - Setup, development workflow, testing
+- **[Database Schema](docs/DATABASE_SCHEMA.md)** - Complete database documentation
+- **[Refactor Roadmap](docs/REFACTOR_ROADMAP.md)** - Performance optimization plan
 
-### For New Developers
-
-Start here: **[docs/DEVELOPER_HANDOVER.md](docs/DEVELOPER_HANDOVER.md)**
-
-This comprehensive guide covers:
-- Project structure
-- Tech stack details
-- Database schema
-- API documentation
-- Deployment procedures
-- Troubleshooting
+### Additional Docs
+- [Release Notes v3.7](docs/RELEASE_NOTES_v3.7.md)
+- [Release Notes v3.6](docs/RELEASE_NOTES_v3.6.md)
 
 ## 🏗️ Tech Stack
 
 - **Frontend**: React 18 + TypeScript + Vite
-- **Styling**: Tailwind CSS
-- **Backend**: Supabase (PostgreSQL + Auth + Storage + Edge Functions)
-- **Animations**: Framer Motion
-- **Media**: MediaRecorder API (WebRTC)
+- **Styling**: Tailwind CSS + Framer Motion
+- **State**: Zustand + TanStack Query
+- **Backend**: Supabase (PostgreSQL + Auth + Storage)
+- **PWA**: Vite PWA Plugin + IndexedDB
+- **Monitoring**: Sentry + Web Vitals
+- **Testing**: Vitest + React Testing Library
 
 ## 🗄️ Database Setup
 
-### Running Migrations
+### Quick Setup
 
-Run these SQL files in your Supabase SQL Editor in order:
-
-```sql
-migrations/009_fix_highlights_duration.sql
-migrations/010_video_segments_and_notifications.sql
-migrations/011_fix_trigger_duration.sql
-migrations/012_create_raw_segments_bucket.sql
+```bash
+# Run migrations in Supabase SQL Editor (in order):
+migrations/000_complete_schema.sql
+migrations/001_court_management.sql
+migrations/002_security_policies.sql
+migrations/003_courts_extended_schema.sql
+migrations/004_analytics_social.sql
+migrations/005_production_hotfix.sql
+# ... continue through migration 015
 ```
 
-### Create Storage Buckets
+### Performance Scripts
 
-1. **`videos`** bucket (if not exists)
-   - Public bucket for merged highlight videos
+```bash
+# Analyze performance
+scripts/performance-analysis.sql
 
-2. **`raw_segments`** bucket (required for v3.5)
-   - Public bucket
-   - File size limit: 100MB
-   - Allowed MIME types: `video/webm,video/mp4`
+# Clear test data
+scripts/clear-database.sql
 
-See [Video Save Fix Guide](docs/DEVELOPER_HANDOVER.md#deployment) for detailed setup.
+# Seed realistic data
+scripts/seed-realistic-data.sql
+```
+
+See [DATABASE_SCHEMA.md](docs/DATABASE_SCHEMA.md) for complete schema documentation.
 
 ## ⚙️ Environment Variables
 
-Create a `.env` file in the root directory:
-
 ```env
-VITE_SUPABASE_URL=your_supabase_project_url
-VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+# Supabase
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your-anon-key
+
+# Sentry (optional)
+VITE_SENTRY_DSN=your-sentry-dsn
+
+# Firebase (optional)
+VITE_FIREBASE_API_KEY=your-firebase-key
+VITE_FIREBASE_PROJECT_ID=your-project-id
+```
+
+## 🧪 Development
+
+```bash
+# Development server
+npm run dev
+
+# Build for production
+npm run build
+
+# Preview production build
+npm run preview
+
+# Run tests
+npm test
+
+# Run tests with UI
+npm run test:ui
+
+# Lint code
+npm run lint
+
+# Format code
+npm run format
 ```
 
 ## 🚀 Deployment
 
-### Edge Functions
-
-Deploy the video merging function:
-
+### Frontend (Vercel)
 ```bash
-npx supabase login
-npx supabase functions deploy merge-videos
-```
-
-### Frontend
-
-```bash
-# Build
 npm run build
-
-# Deploy dist/ folder to your hosting (Vercel, Netlify, etc.)
+# Deploy dist/ folder to Vercel
 ```
 
-## 🧪 Testing
+### Database Migrations
+Run SQL files in Supabase SQL Editor in numerical order.
 
-### Manual Testing
+### Storage Buckets
+Create these buckets in Supabase:
+- `videos` (private, 100MB limit)
+- `avatars` (public, 5MB limit)
+- `court-images` (public, 10MB limit)
 
-1. Open the app in a modern browser
-2. Navigate to "Self Recording"
-3. Allow camera permissions
-4. Record and mark highlights
-5. Review, select, and save
-
-### Browser Compatibility
-
-✅ Chrome (v90+)  
-✅ Edge (v90+)  
-✅ Safari (v14.1+)  
-⚠️ Firefox (limited MediaRecorder support)
+See [Developer Guide](docs/DEVELOPER_GUIDE.md#deployment) for detailed instructions.
 
 ## 📁 Project Structure
 
 ```
-my2light-app/
-├── docs/                    # Documentation
-├── migrations/              # Database migrations
-├── public/                  # Static assets
-├── src/
-│   ├── components/          # React components
-│   ├── hooks/              # Custom hooks
-│   ├── pages/              # Route pages
-│   ├── services/           # API services
-│   └── types.ts            # TypeScript types
-├── supabase/
-│   └── functions/          # Edge Functions
-└── package.json
+my2light-main/
+├── components/         # React components (49 files)
+│   ├── admin/         # Admin dashboard
+│   ├── features/      # Feature components
+│   ├── Layout/        # Layout components
+│   ├── social/        # Social features
+│   └── ui/            # Reusable UI
+├── hooks/             # Custom React hooks (7 files)
+├── pages/             # Page components (29 files)
+├── services/          # API services (12 files)
+├── stores/            # Zustand stores (3 files)
+├── types/             # TypeScript types
+├── migrations/        # Database migrations (23 files)
+├── scripts/           # Utility scripts (9 files)
+└── docs/              # Documentation (11 files)
 ```
 
 ## 🐛 Troubleshooting
@@ -174,14 +188,9 @@ my2light-app/
 ### Common Issues
 
 **Camera not working?**
-- Ensure you're using HTTPS (required for getUserMedia)
+- Use HTTPS (required for getUserMedia)
 - Check browser permissions
 - Try Chrome/Edge (best support)
-
-**Video not saving?**
-- Check Supabase dashboard for Edge Function logs
-- Verify `raw_segments` bucket exists
-- Ensure migrations are applied
 
 **Build errors?**
 ```bash
@@ -190,16 +199,26 @@ npm install
 npm run build
 ```
 
-See [Developer Handover Guide](docs/DEVELOPER_HANDOVER.md#troubleshooting) for more solutions.
+**Database connection issues?**
+- Verify `.env` credentials
+- Check Supabase project status
+- Review RLS policies
 
-## 🔜 Roadmap
+See [Developer Guide](docs/DEVELOPER_GUIDE.md#troubleshooting) for more solutions.
 
-- [ ] Voice-activated highlight detection
-- [ ] Automatic thumbnail generation
-- [ ] FFmpeg-based video processing
-- [ ] Advanced video editing (trim, filters)
-- [ ] AI-powered highlight detection
-- [ ] Offline mode / PWA support
+## ⚠️ Known Issues
+
+- **Performance**: App runs slowly in production (see [REFACTOR_ROADMAP.md](docs/REFACTOR_ROADMAP.md))
+- **Bundle Size**: 451KB main chunk (optimization needed)
+- **Test Coverage**: ~40% (target: 80%)
+
+## 🔜 Refactoring Roadmap
+
+The codebase is being prepared for refactoring. See [REFACTOR_ROADMAP.md](docs/REFACTOR_ROADMAP.md) for:
+- Performance optimization plan
+- Code organization improvements
+- Testing strategy
+- 6-week timeline
 
 ## 📄 License
 
@@ -208,19 +227,21 @@ MIT License - see LICENSE file for details
 ## 🤝 Contributing
 
 1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+2. Create feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit changes (`git commit -m 'feat: add amazing feature'`)
+4. Push to branch (`git push origin feature/amazing-feature`)
+5. Open Pull Request
+
+Follow [Conventional Commits](https://www.conventionalcommits.org/) for commit messages.
 
 ## 📞 Support
 
-- Documentation: [docs/](docs/)
-- Issues: GitHub Issues
-- Contact: [Your Contact Info]
+- **Documentation**: [docs/](docs/)
+- **Issues**: GitHub Issues
+- **Sentry**: Error tracking dashboard
 
 ---
 
-**Version 3.5.0** - Recording Revolution 🎥🏀
+**Version 3.7.0** - Gallery Redesign & Performance Fixes 🏸
 
-Made with ❤️ for basketball players
+Made with ❤️ for the Vietnamese badminton community
