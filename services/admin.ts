@@ -236,29 +236,55 @@ export const AdminService = {
                 return { success: false, data: [], error: error.message };
             }
 
-            // Transform to CourtDetails (simplified for now, can add stats later)
-            const courtDetails: CourtDetails[] = (courts || []).map(court => ({
-                id: court.id,
-                ownerId: court.owner_id,
-                name: court.name,
-                address: court.address,
-                description: court.description,
-                pricePerHour: court.price_per_hour,
-                openTime: court.open_time || '06:00',
-                closeTime: court.close_time || '22:00',
-                facilities: court.facilities || [],
-                images: court.images || [],
-                thumbnailUrl: court.thumbnail_url || (court.images?.[0] || ''),
-                status: court.status,
-                isActive: court.is_active ?? true,
-                autoApproveBookings: court.auto_approve_bookings ?? true,
-                rating: court.rating || 0,
-                totalReviews: court.total_reviews || 0,
-                totalBookings: 0, // TODO: Calculate from bookings
-                monthlyRevenue: 0, // TODO: Calculate from bookings
-                createdAt: court.created_at,
-                updatedAt: court.updated_at
-            }));
+            // Calculate stats for each court
+            const startOfMonth = new Date();
+            startOfMonth.setDate(1);
+            startOfMonth.setHours(0, 0, 0, 0);
+
+            // Transform to CourtDetails with real stats
+            const courtDetails: CourtDetails[] = await Promise.all(
+                (courts || []).map(async (court) => {
+                    // Get bookings count for this court (this month)
+                    const { count: bookingsCount } = await supabase
+                        .from('bookings')
+                        .select('*', { count: 'exact', head: true })
+                        .eq('court_id', court.id)
+                        .gte('created_at', startOfMonth.toISOString());
+
+                    // Calculate revenue (this month, only completed bookings)
+                    const { data: courtBookings } = await supabase
+                        .from('bookings')
+                        .select('total_amount')
+                        .eq('court_id', court.id)
+                        .gte('created_at', startOfMonth.toISOString())
+                        .in('status', ['completed', 'confirmed']);
+
+                    const revenue = courtBookings?.reduce((sum, b) => sum + (b.total_amount || 0), 0) || 0;
+
+                    return {
+                        id: court.id,
+                        ownerId: court.owner_id,
+                        name: court.name,
+                        address: court.address,
+                        description: court.description,
+                        pricePerHour: court.price_per_hour,
+                        openTime: court.open_time || '06:00',
+                        closeTime: court.close_time || '22:00',
+                        facilities: court.facilities || [],
+                        images: court.images || [],
+                        thumbnailUrl: court.thumbnail_url || (court.images?.[0] || ''),
+                        status: court.status,
+                        isActive: court.is_active ?? true,
+                        autoApproveBookings: court.auto_approve_bookings ?? true,
+                        rating: court.rating || 0,
+                        totalReviews: court.total_reviews || 0,
+                        totalBookings: bookingsCount || 0, // ✅ Real calculation!
+                        monthlyRevenue: revenue, // ✅ Real calculation!
+                        createdAt: court.created_at,
+                        updatedAt: court.updated_at
+                    };
+                })
+            );
 
             return { success: true, data: courtDetails };
         } catch (e) {
