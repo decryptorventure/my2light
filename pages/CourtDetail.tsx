@@ -12,6 +12,7 @@ import { Card } from '../components/ui/Card';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 import { ApiService } from '../services/api';
 import { Court } from '../types';
+import { useRealtimeAvailability } from '../hooks/useRealtimeBookings';
 
 export const CourtDetail: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -22,6 +23,10 @@ export const CourtDetail: React.FC = () => {
     const [isFavorite, setIsFavorite] = useState(false);
 
     const [selectedPackageId, setSelectedPackageId] = useState<string | null>(null);
+
+    // Enable real-time availability updates for this court
+    useRealtimeAvailability(id || '');
+
 
     useEffect(() => {
         const fetchCourt = async () => {
