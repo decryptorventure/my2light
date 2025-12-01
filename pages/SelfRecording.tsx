@@ -340,7 +340,7 @@ export const SelfRecording: React.FC = () => {
           </Button>
           <Button
             className="w-full bg-slate-800 text-white font-medium py-3"
-            onClick={() => navigate('/')}
+            onClick={() => navigate('/home')}
           >
             Về trang chủ
           </Button>
