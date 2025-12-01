@@ -279,8 +279,8 @@ export const SelfRecording: React.FC = () => {
                     </div>
                   )}
 
-                  {/* Camera Switch Button - Top Right (Always show when stream is active and not finished) */}
-                  {stream && !isRecording && (
+                  {/* Camera Switch Button - Top Right */}
+                  {stream && step === 'ready' && (
                     <motion.button
                       key="camera-switch"
                       initial={{ opacity: 0, scale: 0.8 }}

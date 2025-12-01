@@ -651,12 +651,7 @@ export const ApiService = {
     try {
       const { data, error } = await supabase
         .from('highlights')
-        .select(`
-            *,
-            court:courts(name),
-            profile:profiles(name, avatar),
-            comments:highlight_comments(count)
-        `)
+        .select('*, court:courts(name), profile:profiles(name, avatar)')
         .order('created_at', { ascending: false })
         .limit(limit);
 
@@ -679,7 +674,7 @@ export const ApiService = {
         userName: h.profile?.name || 'Người chơi',
         isLiked: false,
         isPublic: h.is_public !== false, // Default to true if not set
-        comments: h.comments?.[0]?.count || 0 // Fetch count from joined query
+        comments: 0 // TODO: Add separate query for comment count if needed
       }));
 
       return { success: true, data: highlights };
