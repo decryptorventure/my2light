@@ -16,7 +16,7 @@ export const Skeleton: React.FC<SkeletonProps> = ({
   animation = 'shimmer'
 }) => {
   const baseStyles = 'bg-slate-800/50';
-  
+
   const variantStyles = {
     text: 'rounded h-4',
     circular: 'rounded-full',
@@ -51,7 +51,7 @@ export const SkeletonCard: React.FC<{ className?: string }> = ({ className = '' 
         <Skeleton variant="text" width="40%" />
       </div>
     </div>
-    <Skeleton variant="rectangular" height={120} className="mb-2"  />
+    <Skeleton variant="rectangular" height={120} className="mb-2" />
     <div className="space-y-2">
       <Skeleton variant="text" width="85%" />
       <Skeleton variant="text" width="70%" />
@@ -74,7 +74,7 @@ export const SkeletonCourtCard: React.FC = () => (
 );
 
 export const SkeletonHighlightCard: React.FC = () => (
-  <div className="min-w-[160px] h-[240px] bg-slate-800/30 rounded-xl border border-slate-800 shimmer flex-shrink-0" />
+  <div className="w-[280px] aspect-video bg-slate-800/30 rounded-xl border border-slate-800 shimmer flex-shrink-0" />
 );
 
 export const SkeletonStatCard: React.FC = () => (

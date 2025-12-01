@@ -207,7 +207,7 @@ export const Home: React.FC = () => {
               {highlights.map((highlight) => (
                 <Card
                   key={highlight.id}
-                  className="min-w-[160px] h-[240px] relative group cursor-pointer flex-shrink-0"
+                  className="w-[280px] aspect-video relative group cursor-pointer flex-shrink-0"
                   onClick={() => navigate('/gallery')}
                 >
                   <img src={highlight.thumbnailUrl} alt="Highlight" className="w-full h-full object-cover transition-transform group-hover:scale-105 duration-500" />
