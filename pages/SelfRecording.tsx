@@ -251,6 +251,16 @@ export const SelfRecording: React.FC = () => {
                       </p>
                     </div>
                   )}
+
+                  {/* Camera Switch Button - Shows only during recording */}
+                  {step === 'recording' && (
+                    <button
+                      onClick={() => showToast('Đổi camera đang được phát triển', 'info')}
+                      className="absolute bottom-32 right-6 w-14 h-14 bg-slate-800/80 backdrop-blur-md border-2 border-slate-700 rounded-full flex items-center justify-center text-white hover:bg-slate-700 transition"
+                    >
+                      <RefreshCw size={20} />
+                    </button>
+                  )}
                 </div>
               </motion.div>
             )}
