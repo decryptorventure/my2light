@@ -319,6 +319,30 @@ export const Profile: React.FC = () => {
                             </div>
                         </div>
 
+                        {/* Danger Zone - For Testing */}
+                        <div>
+                            <h3 className="text-xs font-bold text-red-500 uppercase tracking-wider mb-3 pl-1">Danger Zone (Testing)</h3>
+                            <Button
+                                variant="outline"
+                                className="w-full justify-between border-red-500/30 text-red-500 hover:bg-red-500/10"
+                                onClick={async () => {
+                                    if (window.confirm('Bạn có chắc chắn muốn xóa TẤT CẢ video highlight của bạn? Hành động này không thể hoàn tác!')) {
+                                        const { error } = await supabase.from('highlights').delete().eq('user_id', user.id);
+                                        if (error) {
+                                            showToast('Xóa thất bại: ' + error.message, 'error');
+                                        } else {
+                                            showToast('Đã xóa tất cả highlight!', 'success');
+                                            // Refresh page or data
+                                            window.location.reload();
+                                        }
+                                    }
+                                }}
+                            >
+                                <span>Xóa tất cả Highlight của tôi</span>
+                                <LogOut size={16} className="text-red-500" />
+                            </Button>
+                        </div>
+
                         <Button
                             variant="ghost"
                             onClick={handleLogout}
