@@ -123,165 +123,164 @@ export const PlayerProfile: React.FC = () => {
                             {profile.avatarUrl ? (
                                 <img src={profile.avatarUrl} alt={profile.fullName} className="w-full h-full object-cover" />
                             ) : (
-                                <div className="w-full h-full flex items-center justify-center text-4xl font-bold text-slate-500">
-                                    {profile.fullName.charAt(0)}
+                                { profile.fullName?.charAt(0) || '?' }
                                 </div>
                             )}
-                        </div>
-                        <div className="absolute bottom-2 right-2 w-6 h-6 bg-green-500 rounded-full border-4 border-slate-950" />
                     </div>
-
-                    <div className="flex gap-2 mb-2">
-                        {!isMe && (
-                            <>
-                                <Button
-                                    size="sm"
-                                    variant={profile.isFollowing ? "secondary" : "primary"}
-                                    onClick={handleFollow}
-                                    className="rounded-full px-6"
-                                >
-                                    {profile.isFollowing ? (
-                                        <>
-                                            <UserMinus size={18} className="mr-2" />
-                                            Đang theo dõi
-                                        </>
-                                    ) : (
-                                        <>
-                                            <UserPlus size={18} className="mr-2" />
-                                            Theo dõi
-                                        </>
-                                    )}
-                                </Button>
-                                <Button size="sm" variant="secondary" className="rounded-full w-10 h-10 p-0 flex items-center justify-center">
-                                    <MessageCircle size={20} />
-                                </Button>
-                            </>
-                        )}
-                        <Button size="sm" variant="ghost" className="rounded-full w-10 h-10 p-0 flex items-center justify-center text-slate-400">
-                            <Share2 size={20} />
-                        </Button>
-                    </div>
+                    <div className="absolute bottom-2 right-2 w-6 h-6 bg-green-500 rounded-full border-4 border-slate-950" />
                 </div>
 
-                <div className="mb-6">
-                    <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-                        {profile.fullName}
-                        <span className="px-2 py-0.5 rounded bg-lime-400/10 text-lime-400 text-xs font-bold uppercase border border-lime-400/20">
-                            {profile.skillLevel || 'Beginner'}
-                        </span>
-                    </h1>
-                    {profile.bio && (
-                        <p className="text-slate-400 text-sm mt-2 leading-relaxed">
-                            {profile.bio}
-                        </p>
+                <div className="flex gap-2 mb-2">
+                    {!isMe && (
+                        <>
+                            <Button
+                                size="sm"
+                                variant={profile.isFollowing ? "secondary" : "primary"}
+                                onClick={handleFollow}
+                                className="rounded-full px-6"
+                            >
+                                {profile.isFollowing ? (
+                                    <>
+                                        <UserMinus size={18} className="mr-2" />
+                                        Đang theo dõi
+                                    </>
+                                ) : (
+                                    <>
+                                        <UserPlus size={18} className="mr-2" />
+                                        Theo dõi
+                                    </>
+                                )}
+                            </Button>
+                            <Button size="sm" variant="secondary" className="rounded-full w-10 h-10 p-0 flex items-center justify-center">
+                                <MessageCircle size={20} />
+                            </Button>
+                        </>
                     )}
-
-                    <div className="flex items-center gap-6 mt-4 text-sm">
-                        <div className="flex flex-col">
-                            <span className="font-bold text-white text-lg">{profile.followersCount}</span>
-                            <span className="text-slate-500 text-xs">Người theo dõi</span>
-                        </div>
-                        <div className="flex flex-col">
-                            <span className="font-bold text-white text-lg">{profile.followingCount}</span>
-                            <span className="text-slate-500 text-xs">Đang theo dõi</span>
-                        </div>
-                        <div className="flex flex-col">
-                            <span className="font-bold text-white text-lg">0</span>
-                            <span className="text-slate-500 text-xs">Trận đấu</span>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Tabs */}
-                <div className="flex border-b border-slate-800 mb-6">
-                    <button
-                        onClick={() => setActiveTab('highlights')}
-                        className={`flex-1 pb-3 text-sm font-medium transition-colors relative ${activeTab === 'highlights' ? 'text-lime-400' : 'text-slate-500'
-                            }`}
-                    >
-                        <div className="flex items-center justify-center gap-2">
-                            <Grid size={18} />
-                            Highlights
-                        </div>
-                        {activeTab === 'highlights' && (
-                            <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-lime-400" />
-                        )}
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('stats')}
-                        className={`flex-1 pb-3 text-sm font-medium transition-colors relative ${activeTab === 'stats' ? 'text-lime-400' : 'text-slate-500'
-                            }`}
-                    >
-                        <div className="flex items-center justify-center gap-2">
-                            <BarChart2 size={18} />
-                            Thống kê
-                        </div>
-                        {activeTab === 'stats' && (
-                            <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-lime-400" />
-                        )}
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('badges')}
-                        className={`flex-1 pb-3 text-sm font-medium transition-colors relative ${activeTab === 'badges' ? 'text-lime-400' : 'text-slate-500'
-                            }`}
-                    >
-                        <div className="flex items-center justify-center gap-2">
-                            <Award size={18} />
-                            Huy hiệu
-                        </div>
-                        {activeTab === 'badges' && (
-                            <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-lime-400" />
-                        )}
-                    </button>
-                </div>
-
-                {/* Content */}
-                <div className="min-h-[200px]">
-                    {activeTab === 'highlights' && (
-                        <div className="grid grid-cols-3 gap-1">
-                            {highlights.length === 0 ? (
-                                <div className="col-span-3 text-center py-12 text-slate-500">
-                                    <ActivityIcon size={48} className="mx-auto mb-4 opacity-20" />
-                                    <p>Chưa có highlight nào.</p>
-                                </div>
-                            ) : (
-                                highlights.map((highlight) => (
-                                    <div
-                                        key={highlight.id}
-                                        onClick={() => navigate(`/highlight/${highlight.id}`)}
-                                        className="aspect-[3/4] bg-slate-800 relative cursor-pointer group overflow-hidden"
-                                    >
-                                        <img
-                                            src={highlight.thumbnailUrl}
-                                            alt=""
-                                            className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                                        />
-                                        <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors" />
-                                        <div className="absolute bottom-2 left-2 flex items-center gap-1 text-white text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <Play size={12} className="fill-white" />
-                                            {highlight.views}
-                                        </div>
-                                    </div>
-                                ))
-                            )}
-                        </div>
-                    )}
-
-                    {activeTab === 'stats' && (
-                        <div className="text-center py-12 text-slate-500">
-                            <BarChart2 size={48} className="mx-auto mb-4 opacity-20" />
-                            <p>Người chơi chưa công khai thống kê.</p>
-                        </div>
-                    )}
-
-                    {activeTab === 'badges' && (
-                        <div className="text-center py-12 text-slate-500">
-                            <Award size={48} className="mx-auto mb-4 opacity-20" />
-                            <p>Chưa có huy hiệu nào.</p>
-                        </div>
-                    )}
+                    <Button size="sm" variant="ghost" className="rounded-full w-10 h-10 p-0 flex items-center justify-center text-slate-400">
+                        <Share2 size={20} />
+                    </Button>
                 </div>
             </div>
+
+            <div className="mb-6">
+                <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+                    {profile.fullName}
+                    <span className="px-2 py-0.5 rounded bg-lime-400/10 text-lime-400 text-xs font-bold uppercase border border-lime-400/20">
+                        {profile.skillLevel || 'Beginner'}
+                    </span>
+                </h1>
+                {profile.bio && (
+                    <p className="text-slate-400 text-sm mt-2 leading-relaxed">
+                        {profile.bio}
+                    </p>
+                )}
+
+                <div className="flex items-center gap-6 mt-4 text-sm">
+                    <div className="flex flex-col">
+                        <span className="font-bold text-white text-lg">{profile.followersCount}</span>
+                        <span className="text-slate-500 text-xs">Người theo dõi</span>
+                    </div>
+                    <div className="flex flex-col">
+                        <span className="font-bold text-white text-lg">{profile.followingCount}</span>
+                        <span className="text-slate-500 text-xs">Đang theo dõi</span>
+                    </div>
+                    <div className="flex flex-col">
+                        <span className="font-bold text-white text-lg">0</span>
+                        <span className="text-slate-500 text-xs">Trận đấu</span>
+                    </div>
+                </div>
+            </div>
+
+            {/* Tabs */}
+            <div className="flex border-b border-slate-800 mb-6">
+                <button
+                    onClick={() => setActiveTab('highlights')}
+                    className={`flex-1 pb-3 text-sm font-medium transition-colors relative ${activeTab === 'highlights' ? 'text-lime-400' : 'text-slate-500'
+                        }`}
+                >
+                    <div className="flex items-center justify-center gap-2">
+                        <Grid size={18} />
+                        Highlights
+                    </div>
+                    {activeTab === 'highlights' && (
+                        <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-lime-400" />
+                    )}
+                </button>
+                <button
+                    onClick={() => setActiveTab('stats')}
+                    className={`flex-1 pb-3 text-sm font-medium transition-colors relative ${activeTab === 'stats' ? 'text-lime-400' : 'text-slate-500'
+                        }`}
+                >
+                    <div className="flex items-center justify-center gap-2">
+                        <BarChart2 size={18} />
+                        Thống kê
+                    </div>
+                    {activeTab === 'stats' && (
+                        <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-lime-400" />
+                    )}
+                </button>
+                <button
+                    onClick={() => setActiveTab('badges')}
+                    className={`flex-1 pb-3 text-sm font-medium transition-colors relative ${activeTab === 'badges' ? 'text-lime-400' : 'text-slate-500'
+                        }`}
+                >
+                    <div className="flex items-center justify-center gap-2">
+                        <Award size={18} />
+                        Huy hiệu
+                    </div>
+                    {activeTab === 'badges' && (
+                        <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-lime-400" />
+                    )}
+                </button>
+            </div>
+
+            {/* Content */}
+            <div className="min-h-[200px]">
+                {activeTab === 'highlights' && (
+                    <div className="grid grid-cols-3 gap-1">
+                        {highlights.length === 0 ? (
+                            <div className="col-span-3 text-center py-12 text-slate-500">
+                                <ActivityIcon size={48} className="mx-auto mb-4 opacity-20" />
+                                <p>Chưa có highlight nào.</p>
+                            </div>
+                        ) : (
+                            highlights.map((highlight) => (
+                                <div
+                                    key={highlight.id}
+                                    onClick={() => navigate(`/highlight/${highlight.id}`)}
+                                    className="aspect-[3/4] bg-slate-800 relative cursor-pointer group overflow-hidden"
+                                >
+                                    <img
+                                        src={highlight.thumbnailUrl}
+                                        alt=""
+                                        className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                                    />
+                                    <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors" />
+                                    <div className="absolute bottom-2 left-2 flex items-center gap-1 text-white text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <Play size={12} className="fill-white" />
+                                        {highlight.views}
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
+                )}
+
+                {activeTab === 'stats' && (
+                    <div className="text-center py-12 text-slate-500">
+                        <BarChart2 size={48} className="mx-auto mb-4 opacity-20" />
+                        <p>Người chơi chưa công khai thống kê.</p>
+                    </div>
+                )}
+
+                {activeTab === 'badges' && (
+                    <div className="text-center py-12 text-slate-500">
+                        <Award size={48} className="mx-auto mb-4 opacity-20" />
+                        <p>Chưa có huy hiệu nào.</p>
+                    </div>
+                )}
+            </div>
         </div>
+        </div >
     );
 };
