@@ -4,7 +4,7 @@ import {
   Camera, X, Settings, Mic, Zap, RotateCcw,
   CheckCircle, AlertTriangle, ChevronLeft, RefreshCw,
   Play, Pause, Download, Upload, Calendar, MapPin,
-  Sliders
+  Sliders, Square
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PageTransition } from '../components/Layout/PageTransition';
@@ -13,6 +13,7 @@ import { useMediaRecorder } from '../hooks/useMediaRecorder';
 import { UploadService } from '../services/uploadService';
 import { VideoStorage } from '../lib/storage';
 import { supabase } from '../lib/supabase';
+import { fireworks } from '../lib/confetti';
 
 // Types
 type RecordingStep = 'setup' | 'ready' | 'recording' | 'preview' | 'upload_form' | 'uploading' | 'done';
@@ -46,7 +47,7 @@ export const SelfRecording: React.FC = () => {
   const [isPlayingPreview, setIsPlayingPreview] = useState(false);
 
   // Highlight Feedback State
-  const [showHighlightFlash, setShowHighlightFlash] = useState(false);
+  // const [showHighlightFlash, setShowHighlightFlash] = useState(false); // Removed in favor of fireworks
 
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -143,8 +144,7 @@ export const SelfRecording: React.FC = () => {
 
   const handleMarkHighlight = () => {
     addHighlight();
-    setShowHighlightFlash(true);
-    setTimeout(() => setShowHighlightFlash(false), 300); // Flash duration
+    fireworks(); // Use fireworks effect
     showToast('Đã đánh dấu highlight!', 'success');
   };
 
@@ -288,7 +288,7 @@ export const SelfRecording: React.FC = () => {
               ) : (
                 <>
                   <Camera size={20} />
-                  Bắt đầu quay
+                  <span className="truncate">Bắt đầu quay</span>
                 </>
               )}
             </Button>
@@ -302,8 +302,11 @@ export const SelfRecording: React.FC = () => {
   if (step === 'uploading') {
     return (
       <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-6 text-white">
-        <div className="w-24 h-24 rounded-full border-4 border-slate-700 border-t-lime-400 animate-spin mb-6 flex items-center justify-center">
-          <span className="text-xl font-bold text-lime-400">{Math.round(uploadProgress * 100)}%</span>
+        <div className="relative w-24 h-24 mb-6 flex items-center justify-center">
+          {/* Static Text */}
+          <span className="text-xl font-bold text-lime-400 absolute z-10">{Math.round(uploadProgress * 100)}%</span>
+          {/* Spinning Border */}
+          <div className="w-full h-full rounded-full border-4 border-slate-700 border-t-lime-400 animate-spin absolute inset-0"></div>
         </div>
         <h2 className="text-2xl font-bold mb-2">Đang tải lên...</h2>
         <p className="text-slate-400 text-center max-w-xs">
@@ -324,15 +327,9 @@ export const SelfRecording: React.FC = () => {
         <p className="text-slate-400 text-center mb-8">
           Video của bạn đã được lưu và đang được xử lý. Bạn có thể xem lại trong thư viện.
         </p>
-        <div className="flex gap-4 w-full max-w-xs">
+        <div className="flex flex-col gap-4 w-full max-w-xs">
           <Button
-            className="flex-1 bg-slate-800"
-            onClick={() => navigate('/')}
-          >
-            Về trang chủ
-          </Button>
-          <Button
-            className="flex-1 bg-lime-400 text-slate-900"
+            className="w-full bg-lime-400 text-slate-900 font-bold py-3"
             onClick={() => {
               setStep('setup'); // Go back to setup
               setSessionId('');
@@ -340,6 +337,12 @@ export const SelfRecording: React.FC = () => {
             }}
           >
             Quay tiếp
+          </Button>
+          <Button
+            className="w-full bg-slate-800 text-white font-medium py-3"
+            onClick={() => navigate('/')}
+          >
+            Về trang chủ
           </Button>
         </div>
       </div>
@@ -392,8 +395,8 @@ export const SelfRecording: React.FC = () => {
                     key={court.id}
                     onClick={() => setSelectedCourtId(court.id)}
                     className={`p-4 rounded-xl border text-left transition-all ${selectedCourtId === court.id
-                        ? 'bg-lime-400/10 border-lime-400 text-lime-400'
-                        : 'bg-slate-800 border-slate-700 text-slate-300 hover:border-slate-600'
+                      ? 'bg-lime-400/10 border-lime-400 text-lime-400'
+                      : 'bg-slate-800 border-slate-700 text-slate-300 hover:border-slate-600'
                       }`}
                   >
                     <div className="flex items-center gap-3">
@@ -405,8 +408,8 @@ export const SelfRecording: React.FC = () => {
                 <button
                   onClick={() => setSelectedCourtId('')}
                   className={`p-4 rounded-xl border text-left transition-all ${selectedCourtId === ''
-                      ? 'bg-lime-400/10 border-lime-400 text-lime-400'
-                      : 'bg-slate-800 border-slate-700 text-slate-300 hover:border-slate-600'
+                    ? 'bg-lime-400/10 border-lime-400 text-lime-400'
+                    : 'bg-slate-800 border-slate-700 text-slate-300 hover:border-slate-600'
                     }`}
                 >
                   <div className="flex items-center gap-3">
@@ -516,7 +519,7 @@ export const SelfRecording: React.FC = () => {
               onClick={handleProceedToUpload}
             >
               <Upload size={20} />
-              Đăng lên Thư viện
+              <span className="truncate">Đăng lên Thư viện</span>
             </Button>
           </div>
         </div>
@@ -528,19 +531,6 @@ export const SelfRecording: React.FC = () => {
   return (
     <PageTransition>
       <div className="fixed inset-0 bg-black text-white overflow-hidden">
-        {/* Highlight Flash Effect */}
-        <AnimatePresence>
-          {showHighlightFlash && (
-            <motion.div
-              initial={{ opacity: 0.8 }}
-              animate={{ opacity: 0 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
-              className="absolute inset-0 bg-white z-[100] pointer-events-none"
-            />
-          )}
-        </AnimatePresence>
-
         {/* Storage Warning */}
         <AnimatePresence>
           {storageWarning && (
@@ -642,9 +632,9 @@ export const SelfRecording: React.FC = () => {
               {step === 'ready' ? (
                 <button
                   onClick={handleStart}
-                  className="w-20 h-20 bg-red-500 rounded-full border-4 border-white flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-lg shadow-red-500/20"
+                  className="w-20 h-20 bg-lime-400 rounded-full border-4 border-white/20 flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-lg shadow-lime-400/20"
                 >
-                  <div className="w-8 h-8 bg-white rounded-sm" />
+                  <Play size={32} className="text-slate-900 fill-current ml-1" />
                 </button>
               ) : (
                 <>

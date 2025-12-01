@@ -92,7 +92,27 @@ export const UploadService = {
             if (onProgress) onProgress(1); // 100%
 
             // 4. Insert into Database (Highlights table)
-            const thumbnailUrl = 'https://images.unsplash.com/photo-1599058945522-28d584b6f0ff?q=80&w=400&h=800&auto=format&fit=crop'; // Placeholder
+            // Generate thumbnail from the full video blob if possible
+            let thumbnailUrl = 'https://images.unsplash.com/photo-1599058945522-28d584b6f0ff?q=80&w=400&h=800&auto=format&fit=crop'; // Fallback
+
+            if (fullBlob) {
+                try {
+                    const thumbBlob = await this.generateThumbnail(fullBlob);
+                    if (thumbBlob) {
+                        const thumbPath = `${user.id}/${sessionId}/thumbnail.jpg`;
+                        const { error: thumbError } = await supabase.storage
+                            .from('videos')
+                            .upload(thumbPath, thumbBlob, { upsert: true, contentType: 'image/jpeg' });
+
+                        if (!thumbError) {
+                            const { data } = supabase.storage.from('videos').getPublicUrl(thumbPath);
+                            thumbnailUrl = data.publicUrl;
+                        }
+                    }
+                } catch (err) {
+                    console.error('Failed to generate thumbnail:', err);
+                }
+            }
 
             // Ensure we have a valid court_id (optional)
             let finalCourtId = metadata?.courtId;
@@ -134,6 +154,46 @@ export const UploadService = {
             console.error('Upload failed:', error);
             throw error;
         }
+    },
+
+    async generateThumbnail(videoBlob: Blob): Promise<Blob | null> {
+        return new Promise((resolve) => {
+            const video = document.createElement('video');
+            video.preload = 'metadata';
+            video.src = URL.createObjectURL(videoBlob);
+            video.muted = true;
+            video.playsInline = true;
+
+            video.onloadedmetadata = () => {
+                // Seek to 1 second or 10% of duration
+                video.currentTime = Math.min(1, video.duration * 0.1);
+            };
+
+            video.onseeked = () => {
+                try {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                    const ctx = canvas.getContext('2d');
+                    if (ctx) {
+                        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                        canvas.toBlob((blob) => {
+                            URL.revokeObjectURL(video.src);
+                            resolve(blob);
+                        }, 'image/jpeg', 0.8);
+                    } else {
+                        resolve(null);
+                    }
+                } catch (e) {
+                    console.error('Canvas error:', e);
+                    resolve(null);
+                }
+            };
+
+            video.onerror = () => {
+                resolve(null);
+            };
+        });
     },
 
     async clearLocalSession(sessionId: string) {
