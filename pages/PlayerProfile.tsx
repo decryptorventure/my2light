@@ -50,7 +50,8 @@ export const PlayerProfile: React.FC = () => {
             setProfile(res.data);
         } else {
             showToast('Không tìm thấy người chơi', 'error');
-            navigate(-1);
+            // Don't auto-navigate back as it can cause loops
+            // navigate(-1); 
         }
         setLoading(false);
     };

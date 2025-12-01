@@ -78,8 +78,8 @@ export const SocialService = {
                 .from('player_connections')
                 .select(`
                     *,
-                    requester:profiles!requester_id(id, full_name, avatar_url, skill_level),
-                    receiver:profiles!receiver_id(id, full_name, avatar_url, skill_level)
+                    requester:profiles!requester_id(id, name, avatar, skill_level),
+                    receiver:profiles!receiver_id(id, name, avatar, skill_level)
                 `)
                 .or(`requester_id.eq.${userId},receiver_id.eq.${userId}`)
                 .eq('status', status);
@@ -93,8 +93,8 @@ export const SocialService = {
                 return {
                     id: conn.id,
                     userId: otherUser.id,
-                    name: otherUser.full_name,
-                    avatar: otherUser.avatar_url,
+                    name: otherUser.name,
+                    avatar: otherUser.avatar,
                     skillLevel: otherUser.skill_level,
                     status: conn.status,
                     connectedAt: conn.created_at,
@@ -121,7 +121,7 @@ export const SocialService = {
                 .from('player_connections')
                 .select(`
                     *,
-                    requester:profiles!requester_id(id, full_name, avatar_url, skill_level)
+                    requester:profiles!requester_id(id, name, avatar, skill_level)
                 `)
                 .eq('receiver_id', user.id)
                 .eq('status', 'pending');
@@ -131,8 +131,8 @@ export const SocialService = {
             const requests = data.map(conn => ({
                 id: conn.id,
                 userId: conn.requester.id,
-                name: conn.requester.full_name,
-                avatar: conn.requester.avatar_url,
+                name: conn.requester.name,
+                avatar: conn.requester.avatar,
                 skillLevel: conn.requester.skill_level,
                 status: conn.status,
                 connectedAt: conn.created_at,
@@ -318,7 +318,7 @@ export const SocialService = {
                 })
                 .select(`
                     *,
-                    user:profiles!user_id(id, full_name, avatar_url)
+                    user:profiles!user_id(id, name, avatar)
                 `)
                 .single();
 
@@ -336,7 +336,7 @@ export const SocialService = {
                 .from('highlight_comments')
                 .select(`
                     *,
-                    user:profiles!user_id(id, full_name, avatar_url)
+                    user:profiles!user_id(id, name, avatar)
                 `)
                 .eq('highlight_id', highlightId)
                 .order('created_at', { ascending: true });
@@ -383,8 +383,8 @@ export const SocialService = {
                 .filter(p => !connectedIds.has(p.id))
                 .map(p => ({
                     id: p.id,
-                    fullName: p.full_name,
-                    avatarUrl: p.avatar_url,
+                    fullName: p.name,
+                    avatarUrl: p.avatar,
                     skillLevel: p.skill_level,
                     bio: p.bio,
                     followersCount: p.followers_count || 0,
@@ -427,8 +427,8 @@ export const SocialService = {
                 success: true,
                 data: {
                     id: data.id,
-                    fullName: data.full_name,
-                    avatarUrl: data.avatar_url,
+                    fullName: data.name,
+                    avatarUrl: data.avatar,
                     skillLevel: data.skill_level,
                     bio: data.bio,
                     followersCount: data.followers_count || 0,
