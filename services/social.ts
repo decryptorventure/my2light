@@ -178,7 +178,7 @@ export const SocialService = {
                 .from('highlights')
                 .select(`
                     *,
-                    user:profiles!user_id(id, full_name, avatar_url, skill_level)
+                    user:profiles!user_id(id, name, avatar, skill_level)
                 `)
                 .eq('is_public', true)
                 .order('created_at', { ascending: false })
@@ -204,8 +204,8 @@ export const SocialService = {
                 },
                 user: {
                     id: h.user.id,
-                    full_name: h.user.full_name,
-                    avatar_url: h.user.avatar_url
+                    full_name: h.user.name,
+                    avatar_url: h.user.avatar
                 }
             }));
 
