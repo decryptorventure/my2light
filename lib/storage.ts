@@ -2,7 +2,8 @@ import { set, get, del, keys, createStore } from 'idb-keyval';
 
 // Create a custom store for video chunks to avoid conflicts with other data
 const videoStore = createStore('my2light-video-db', 'video-chunks');
-const metadataStore = createStore('my2light-video-db', 'session-metadata');
+// Use a separate DB for metadata to avoid versioning/schema conflicts with the existing video DB
+const metadataStore = createStore('my2light-meta-db', 'session-metadata');
 
 export interface VideoChunk {
     sessionId: string;
