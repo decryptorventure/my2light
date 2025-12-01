@@ -665,192 +665,253 @@ export const ApiService = {
         courtId: h.court_id,
         thumbnailUrl: h.thumbnail_url || 'https://images.unsplash.com/photo-1599058945522-28d584b6f0ff?q=80&w=400&h=800&auto=format&fit=crop',
         videoUrl: h.video_url,
-        const filePath = `${fileName}`;
+        durationSec: h.duration_sec,
+        createdAt: h.created_at,
+        likes: h.likes,
+        views: h.views,
+        courtName: h.court?.name || 'Sân',
+        userAvatar: h.profile?.name || 'Người chơi',
+        userName: h.profile?.name || 'Người chơi',
+        isLiked: false,
+        isPublic: h.is_public !== false,
+        comments: 0
+      }));
 
-        const { error: uploadError } = await supabase.storage
-          .from('videos')
-          .upload(filePath, file);
+      return { success: true, data: highlights };
+    } catch (e) {
+      return { success: false, data: [] };
+    }
+  },
 
-        if(uploadError) {
-          console.error('Upload video error:', uploadError);
-          return { success: false, data: '', error: uploadError.message };
-        }
+  getUserHighlights: async (userId: string, limit = 50): Promise<ApiResponse<Highlight[]>> => {
+    try {
+      const { data, error } = await supabase
+        .from('highlights')
+        .select('*, court:courts(name), profile:profiles(name, avatar)')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(limit);
+
+      if (error || !data) {
+        return { success: false, data: [] };
+      }
+
+      const highlights: Highlight[] = data.map((h: any) => ({
+        id: h.id,
+        userId: h.user_id,
+        courtId: h.court_id,
+        thumbnailUrl: h.thumbnail_url || 'https://images.unsplash.com/photo-1599058945522-28d584b6f0ff?q=80&w=400&h=800&auto=format&fit=crop',
+        videoUrl: h.video_url,
+        durationSec: h.duration_sec,
+        createdAt: h.created_at,
+        likes: h.likes,
+        views: h.views,
+        courtName: h.court?.name || 'Sân',
+        userAvatar: h.profile?.name || 'Người chơi',
+        userName: h.profile?.name || 'Người chơi',
+        isLiked: false,
+        isPublic: h.is_public !== false,
+        comments: 0
+      }));
+
+      return { success: true, data: highlights };
+    } catch (e) {
+      return { success: false, data: [] };
+    }
+  },
+
+  uploadVideo: async (file: Blob): Promise<ApiResponse<string>> => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { success: false, data: '', error: 'Not authenticated' };
+
+    const fileExt = file.type.split('/')[1] || 'webm';
+    const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+    const filePath = `${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('videos')
+      .upload(filePath, file);
+
+    if (uploadError) {
+      console.error('Upload video error:', uploadError);
+      return { success: false, data: '', error: uploadError.message };
+    }
 
     const { data: { publicUrl } } = supabase.storage
-          .from('videos')
-          .getPublicUrl(filePath);
+      .from('videos')
+      .getPublicUrl(filePath);
 
-        return { success: true, data: publicUrl };
-      },
+    return { success: true, data: publicUrl };
+  },
 
-        createHighlight: async (courtId: string, videoUrl?: string, duration?: number, title?: string, description?: string): Promise<ApiResponse<Highlight>> => {
-          const { data: { user } } = await supabase.auth.getUser();
-          if (!user) throw new Error('Not authenticated');
+  createHighlight: async (courtId: string, videoUrl?: string, duration?: number, title?: string, description?: string): Promise<ApiResponse<Highlight>> => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Not authenticated');
 
-          const { data, error } = await supabase.from('highlights').insert({
-            user_id: user.id,
-            court_id: courtId,
-            thumbnail_url: 'https://images.unsplash.com/photo-1599058945522-28d584b6f0ff?q=80&w=400&h=800&auto=format&fit=crop',
-            video_url: videoUrl || 'https://customer-w42898.cloudflarestream.com/sample/manifest/video.m3u8',
-            duration_sec: duration || 30,
-            title: title || 'Highlight mới',
-            description: description || '',
-            likes: 0,
-            views: 0,
-            is_public: true
-          }).select().single();
+    const { data, error } = await supabase.from('highlights').insert({
+      user_id: user.id,
+      court_id: courtId,
+      thumbnail_url: 'https://images.unsplash.com/photo-1599058945522-28d584b6f0ff?q=80&w=400&h=800&auto=format&fit=crop',
+      video_url: videoUrl || 'https://customer-w42898.cloudflarestream.com/sample/manifest/video.m3u8',
+      duration_sec: duration || 30,
+      title: title || 'Highlight mới',
+      description: description || '',
+      likes: 0,
+      views: 0,
+      is_public: true
+    }).select().single();
 
-          if (error) throw error;
+    if (error) throw error;
 
-          return { success: true, data: data as any };
-        },
+    return { success: true, data: data as any };
+  },
 
-        checkInBooking: async (bookingId: string): Promise<ApiResponse<boolean>> => {
-          const { data: { user } } = await supabase.auth.getUser();
-          if (!user) return { success: false, data: false };
+  checkInBooking: async (bookingId: string): Promise<ApiResponse<boolean>> => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { success: false, data: false };
 
-          // Verify booking belongs to user and is active
-          const { data, error } = await supabase
-            .from('bookings')
-            .select('id')
-            .eq('id', bookingId)
-            .eq('user_id', user.id)
-            .eq('status', 'active')
-            .single();
+    // Verify booking belongs to user and is active
+    const { data, error } = await supabase
+      .from('bookings')
+      .select('id')
+      .eq('id', bookingId)
+      .eq('user_id', user.id)
+      .eq('status', 'active')
+      .single();
 
-          if (error || !data) {
-            return { success: false, data: false };
+    if (error || !data) {
+      return { success: false, data: false };
+    }
+
+    // In a real app, we might update a 'checked_in_at' timestamp here
+    // For MVP, just verifying it exists and is active is enough
+    return { success: true, data: true };
+  },
+
+  updateHighlightPrivacy: async (highlightId: string, isPublic: boolean): Promise<ApiResponse<boolean>> => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { success: false, data: false, error: 'Not authenticated' };
+
+    const { error } = await supabase
+      .from('highlights')
+      .update({ is_public: isPublic })
+      .eq('id', highlightId)
+      .eq('user_id', user.id); // Only allow updating own highlights
+
+    if (error) {
+      console.error('Update highlight privacy error:', error);
+      return { success: false, data: false, error: error.message };
+    }
+
+    return { success: true, data: true };
+  },
+
+  // Process top-up transaction
+  processTopUp: async (
+    transactionId: string,
+    amount: number,
+    method: string
+  ): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return { success: false, error: 'User not authenticated' };
+
+      // Get current credits
+      const { data: userData } = await supabase
+        .from('profiles')
+        .select('credits')
+        .eq('id', user.id)
+        .single();
+
+      if (!userData) {
+        return { success: false, error: 'User not found' };
+      }
+
+      // Update user credits
+      const newBalance = (userData.credits || 0) + amount;
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ credits: newBalance })
+        .eq('id', user.id);
+
+      if (updateError) {
+        return { success: false, error: updateError.message };
+      }
+
+      // Create transaction record in transactions table
+      const { error: transactionError } = await supabase
+        .from('transactions')
+        .insert({
+          user_id: user.id,
+          type: 'credit_purchase',
+          amount: amount,
+          status: 'completed',
+          payment_method: method,
+          reference_id: transactionId,
+          metadata: {
+            timestamp: new Date().toISOString(),
+            previous_balance: userData.credits,
+            new_balance: newBalance
           }
+        });
 
-          // In a real app, we might update a 'checked_in_at' timestamp here
-          // For MVP, just verifying it exists and is active is enough
-          return { success: true, data: true };
-        },
+      if (transactionError) {
+        console.error('Failed to create transaction record:', transactionError);
+        // Note: We don't fail the top-up if transaction recording fails
+        // The credits have already been added successfully
+      }
 
-        updateHighlightPrivacy: async (highlightId: string, isPublic: boolean): Promise<ApiResponse<boolean>> => {
-          const { data: { user } } = await supabase.auth.getUser();
-          if (!user) return { success: false, data: false, error: 'Not authenticated' };
+      return { success: true };
 
-          const { error } = await supabase
-            .from('highlights')
-            .update({ is_public: isPublic })
-            .eq('id', highlightId)
-            .eq('user_id', user.id); // Only allow updating own highlights
+    } catch (error) {
+      console.error('Process top-up error:', error);
+      return { success: false, error: 'Failed to process top-up' };
+    }
+  },
 
-          if (error) {
-            console.error('Update highlight privacy error:', error);
-            return { success: false, data: false, error: error.message };
-          }
+  // Get transaction history
+  getTransactionHistory: async (limit: number = 50): Promise<ApiResponse<any[]>> => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return { success: false, data: [], error: 'Not authenticated' };
 
-          return { success: true, data: true };
-        },
+      const { data, error } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(limit);
 
-        // Process top-up transaction
-        processTopUp: async (
-          transactionId: string,
-          amount: number,
-          method: string
-        ): Promise<{ success: boolean; error?: string }> => {
-        try {
-          const { data: { user } } = await supabase.auth.getUser();
-          if (!user) return { success: false, error: 'User not authenticated' };
+      if (error) {
+        console.error('Get transaction history error:', error);
+        return { success: false, data: [], error: error.message };
+      }
 
-          // Get current credits
-          const { data: userData } = await supabase
-            .from('profiles')
-            .select('credits')
-            .eq('id', user.id)
-            .single();
+      return { success: true, data: data || [] };
+    } catch (error: any) {
+      console.error('Get transaction history exception:', error);
+      return { success: false, data: [], error: error.message || 'Failed to fetch transaction history' };
+    }
+  },
 
-          if (!userData) {
-            return { success: false, error: 'User not found' };
-          }
+  // Get transaction summary
+  getTransactionSummary: async (): Promise<ApiResponse<any>> => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return { success: false, data: null, error: 'Not authenticated' };
 
-          // Update user credits
-          const newBalance = (userData.credits || 0) + amount;
-          const { error: updateError } = await supabase
-            .from('profiles')
-            .update({ credits: newBalance })
-            .eq('id', user.id);
+      const { data, error } = await supabase
+        .rpc('get_transaction_summary', { p_user_id: user.id });
 
-          if (updateError) {
-            return { success: false, error: updateError.message };
-          }
+      if (error) {
+        console.error('Get transaction summary error:', error);
+        return { success: false, data: null, error: error.message };
+      }
 
-          // Create transaction record in transactions table
-          const { error: transactionError } = await supabase
-            .from('transactions')
-            .insert({
-              user_id: user.id,
-              type: 'credit_purchase',
-              amount: amount,
-              status: 'completed',
-              payment_method: method,
-              reference_id: transactionId,
-              metadata: {
-                timestamp: new Date().toISOString(),
-                previous_balance: userData.credits,
-                new_balance: newBalance
-              }
-            });
-
-          if (transactionError) {
-            console.error('Failed to create transaction record:', transactionError);
-            // Note: We don't fail the top-up if transaction recording fails
-            // The credits have already been added successfully
-          }
-
-          return { success: true };
-
-        } catch (error) {
-          console.error('Process top-up error:', error);
-          return { success: false, error: 'Failed to process top-up' };
-        }
-      },
-
-        // Get transaction history
-        getTransactionHistory: async (limit: number = 50): Promise<ApiResponse<any[]>> => {
-          try {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) return { success: false, data: [], error: 'Not authenticated' };
-
-            const { data, error } = await supabase
-              .from('transactions')
-              .select('*')
-              .eq('user_id', user.id)
-              .order('created_at', { ascending: false })
-              .limit(limit);
-
-            if (error) {
-              console.error('Get transaction history error:', error);
-              return { success: false, data: [], error: error.message };
-            }
-
-            return { success: true, data: data || [] };
-          } catch (error: any) {
-            console.error('Get transaction history exception:', error);
-            return { success: false, data: [], error: error.message || 'Failed to fetch transaction history' };
-          }
-        },
-
-        // Get transaction summary
-        getTransactionSummary: async (): Promise<ApiResponse<any>> => {
-          try {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) return { success: false, data: null, error: 'Not authenticated' };
-
-            const { data, error } = await supabase
-              .rpc('get_transaction_summary', { p_user_id: user.id });
-
-            if (error) {
-              console.error('Get transaction summary error:', error);
-              return { success: false, data: null, error: error.message };
-            }
-
-            return { success: true, data: data && data.length > 0 ? data[0] : null };
-          } catch (error: any) {
-            console.error('Get transaction summary exception:', error);
-            return { success: false, data: null, error: error.message || 'Failed to fetch transaction summary' };
-          }
-        }
+      return { success: true, data: data && data.length > 0 ? data[0] : null };
+    } catch (error: any) {
+      console.error('Get transaction summary exception:', error);
+      return { success: false, data: null, error: error.message || 'Failed to fetch transaction summary' };
+    }
+  }
 };
