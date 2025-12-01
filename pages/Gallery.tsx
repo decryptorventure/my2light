@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  Heart, Share2, Download, MessageCircle, ChevronLeft,
-  Eye, TrendingUp, Users, Bookmark, MoreVertical, X
+  Eye, TrendingUp, Users, Bookmark, MoreVertical, X, List, Play
 } from 'lucide-react';
 import { motion, AnimatePresence, useMotionValue, useTransform } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -107,6 +106,9 @@ const VideoCard: React.FC<VideoCardProps> = ({ highlight, index }) => {
   const [showLikeAnim, setShowLikeAnim] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
+  const [showHighlightList, setShowHighlightList] = useState(false);
+  const hasHighlights = highlight.highlightEvents && highlight.highlightEvents.length > 0;
+
   // Swipe gesture
   const x = useMotionValue(0);
   const opacity = useTransform(x, [-150, 0, 150], [0.5, 1, 0.5]);
@@ -144,6 +146,23 @@ const VideoCard: React.FC<VideoCardProps> = ({ highlight, index }) => {
         videoRef.current.play();
       }
     }
+  };
+
+  const handleSeek = (timestamp: number) => {
+    if (videoRef.current) {
+      // Seek to 5 seconds before the highlight to give context
+      videoRef.current.currentTime = Math.max(0, timestamp - 5);
+      videoRef.current.play();
+      setIsPreviewMode(false);
+      videoRef.current.muted = false;
+      setIsPlaying(true);
+    }
+  };
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
   const togglePlay = (e: React.MouseEvent) => {
@@ -229,6 +248,66 @@ const VideoCard: React.FC<VideoCardProps> = ({ highlight, index }) => {
       />
 
       <LikeAnimation isActive={showLikeAnim} onComplete={() => setShowLikeAnim(false)} />
+
+      {/* Highlight List Button (Top Right) */}
+      {hasHighlights && (
+        <div className="absolute top-24 right-4 z-20">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowHighlightList(!showHighlightList);
+            }}
+            className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors shadow-lg backdrop-blur-md ${showHighlightList ? 'bg-lime-400 text-slate-900' : 'bg-black/40 text-white hover:bg-white/20'}`}
+          >
+            <div className="relative">
+              <List size={20} />
+              <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border border-black" />
+            </div>
+          </button>
+        </div>
+      )}
+
+      {/* Highlight List Overlay */}
+      <AnimatePresence>
+        {showHighlightList && hasHighlights && (
+          <motion.div
+            initial={{ x: '100%', opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: '100%', opacity: 0 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+            className="absolute top-36 right-4 bottom-48 w-64 bg-slate-900/90 backdrop-blur-md rounded-2xl border border-slate-700/50 shadow-2xl overflow-hidden flex flex-col z-30"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-4 border-b border-slate-800 flex justify-between items-center">
+              <h3 className="font-bold text-white text-sm">Highlights ({highlight.highlightEvents?.length})</h3>
+              <button onClick={() => setShowHighlightList(false)} className="text-slate-400 hover:text-white">
+                <X size={16} />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-2 space-y-2">
+              {highlight.highlightEvents?.map((event, index) => (
+                <button
+                  key={index}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleSeek(event.timestamp);
+                  }}
+                  className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-white/10 transition-colors group text-left"
+                >
+                  <div className="w-8 h-8 rounded-full bg-lime-400/20 text-lime-400 flex items-center justify-center text-xs font-bold group-hover:bg-lime-400 group-hover:text-slate-900 transition-colors">
+                    {index + 1}
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium text-white">Pha bóng {index + 1}</div>
+                    <div className="text-xs text-slate-400">{formatTime(event.timestamp)}</div>
+                  </div>
+                  <Play size={12} className="ml-auto text-slate-500 group-hover:text-lime-400" />
+                </button>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Play overlay */}
       {!isPlaying && !isPreviewMode && (
