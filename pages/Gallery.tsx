@@ -340,7 +340,19 @@ const VideoCard: React.FC<VideoCardProps> = ({ highlight, index }) => {
                 loading="lazy"
                 className="w-10 h-10 rounded-full border-2 border-white/30"
               />
+              <span className="text-white font-bold drop-shadow-md cursor-pointer hover:underline" onClick={(e) => {
+                e.stopPropagation();
+                navigate(`/player/${highlight.userId}`);
+              }}>
+                {highlight.userName}
+              </span>
             </div>
+            <h2 className="text-white font-bold text-sm mb-1 line-clamp-2 drop-shadow-md">
+              {highlight.title}
+            </h2>
+            <p className="text-white/90 text-xs line-clamp-2 drop-shadow-md">
+              {highlight.description}
+            </p>
           </div>
 
           {/* Actions */}
