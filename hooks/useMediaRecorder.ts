@@ -82,9 +82,27 @@ export const useMediaRecorder = ({
             setHighlightCount(0);
 
             // STEP 3: Create MediaRecorder (CRITICAL - must succeed)
-            const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
-                ? 'video/webm;codecs=vp9'
-                : 'video/webm';
+            // Fallback chain for cross-browser/device support
+            let mimeType = '';
+            const supportedTypes = [
+                'video/webm;codecs=vp9,opus',    // Chrome/Firefox/Edge - best quality
+                'video/webm;codecs=vp8,opus',    // Older Chrome/Firefox
+                'video/webm',                     // Basic WebM
+                'video/mp4;codecs=h264,aac',     // Safari iOS/macOS
+                'video/mp4',                      // Fallback MP4
+            ];
+
+            for (const type of supportedTypes) {
+                if (MediaRecorder.isTypeSupported(type)) {
+                    mimeType = type;
+                    console.log('✅ Using MediaRecorder mimeType:', type);
+                    break;
+                }
+            }
+
+            if (!mimeType) {
+                throw new Error('Thiết bị không hỗ trợ ghi video. Vui lòng dùng trình duyệt khác.');
+            }
 
             const recorder = new MediaRecorder(mediaStream, {
                 mimeType,
