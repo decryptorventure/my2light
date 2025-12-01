@@ -82,23 +82,7 @@ export const SelfRecording: React.FC = () => {
   return (
     <PageTransition>
       <div className="min-h-screen bg-slate-900">
-        {/* Header (Only visible when not uploading/done) */}
-        {step !== 'uploading' && step !== 'done' && (
-          <div className="fixed top-0 left-0 right-0 z-50 bg-slate-900/80 backdrop-blur-md border-b border-slate-800 px-4 py-3 pt-safe flex items-center justify-between">
-            <button onClick={() => navigate(-1)} className="p-2 -ml-2 text-white hover:bg-white/10 rounded-full transition">
-              <ChevronLeft size={24} />
-            </button>
-
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setShowSettings(true)}
-                className="p-2 text-white hover:bg-white/10 rounded-full transition"
-              >
-                <Settings size={24} />
-              </button>
-            </div>
-          </div>
-        )}
+        {/* Header Removed as per user request */}
 
         {/* Main Content Area */}
         <div className="pt-0 pb-safe h-screen flex flex-col">
@@ -113,6 +97,14 @@ export const SelfRecording: React.FC = () => {
                 exit={{ opacity: 0 }}
                 className="flex-1 relative bg-black"
               >
+                {/* Back Button (Overlay) */}
+                <button
+                  onClick={() => navigate(-1)}
+                  className="absolute top-12 left-4 z-50 p-2 bg-black/40 backdrop-blur-md rounded-full text-white hover:bg-black/60 transition"
+                >
+                  <ChevronLeft size={24} />
+                </button>
+
                 {/* Storage Warning Banner */}
                 {(storageWarning || isMemoryMode) && (
                   <motion.div
