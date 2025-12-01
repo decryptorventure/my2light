@@ -7,7 +7,13 @@ interface UseMediaRecorderProps {
     onStorageWarning?: (message: string) => void;
 }
 
-interface UseMediaRecorderReturn {
+export interface HighlightEvent {
+    id: string;
+    timestamp: number; // Relative time in seconds
+    label: string;
+}
+
+export interface UseMediaRecorderReturn {
     startRecording: (sessionId: string) => Promise<void>;
     stopRecording: () => Promise<void>;
     addHighlight: () => void;
@@ -19,6 +25,7 @@ interface UseMediaRecorderReturn {
     stream: MediaStream | null;
     error: Error | null;
     highlightCount: number;
+    highlightEvents: HighlightEvent[];
     facingMode: 'user' | 'environment';
     isMemoryMode: boolean;
 }
@@ -34,6 +41,7 @@ export const useMediaRecorder = ({
     const [stream, setStream] = useState<MediaStream | null>(null);
     const [error, setError] = useState<Error | null>(null);
     const [highlightCount, setHighlightCount] = useState(0);
+    const [highlightEvents, setHighlightEvents] = useState<HighlightEvent[]>([]);
     const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user');
     const [isMemoryMode, setIsMemoryMode] = useState(false);
 
@@ -42,22 +50,16 @@ export const useMediaRecorder = ({
     const chunkIdRef = useRef<number>(0);
     const startTimeRef = useRef<number>(0);
     const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
-    const highlightEventsRef = useRef<number[]>([]);
+    const highlightEventsRef = useRef<HighlightEvent[]>([]);
 
     // Cleanup on unmount
     useEffect(() => {
         return () => {
-            if (stream) {
-                stream.getTracks().forEach(track => track.stop());
-            }
-        };
-    }, [stream]);
-
-    // Separate cleanup for timer to prevent it from being cleared when stream changes
-    useEffect(() => {
-        return () => {
             if (timerIntervalRef.current) {
                 clearInterval(timerIntervalRef.current);
+            }
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
             }
         };
     }, []);
@@ -112,6 +114,7 @@ export const useMediaRecorder = ({
             chunkIdRef.current = 0;
             highlightEventsRef.current = [];
             setHighlightCount(0);
+            setHighlightEvents([]);
 
             // STEP 3: Create MediaRecorder (CRITICAL - must succeed)
             // Fallback chain for cross-browser/device support
@@ -183,7 +186,7 @@ export const useMediaRecorder = ({
             // Start timer - runs regardless of storage
             timerIntervalRef.current = setInterval(() => {
                 const elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000);
-                console.log('[Timer] Update:', elapsed, 'seconds');
+                // console.log('[Timer] Update:', elapsed, 'seconds');
                 setDuration(elapsed);
             }, 1000);
 
@@ -229,73 +232,84 @@ export const useMediaRecorder = ({
      * Stop recording
      */
     const stopRecording = useCallback(async () => {
-        if (mediaRecorderRef.current && isRecording) {
-            mediaRecorderRef.current.stop();
+        if (!mediaRecorderRef.current || !isRecording) return;
 
-            if (stream) {
-                stream.getTracks().forEach(track => track.stop());
-            }
-
-            if (timerIntervalRef.current) {
-                clearInterval(timerIntervalRef.current);
-                timerIntervalRef.current = null;
-            }
-
-            setIsRecording(false);
-            setStream(null);
-
-            // Try to update final metadata (non-critical)
-            if (sessionIdRef.current) {
-                try {
-                    const currentMeta = await VideoStorage.getSessionMetadata(sessionIdRef.current);
-                    if (currentMeta) {
-                        await VideoStorage.saveSessionMetadata({
-                            ...currentMeta,
-                            status: 'completed',
-                            highlightEvents: highlightEventsRef.current
-                        });
-                    }
-                } catch (err) {
-                    console.warn('⚠️ Final metadata update failed:', err);
+        return new Promise<void>((resolve) => {
+            const stopHandler = async () => {
+                if (timerIntervalRef.current) {
+                    clearInterval(timerIntervalRef.current);
                 }
-            }
+                setIsRecording(false);
+                setIsPaused(false);
 
-            console.log('✅ Recording stopped');
-        }
+                // Stop all tracks to release camera
+                if (stream) {
+                    stream.getTracks().forEach(track => track.stop());
+                    setStream(null);
+                }
+
+                // Update final metadata
+                if (sessionIdRef.current) {
+                    try {
+                        const currentMeta = await VideoStorage.getSessionMetadata(sessionIdRef.current);
+                        if (currentMeta) {
+                            await VideoStorage.saveSessionMetadata({
+                                ...currentMeta,
+                                status: 'completed',
+                                endTime: Date.now(),
+                                highlightEvents: highlightEventsRef.current
+                            });
+                        }
+                    } catch (err) {
+                        console.error('Failed to save final metadata:', err);
+                    }
+                }
+
+                resolve();
+            };
+
+            mediaRecorderRef.current!.onstop = stopHandler;
+            mediaRecorderRef.current!.stop();
+        });
     }, [isRecording, stream]);
 
     /**
-     * Mark highlight - works in memory, persists if possible
+     * Add highlight marker
      */
     const addHighlight = useCallback(() => {
-        if (isRecording && sessionIdRef.current) {
-            const timestamp = Date.now();
+        if (!isRecording) return;
 
-            // ALWAYS update memory (CRITICAL)
-            highlightEventsRef.current.push(timestamp);
-            setHighlightCount(prev => prev + 1);
+        const timestamp = Math.floor((Date.now() - startTimeRef.current) / 1000);
 
-            console.log('✅ Highlight marked:', highlightEventsRef.current.length);
+        // Create new event
+        const newEvent: HighlightEvent = {
+            id: crypto.randomUUID(),
+            timestamp,
+            label: `Highlight ${highlightEventsRef.current.length + 1}`
+        };
 
-            // Try to persist (NON-CRITICAL)
-            (async () => {
-                try {
-                    const currentMeta = await VideoStorage.getSessionMetadata(sessionIdRef.current!);
-                    if (currentMeta) {
-                        await VideoStorage.saveSessionMetadata({
-                            ...currentMeta,
-                            highlightEvents: highlightEventsRef.current
-                        });
-                    }
-                } catch (err) {
-                    console.warn('⚠️ Highlight persist failed (non-fatal):', err);
+        // Update refs and state
+        highlightEventsRef.current.push(newEvent);
+        setHighlightEvents(prev => [...prev, newEvent]);
+        setHighlightCount(prev => prev + 1);
+
+        console.log('✅ Highlight marked at:', timestamp, 's');
+
+        // Update metadata in storage (non-blocking)
+        if (sessionIdRef.current) {
+            VideoStorage.getSessionMetadata(sessionIdRef.current).then(meta => {
+                if (meta) {
+                    VideoStorage.saveSessionMetadata({
+                        ...meta,
+                        highlightEvents: highlightEventsRef.current
+                    });
                 }
-            })();
+            }).catch(console.error);
         }
     }, [isRecording]);
 
     /**
-     * Switch camera (front/back)
+     * Switch camera (Front/Back)
      * Only works when NOT recording
      */
     const switchCamera = useCallback(async () => {
@@ -386,6 +400,7 @@ export const useMediaRecorder = ({
         stream,
         error,
         highlightCount,
+        highlightEvents,
         facingMode,
         isMemoryMode
     };

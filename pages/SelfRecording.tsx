@@ -1,56 +1,72 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
 import {
-  ChevronLeft, Square, Sparkles, Play, Check, Download,
-  RefreshCw, X, Clock, Settings, Pause, Mic, Info, UploadCloud, AlertCircle
+  Camera, X, Settings, Mic, Zap, RotateCcw,
+  CheckCircle, AlertTriangle, ChevronLeft, RefreshCw,
+  Play, Pause, Download, Upload, Calendar, MapPin
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { PageTransition } from '../components/Layout/PageTransition';
 import { Button } from '../components/ui/Button';
-import { useToast } from '../components/ui/Toast';
-import { celebrate, fireworks } from '../lib/confetti';
 import { useMediaRecorder } from '../hooks/useMediaRecorder';
 import { UploadService } from '../services/uploadService';
-import { Modal } from '../components/ui/Modal';
 import { VideoStorage } from '../lib/storage';
+import { supabase } from '../lib/supabase';
 
-type RecordingStep = 'ready' | 'recording' | 'preview' | 'uploading' | 'done';
+// Types
+type RecordingStep = 'ready' | 'recording' | 'preview' | 'upload_form' | 'uploading' | 'done';
+
+interface Court {
+  id: string;
+  name: string;
+}
 
 export const SelfRecording: React.FC = () => {
   const navigate = useNavigate();
-  const { showToast } = useToast();
+  const [step, setStep] = useState<RecordingStep>('ready');
+  const [sessionId, setSessionId] = useState<string>('');
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [storageWarning, setStorageWarning] = useState<string | null>(null);
+  const [courts, setCourts] = useState<Court[]>([]);
+
+  // Form State
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [selectedCourtId, setSelectedCourtId] = useState<string>('');
+
+  // Preview State
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const previewVideoRef = useRef<HTMLVideoElement>(null);
+  const [isPlayingPreview, setIsPlayingPreview] = useState(false);
+
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  // State
-  const [step, setStep] = useState<RecordingStep>('ready');
-  const [sessionId] = useState(() => crypto.randomUUID());
-  const [showSettings, setShowSettings] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [voiceCommandEnabled, setVoiceCommandEnabled] = useState(false);
-  const [highlightDuration, setHighlightDuration] = useState(15);
-  const [storageWarning, setStorageWarning] = useState<string | null>(null);
-
-  // Recording Hook
   const {
     startRecording,
     stopRecording,
     addHighlight,
     switchCamera,
     isRecording,
-    isPaused,
     duration,
     stream,
     highlightCount,
+    highlightEvents,
     error,
     facingMode,
-    isMemoryMode,
-    enableStream
+    isMemoryMode
   } = useMediaRecorder({
     onError: (err) => showToast(`Lỗi quay video: ${err.message}`, 'error'),
     onStorageWarning: (msg) => setStorageWarning(msg)
   });
 
-
+  // Fetch courts on mount
+  useEffect(() => {
+    const fetchCourts = async () => {
+      const { data } = await supabase.from('courts').select('id, name').limit(10);
+      if (data) setCourts(data);
+    };
+    fetchCourts();
+  }, []);
 
   // Effect to attach stream to video element
   useEffect(() => {
@@ -59,475 +75,467 @@ export const SelfRecording: React.FC = () => {
     }
   }, [stream]);
 
+  // Helper to format time
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  // Toast helper (simplified)
+  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+    // In a real app, use a toast context
+    console.log(`[${type.toUpperCase()}] ${message}`);
+    // You might want to add a local toast state here if needed
+  };
+
+  // --- Handlers ---
+
   const handleStart = async () => {
+    const newSessionId = crypto.randomUUID();
+    setSessionId(newSessionId);
     try {
-      console.log('[SelfRecording] Starting recording...', sessionId);
-      await startRecording(sessionId);
-      console.log('[SelfRecording] Recording started, isRecording:', isRecording);
+      await startRecording(newSessionId);
       setStep('recording');
     } catch (err) {
-      console.error('[SelfRecording] Start failed:', err);
       // Error handled by hook
     }
   };
 
   const handleStop = async () => {
     await stopRecording();
-    setStep('preview'); // Go to preview first
+
+    // Generate preview URL from stored chunks
+    try {
+      const blob = await VideoStorage.getSessionBlob(sessionId);
+      if (blob) {
+        const url = URL.createObjectURL(blob);
+        setPreviewUrl(url);
+      }
+    } catch (err) {
+      console.error('Failed to generate preview:', err);
+    }
+
+    setStep('preview');
   };
 
   const handleMarkHighlight = () => {
     addHighlight();
-    showToast('Đã đánh dấu Highlight! 🏆', 'success');
-    celebrate({ particleCount: 30, spread: 50 });
+    showToast('Đã đánh dấu highlight!', 'success');
   };
 
-  return (
-    <PageTransition>
-      <div className="min-h-screen bg-slate-900">
-        {/* Header Removed as per user request */}
+  const handleSeekToHighlight = (timestamp: number) => {
+    if (previewVideoRef.current) {
+      // Seek to 15 seconds before the highlight (or 0 if less)
+      const seekTime = Math.max(0, timestamp - 15);
+      previewVideoRef.current.currentTime = seekTime;
+      previewVideoRef.current.play();
+      setIsPlayingPreview(true);
+    }
+  };
 
-        {/* Main Content Area */}
-        <div className="pt-0 pb-safe h-screen flex flex-col">
-          <AnimatePresence mode="wait">
+  const handleDownload = async () => {
+    if (previewUrl) {
+      const a = document.createElement('a');
+      a.href = previewUrl;
+      a.download = `my2light-recording-${new Date().toISOString()}.webm`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      showToast('Đang tải video xuống...', 'success');
+    }
+  };
 
-            {/* READY & RECORDING STATE */}
-            {(step === 'ready' || step === 'recording') && (
-              <motion.div
-                key="camera-view"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="flex-1 relative bg-black"
-              >
-                {/* Back Button (Overlay) */}
-                <button
-                  onClick={() => navigate(-1)}
-                  className="absolute top-12 left-4 z-50 p-2 bg-black/40 backdrop-blur-md rounded-full text-white hover:bg-black/60 transition"
-                >
-                  <ChevronLeft size={24} />
-                </button>
+  const handleProceedToUpload = () => {
+    // Set default title
+    setTitle(`Highlight ${new Date().toLocaleString()}`);
+    setStep('upload_form');
+  };
 
-                {/* Storage Warning Banner */}
-                {(storageWarning || isMemoryMode) && (
-                  <motion.div
-                    initial={{ y: -100, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    className="absolute top-0 left-0 right-0 z-50 bg-yellow-500/95 backdrop-blur-md p-4"
-                  >
-                    <div className="flex items-start gap-3 max-w-md mx-auto">
-                      <AlertCircle size={24} className="flex-shrink-0 text-yellow-900" />
-                      <div className="flex-1">
-                        <h3 className="font-bold text-yellow-900 mb-1">Cảnh báo lưu trữ</h3>
-                        <p className="text-sm text-yellow-900">
-                          {storageWarning || 'Đang dùng bộ nhớ tạm. Video sẽ mất nếu đóng ứng dụng. Vui lòng upload ngay sau khi quay!'}
-                        </p>
-                      </div>
-                      <button
-                        onClick={() => setStorageWarning(null)}
-                        className="text-yellow-900 hover:text-yellow-950"
-                      >
-                        <X size={20} />
-                      </button>
-                    </div>
-                  </motion.div>
-                )}
+  const handleUpload = async () => {
+    if (!sessionId) return;
 
-                {/* Camera Preview */}
-                {stream ? (
-                  <video
-                    ref={videoRef}
-                    className="w-full h-full object-cover"
-                    autoPlay
-                    playsInline
-                    muted
-                  />
-                ) : (
-                  <div className="w-full h-full flex flex-col items-center justify-center bg-slate-900 px-6">
-                    {step === 'ready' && (
-                      <>
-                        <h2 className="text-xl font-bold text-white mb-6">Cài đặt quay</h2>
+    setStep('uploading');
+    try {
+      await UploadService.uploadSession(sessionId, (progress) => {
+        setUploadProgress(progress);
+      }, {
+        title,
+        description,
+        courtId: selectedCourtId || null,
+        highlightEvents,
+        duration
+      });
 
-                        {/* Voice Command Toggle */}
-                        <div className="w-full max-w-md mb-6">
-                          <div className="flex items-center justify-between p-4 bg-slate-800 rounded-xl">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-1">
-                                <Mic size={18} className="text-lime-400" />
-                                <span className="font-bold text-white">Nhận diện giọng nói</span>
-                              </div>
-                              <p className="text-xs text-slate-400">
-                                Nói "Highlight" để đánh dấu tự động
-                              </p>
-                            </div>
-                            <button
-                              onClick={() => setVoiceCommandEnabled(!voiceCommandEnabled)}
-                              className={`w-12 h-6 rounded-full transition-colors relative ${voiceCommandEnabled ? 'bg-lime-400' : 'bg-slate-700'
-                                }`}
-                            >
-                              <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${voiceCommandEnabled ? 'left-7' : 'left-1'
-                                }`} />
-                            </button>
-                          </div>
-                        </div>
+      setStep('done');
+      showToast('Tải lên thành công!', 'success');
+    } catch (err: any) {
+      console.error('Upload failed:', err);
+      showToast(err.message || 'Lỗi tải lên', 'error');
+      setStep('preview'); // Go back to preview on error
+    }
+  };
 
-                        {/* Highlight Duration Slider */}
-                        <div className="w-full max-w-md mb-8">
-                          <div className="p-4 bg-slate-800 rounded-xl">
-                            <div className="flex items-center justify-between mb-3">
-                              <div className="flex items-center gap-2">
-                                <Clock size={18} className="text-lime-400" />
-                                <span className="font-bold text-white">Thời gian rollback</span>
-                              </div>
-                              <span className="text-lime-400 font-bold">{highlightDuration}s</span>
-                            </div>
-                            <input
-                              type="range"
-                              min="5"
-                              max="60"
-                              step="5"
-                              value={highlightDuration}
-                              onChange={(e) => setHighlightDuration(Number(e.target.value))}
-                              className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer"
-                              style={{
-                                background: `linear-gradient(to right, #a3e635 0%, #a3e635 ${((highlightDuration - 5) / 55) * 100}%, #334155 ${((highlightDuration - 5) / 55) * 100}%, #334155 100%)`
-                              }}
-                            />
-                            <div className="flex justify-between text-xs text-slate-500 mt-2">
-                              <span>5s</span>
-                              <span>30s</span>
-                              <span>60s</span>
-                            </div>
-                          </div>
-                        </div>
+  // --- Render Views ---
 
-                        <p className="text-center text-slate-400 text-sm">
-                          Điều chỉnh cài đặt trước khi bắt đầu quay
-                        </p>
-                      </>
-                    )}
-                  </div>
-                )}
-
-                {/* Recording Overlay */}
-                {step === 'recording' && (
-                  <div className="absolute top-24 left-0 right-0 flex flex-col items-center gap-2 pointer-events-none">
-                    <div className="bg-black/60 backdrop-blur-md rounded-full px-4 py-2 flex items-center gap-3">
-                      <div className={`w-3 h-3 rounded-full ${isPaused ? 'bg-yellow-400' : 'bg-red-500 animate-pulse'}`} />
-                      <span className="text-xl font-mono font-black text-white">
-                        {formatTime(duration)}
-                      </span>
-                      {/* Debug info */}
-                      <span className="text-xs text-yellow-400 ml-2">({duration}s)</span>
-                    </div>
-
-                    {highlightCount > 0 && (
-                      <motion.div
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        className="bg-lime-400/90 rounded-full px-3 py-1 flex items-center gap-2"
-                      >
-                        <Sparkles size={14} className="text-slate-900" />
-                        <span className="text-sm font-bold text-slate-900">
-                          {highlightCount} Highlights
-                        </span>
-                      </motion.div>
-                    )}
-                  </div>
-                )}
-
-                {/* Controls */}
-                <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black via-black/80 to-transparent pb-safe-bottom pt-20">
-                  {step === 'recording' ? (
-                    <div className="grid grid-cols-3 gap-4 items-end">
-                      {/* Placeholder for future Pause/Resume */}
-                      <div />
-
-                      {/* Mark Highlight (Center, Large) */}
-                      <button
-                        onClick={handleMarkHighlight}
-                        className="flex flex-col items-center gap-2 -mt-4"
-                      >
-                        <div className="w-24 h-24 bg-lime-400 rounded-full flex items-center justify-center shadow-lg shadow-lime-400/30 active:scale-95 transition border-4 border-black/20">
-                          <Sparkles size={40} className="text-slate-900" />
-                        </div>
-                        <span className="text-xs text-lime-400 font-bold uppercase tracking-wider">Highlight</span>
-                      </button>
-
-                      {/* Stop */}
-                      <button
-                        onClick={handleStop}
-                        className="flex flex-col items-center gap-2 group"
-                      >
-                        <div className="w-14 h-14 bg-red-500/20 border-2 border-red-500 rounded-full flex items-center justify-center text-red-500 active:bg-red-500 active:text-white transition">
-                          <Square size={24} fill="currentColor" />
-                        </div>
-                        <span className="text-xs text-red-400 font-medium">Kết thúc</span>
-                      </button>
-                    </div>
-                  ) : (
-                    /* Start Button */
-                    <div className="pb-8">
-                      <Button
-                        onClick={handleStart}
-                        size="xl"
-                        className="w-full py-6 text-lg shadow-xl shadow-lime-400/20"
-                        icon={<Play size={28} fill="currentColor" />}
-                      >
-                        Bắt đầu quay
-                      </Button>
-                      <p className="text-center text-slate-400 text-sm mt-4">
-                        Nhấn quay để bắt đầu ghi lại trận đấu của bạn
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Camera Switch Button - Top Right (Show during recording) */}
-                  {step === 'recording' && (
-                    <motion.button
-                      key="camera-switch"
-                      initial={{ opacity: 0, scale: 0.8 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      onClick={async (e) => {
-                        e.stopPropagation(); // Prevent bubbling
-                        try {
-                          console.log('[Camera] Switching camera...');
-                          await switchCamera();
-                          showToast(`Đã chuyển sang camera ${facingMode === 'user' ? 'sau' : 'trước'}`, 'success');
-                        } catch (err) {
-                          console.error('[Camera] Switch failed:', err);
-                        }
-                      }}
-                      className="absolute top-4 right-4 w-12 h-12 bg-slate-900/50 backdrop-blur-md border border-white/20 rounded-full flex items-center justify-center text-white hover:bg-slate-800 active:scale-95 transition-all shadow-xl z-[100]"
-                    >
-                      <RefreshCw size={20} />
-                    </motion.button>
-                  )}
-                </div>
-              </motion.div>
-            )}
-
-            {/* PREVIEW STATE */}
-            {step === 'preview' && (
-              <PreviewStep
-                sessionId={sessionId}
-                highlightCount={highlightCount}
-                onConfirm={() => setStep('uploading')}
-                onRetake={() => setStep('ready')}
-              />
-            )}
-
-            {/* UPLOADING STATE */}
-            {step === 'uploading' && (
-              <UploadStep
-                sessionId={sessionId}
-                onComplete={() => setStep('done')}
-                onProgress={setUploadProgress}
-              />
-            )}
-
-            {/* DONE STATE */}
-            {step === 'done' && (
-              <DoneStep
-                onGoHome={() => navigate('/home')}
-                highlightCount={highlightCount}
-              />
-            )}
-
-          </AnimatePresence>
+  // 1. Uploading View
+  if (step === 'uploading') {
+    return (
+      <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-6 text-white">
+        <div className="w-24 h-24 rounded-full border-4 border-slate-700 border-t-lime-400 animate-spin mb-6 flex items-center justify-center">
+          <span className="text-xl font-bold text-lime-400">{Math.round(uploadProgress * 100)}%</span>
         </div>
+        <h2 className="text-2xl font-bold mb-2">Đang tải lên...</h2>
+        <p className="text-slate-400 text-center max-w-xs">
+          Video đang được gửi lên server để xử lý. Vui lòng không tắt ứng dụng.
+        </p>
+      </div>
+    );
+  }
 
-        {/* Settings Modal */}
-        <Modal
-          isOpen={showSettings}
-          onClose={() => setShowSettings(false)}
-          title="Hướng dẫn"
-        >
-          <div className="space-y-4">
-            <p className="text-slate-300">
-              Quay toàn bộ trận đấu. Khi có pha bóng hay, nhấn nút <b>Highlight</b>.
-              Hệ thống sẽ tự động cắt video sau khi bạn kết thúc.
-            </p>
-            <Button onClick={() => setShowSettings(false)} className="w-full">
-              Đã hiểu
+  // 2. Done View
+  if (step === 'done') {
+    return (
+      <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-6 text-white">
+        <div className="w-20 h-20 bg-lime-400/20 rounded-full flex items-center justify-center mb-6 text-lime-400">
+          <CheckCircle size={40} />
+        </div>
+        <h2 className="text-2xl font-bold mb-2">Hoàn tất!</h2>
+        <p className="text-slate-400 text-center mb-8">
+          Video của bạn đã được lưu và đang được xử lý. Bạn có thể xem lại trong thư viện.
+        </p>
+        <div className="flex gap-4 w-full max-w-xs">
+          <Button
+            className="flex-1 bg-slate-800"
+            onClick={() => navigate('/')}
+          >
+            Về trang chủ
+          </Button>
+          <Button
+            className="flex-1 bg-lime-400 text-slate-900"
+            onClick={() => {
+              setStep('ready');
+              setSessionId('');
+              setPreviewUrl(null);
+            }}
+          >
+            Quay tiếp
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // 3. Upload Form View
+  if (step === 'upload_form') {
+    return (
+      <PageTransition>
+        <div className="min-h-screen bg-slate-900 text-white flex flex-col">
+          {/* Header */}
+          <div className="p-4 flex items-center gap-4 border-b border-slate-800">
+            <button onClick={() => setStep('preview')} className="p-2 hover:bg-slate-800 rounded-full">
+              <ChevronLeft size={24} />
+            </button>
+            <h1 className="text-lg font-bold">Thông tin Video</h1>
+          </div>
+
+          <div className="flex-1 p-6 space-y-6">
+            {/* Title */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-400">Tiêu đề</label>
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                className="w-full bg-slate-800 border border-slate-700 rounded-xl p-4 text-white focus:border-lime-400 focus:outline-none transition-colors"
+                placeholder="Nhập tiêu đề video..."
+              />
+            </div>
+
+            {/* Description */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-400">Mô tả</label>
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                className="w-full bg-slate-800 border border-slate-700 rounded-xl p-4 text-white focus:border-lime-400 focus:outline-none transition-colors h-32 resize-none"
+                placeholder="Mô tả trận đấu..."
+              />
+            </div>
+
+            {/* Court Selection */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-400">Sân đấu</label>
+              <div className="grid grid-cols-1 gap-2">
+                {courts.map(court => (
+                  <button
+                    key={court.id}
+                    onClick={() => setSelectedCourtId(court.id)}
+                    className={`p-4 rounded-xl border text-left transition-all ${selectedCourtId === court.id
+                        ? 'bg-lime-400/10 border-lime-400 text-lime-400'
+                        : 'bg-slate-800 border-slate-700 text-slate-300 hover:border-slate-600'
+                      }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <MapPin size={18} />
+                      <span className="font-medium">{court.name}</span>
+                    </div>
+                  </button>
+                ))}
+                <button
+                  onClick={() => setSelectedCourtId('')}
+                  className={`p-4 rounded-xl border text-left transition-all ${selectedCourtId === ''
+                      ? 'bg-lime-400/10 border-lime-400 text-lime-400'
+                      : 'bg-slate-800 border-slate-700 text-slate-300 hover:border-slate-600'
+                    }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <MapPin size={18} />
+                    <span className="font-medium">Sân khác / Không xác định</span>
+                  </div>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="p-6 border-t border-slate-800 bg-slate-900/95 backdrop-blur-md">
+            <Button
+              className="w-full bg-lime-400 hover:bg-lime-500 text-slate-900 font-bold py-4 text-lg"
+              onClick={handleUpload}
+            >
+              Đăng Video
             </Button>
           </div>
-        </Modal>
+        </div>
+      </PageTransition>
+    );
+  }
+
+  // 4. Preview View
+  if (step === 'preview') {
+    return (
+      <PageTransition>
+        <div className="min-h-screen bg-slate-900 text-white flex flex-col">
+          {/* Header */}
+          <div className="p-4 flex items-center justify-between border-b border-slate-800">
+            <button onClick={() => {
+              if (confirm('Bạn có chắc muốn bỏ video này và quay lại?')) {
+                setStep('ready');
+                setPreviewUrl(null);
+              }
+            }} className="p-2 hover:bg-slate-800 rounded-full">
+              <X size={24} />
+            </button>
+            <h1 className="text-lg font-bold">Xem lại Video</h1>
+            <button onClick={handleDownload} className="p-2 hover:bg-slate-800 rounded-full text-lime-400">
+              <Download size={24} />
+            </button>
+          </div>
+
+          {/* Video Player */}
+          <div className="aspect-video bg-black relative">
+            {previewUrl ? (
+              <video
+                ref={previewVideoRef}
+                src={previewUrl}
+                className="w-full h-full object-contain"
+                controls
+                onPlay={() => setIsPlayingPreview(true)}
+                onPause={() => setIsPlayingPreview(false)}
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+              </div>
+            )}
+          </div>
+
+          {/* Highlights List */}
+          <div className="flex-1 overflow-y-auto p-4">
+            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">
+              Danh sách Highlight ({highlightEvents.length})
+            </h3>
+
+            <div className="space-y-3">
+              {highlightEvents.length === 0 ? (
+                <div className="text-center py-8 text-slate-500">
+                  <p>Không có highlight nào được đánh dấu.</p>
+                </div>
+              ) : (
+                highlightEvents.map((event, index) => (
+                  <button
+                    key={event.id}
+                    onClick={() => handleSeekToHighlight(event.timestamp)}
+                    className="w-full bg-slate-800 hover:bg-slate-700 p-4 rounded-xl flex items-center justify-between group transition-colors"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-full bg-lime-400/10 text-lime-400 flex items-center justify-center font-bold">
+                        {index + 1}
+                      </div>
+                      <div className="text-left">
+                        <div className="font-bold text-white">Highlight {index + 1}</div>
+                        <div className="text-sm text-slate-400">
+                          {formatTime(Math.max(0, event.timestamp - 15))} - {formatTime(event.timestamp)}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center group-hover:bg-lime-400 group-hover:text-slate-900 transition-colors">
+                      <Play size={14} className="ml-0.5" />
+                    </div>
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* Footer Actions */}
+          <div className="p-6 border-t border-slate-800 bg-slate-900/95 backdrop-blur-md">
+            <Button
+              className="w-full bg-lime-400 hover:bg-lime-500 text-slate-900 font-bold py-4 text-lg flex items-center justify-center gap-2"
+              onClick={handleProceedToUpload}
+            >
+              <Upload size={20} />
+              Đăng lên Thư viện
+            </Button>
+          </div>
+        </div>
+      </PageTransition>
+    );
+  }
+
+  // 5. Recording & Ready View
+  return (
+    <PageTransition>
+      <div className="fixed inset-0 bg-black text-white overflow-hidden">
+        {/* Storage Warning */}
+        <AnimatePresence>
+          {storageWarning && (
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="absolute top-20 left-4 right-4 bg-yellow-500/90 backdrop-blur-md rounded-xl p-4 z-50"
+            >
+              <div className="flex items-start gap-3">
+                <AlertTriangle size={24} className="text-yellow-950 flex-shrink-0" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-yellow-950">{storageWarning}</p>
+                  <button
+                    onClick={() => setStorageWarning(null)}
+                    className="text-xs font-bold text-yellow-900 mt-2 underline"
+                  >
+                    Đã hiểu
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Camera Preview */}
+        {stream ? (
+          <video
+            ref={videoRef}
+            className="w-full h-full object-cover"
+            autoPlay
+            playsInline
+            muted
+          />
+        ) : (
+          <div className="w-full h-full flex flex-col items-center justify-center bg-slate-900 px-6">
+            <div className="w-20 h-20 bg-slate-800 rounded-full flex items-center justify-center mb-6 animate-pulse">
+              <Camera size={40} className="text-slate-500" />
+            </div>
+            <h2 className="text-xl font-bold mb-2">Đang khởi động camera...</h2>
+            <p className="text-slate-400 text-center">
+              Vui lòng cho phép truy cập camera và microphone để bắt đầu quay.
+            </p>
+          </div>
+        )}
+
+        {/* Overlays */}
+        <div className="absolute inset-0 flex flex-col justify-between p-6 z-10">
+          {/* Top Bar */}
+          <div className="flex justify-between items-start">
+            {step === 'ready' ? (
+              <button
+                onClick={() => navigate(-1)}
+                className="w-10 h-10 bg-black/20 backdrop-blur-md rounded-full flex items-center justify-center text-white hover:bg-black/40 transition-colors"
+              >
+                <ChevronLeft size={24} />
+              </button>
+            ) : (
+              <div className="bg-red-500/90 backdrop-blur-md px-3 py-1 rounded-full flex items-center gap-2 animate-pulse">
+                <div className="w-2 h-2 bg-white rounded-full" />
+                <span className="text-xs font-bold uppercase tracking-wider">REC</span>
+                <span className="text-xs font-mono w-12">{formatTime(duration)}</span>
+              </div>
+            )}
+
+            {/* Camera Switch Button - Top Right (Show during recording) */}
+            {step === 'recording' && (
+              <motion.button
+                key="camera-switch"
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                onClick={async (e) => {
+                  e.stopPropagation();
+                  try {
+                    await switchCamera();
+                    showToast(`Đã chuyển camera`, 'success');
+                  } catch (err) {
+                    console.error('[Camera] Switch failed:', err);
+                  }
+                }}
+                className="absolute top-4 right-4 w-12 h-12 bg-slate-900/50 backdrop-blur-md border border-white/20 rounded-full flex items-center justify-center text-white hover:bg-slate-800 active:scale-95 transition-all shadow-xl z-[100]"
+              >
+                <RefreshCw size={20} />
+              </motion.button>
+            )}
+          </div>
+
+          {/* Bottom Controls */}
+          <div className="flex flex-col gap-6 items-center">
+            {step === 'recording' && (
+              <div className="flex items-center gap-2 bg-black/40 backdrop-blur-md px-4 py-2 rounded-full">
+                <Zap size={16} className="text-lime-400 fill-lime-400" />
+                <span className="font-bold text-lime-400">{highlightCount}</span>
+                <span className="text-sm text-white/80">Highlights</span>
+              </div>
+            )}
+
+            <div className="flex items-center gap-8">
+              {step === 'ready' ? (
+                <button
+                  onClick={handleStart}
+                  className="w-20 h-20 bg-red-500 rounded-full border-4 border-white flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-lg shadow-red-500/20"
+                >
+                  <div className="w-8 h-8 bg-white rounded-sm" />
+                </button>
+              ) : (
+                <>
+                  {/* Highlight Button */}
+                  <button
+                    onClick={handleMarkHighlight}
+                    className="w-14 h-14 bg-lime-400 rounded-full flex items-center justify-center text-slate-900 hover:bg-lime-300 active:scale-95 transition-all shadow-lg shadow-lime-400/20"
+                  >
+                    <Zap size={24} className="fill-current" />
+                  </button>
+
+                  {/* Stop Button */}
+                  <button
+                    onClick={handleStop}
+                    className="w-20 h-20 bg-white rounded-full flex items-center justify-center hover:scale-105 active:scale-95 transition-all"
+                  >
+                    <div className="w-8 h-8 bg-red-500 rounded-sm" />
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
     </PageTransition>
-  );
-};
-
-// --- Sub-components ---
-
-const formatTime = (seconds: number) => {
-  const mins = Math.floor(seconds / 60);
-  const secs = seconds % 60;
-  return `${mins}:${secs.toString().padStart(2, '0')}`;
-};
-
-const PreviewStep: React.FC<{
-  sessionId: string;
-  highlightCount: number;
-  onConfirm: () => void;
-  onRetake: () => void;
-}> = ({ sessionId, highlightCount, onConfirm, onRetake }) => {
-  return (
-    <motion.div
-      key="preview"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="flex-1 flex flex-col bg-slate-900"
-    >
-      {/* Preview Content */}
-      <div className="flex-1 flex items-center justify-center p-6">
-        <div className="text-center">
-          <div className="w-32 h-32 mx-auto mb-6 bg-lime-400/20 rounded-full flex items-center justify-center">
-            <Sparkles size={64} className="text-lime-400" />
-          </div>
-          <h2 className="text-2xl font-bold text-white mb-2">
-            Quay xong!
-          </h2>
-          <p className="text-slate-400 mb-2">
-            Đã ghi {highlightCount} highlights
-          </p>
-          <p className="text-sm text-slate-500">
-            Session ID: {sessionId.slice(0, 8)}...
-          </p>
-        </div>
-      </div>
-
-      {/* Actions */}
-      <div className="p-6 pb-safe-bottom space-y-3">
-        <Button
-          onClick={onConfirm}
-          size="xl"
-          className="w-full"
-          icon={<UploadCloud size={24} />}
-        >
-          Lưu và Upload
-        </Button>
-        <Button
-          onClick={onRetake}
-          variant="outline"
-          size="xl"
-          className="w-full"
-          icon={<RefreshCw size={20} />}
-        >
-          Quay lại
-        </Button>
-      </div>
-    </motion.div>
-  );
-};
-
-const UploadStep: React.FC<{
-  sessionId: string;
-  onComplete: () => void;
-  onProgress: (p: number) => void;
-}> = ({ sessionId, onComplete, onProgress }) => {
-  const [progress, setProgress] = useState(0);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const upload = async () => {
-      try {
-        await UploadService.uploadSession(sessionId, (p) => {
-          setProgress(p);
-          onProgress(p);
-        });
-        // Clear local data after success
-        await UploadService.clearLocalSession(sessionId);
-        onComplete();
-      } catch (err: any) {
-        setError(err.message || 'Upload failed');
-      }
-    };
-    upload();
-  }, [sessionId, onComplete, onProgress]);
-
-  return (
-    <motion.div
-      key="uploading"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="flex-1 flex flex-col items-center justify-center bg-slate-900 px-6"
-    >
-      <div className="w-24 h-24 mb-6 relative">
-        <svg className="w-full h-full transform -rotate-90">
-          <circle
-            cx="48"
-            cy="48"
-            r="40"
-            stroke="currentColor"
-            strokeWidth="8"
-            fill="transparent"
-            className="text-slate-800"
-          />
-          <circle
-            cx="48"
-            cy="48"
-            r="40"
-            stroke="currentColor"
-            strokeWidth="8"
-            fill="transparent"
-            strokeDasharray={251.2}
-            strokeDashoffset={251.2 * (1 - progress)}
-            className="text-lime-400 transition-all duration-300 ease-out"
-          />
-        </svg>
-        <div className="absolute inset-0 flex items-center justify-center text-white font-bold">
-          {Math.round(progress * 100)}%
-        </div>
-      </div>
-
-      <h2 className="text-2xl font-bold text-white mb-2">Đang tải lên...</h2>
-      <p className="text-slate-400 text-center mb-6">
-        Video đang được gửi lên server để xử lý. Vui lòng không tắt ứng dụng.
-      </p>
-
-      {error && (
-        <div className="bg-red-500/10 border border-red-500/50 text-red-400 p-4 rounded-lg text-sm mb-4">
-          {error}
-        </div>
-      )}
-    </motion.div>
-  );
-};
-
-const DoneStep: React.FC<{
-  onGoHome: () => void;
-  highlightCount: number;
-}> = ({ onGoHome, highlightCount }) => {
-  useEffect(() => {
-    fireworks();
-  }, []);
-
-  return (
-    <motion.div
-      key="done"
-      initial={{ opacity: 0, scale: 0.9 }}
-      animate={{ opacity: 1, scale: 1 }}
-      className="flex-1 flex flex-col items-center justify-center bg-slate-900 px-6"
-    >
-      <div className="w-32 h-32 bg-gradient-to-br from-lime-400 to-green-500 rounded-full flex items-center justify-center mb-6 shadow-xl">
-        <Check size={64} className="text-slate-900" strokeWidth={3} />
-      </div>
-
-      <h2 className="text-3xl font-black text-white mb-3">Hoàn thành! 🎉</h2>
-      <p className="text-slate-400 mb-8 text-center max-w-sm">
-        Bạn đã ghi lại {highlightCount} khoảnh khắc tuyệt vời.
-        <br />
-        Hệ thống sẽ gửi thông báo khi video xử lý xong.
-      </p>
-
-      <Button
-        onClick={onGoHome}
-        size="xl"
-        className="w-full max-w-sm"
-      >
-        Về trang chủ
-      </Button>
-    </motion.div>
   );
 };

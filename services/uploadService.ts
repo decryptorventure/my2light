@@ -18,56 +18,6 @@ export const UploadService = {
             let uploadedBytes = 0;
             const totalBytes = chunks.reduce((acc, chunk) => acc + chunk.blob.size, 0);
 
-            // Use userId as root folder to satisfy RLS: videos/{userId}/{sessionId}/...
-            const uploadPromises = chunks.map(async (chunk) => {
-                const path = `${user.id}/${sessionId}/${chunk.chunkId}.webm`;
-
-                const { error } = await supabase.storage
-                    .from('videos')
-                    .upload(path, chunk.blob, {
-                        upsert: true,
-                    });
-
-                if (error) throw error;
-
-                uploadedBytes += chunk.blob.size;
-                if (onProgress) {
-                    onProgress((uploadedBytes / totalBytes) * 0.9); // 90% for chunks
-                }
-            });
-
-            await Promise.all(uploadPromises);
-
-            // 2. Upload Metadata
-            const metadataPath = `${user.id}/${sessionId}/metadata.json`;
-            const { error: metaError } = await supabase.storage
-                .from('videos')
-                .upload(metadataPath, JSON.stringify(metadata), {
-                    contentType: 'application/json',
-                    upsert: true
-                });
-
-            if (metaError) throw metaError;
-
-            if (onProgress) onProgress(1); // 100%
-
-            // 3. Insert into Database (Highlights table)
-            // Use the first chunk as the video URL for now (or a playlist if supported)
-            const videoUrl = `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/videos/${user.id}/${sessionId}/0.webm`;
-            const thumbnailUrl = `https://images.unsplash.com/photo-1599058945522-28d584b6f0ff?q=80&w=400&h=800&auto=format&fit=crop`; // Placeholder
-
-            // Fetch a valid court ID to satisfy Foreign Key constraint
-            const { data: courtData } = await supabase
-                .from('courts')
-                .select('id')
-                .limit(1)
-                .maybeSingle();
-
-            const courtId = courtData?.id;
-
-            if (!courtId) {
-                console.error('No court found to link highlight to. Insert might fail.');
-            }
 
             const { error: dbError } = await supabase.from('highlights').insert({
                 user_id: user.id,
