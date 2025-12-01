@@ -58,9 +58,12 @@ export const SelfRecording: React.FC = () => {
 
   const handleStart = async () => {
     try {
+      console.log('[SelfRecording] Starting recording...', sessionId);
       await startRecording(sessionId);
+      console.log('[SelfRecording] Recording started, isRecording:', isRecording);
       setStep('recording');
     } catch (err) {
+      console.error('[SelfRecording] Start failed:', err);
       // Error handled by hook
     }
   };
@@ -219,6 +222,8 @@ export const SelfRecording: React.FC = () => {
                       <span className="text-xl font-mono font-black text-white">
                         {formatTime(duration)}
                       </span>
+                      {/* Debug info */}
+                      <span className="text-xs text-yellow-400 ml-2">({duration}s)</span>
                     </div>
 
                     {highlightCount > 0 && (
@@ -282,20 +287,22 @@ export const SelfRecording: React.FC = () => {
                     </div>
                   )}
 
-                  {/* Camera Switch Button - Top Right */}
-                  {step === 'ready' && stream && (
+                  {/* Camera Switch Button - Top Right (Always show when stream ready, before recording) */}
+                  {(step === 'ready' || !isRecording) && stream && (
                     <motion.button
+                      key="camera-switch"
                       initial={{ opacity: 0, scale: 0.8 }}
                       animate={{ opacity: 1, scale: 1 }}
                       onClick={async () => {
                         try {
+                          console.log('[Camera] Switching camera...');
                           await switchCamera();
                           showToast(`Đã chuyển sang camera ${facingMode === 'user' ? 'sau' : 'trước'}`, 'success');
                         } catch (err) {
-                          // Error handled by hook
+                          console.error('[Camera] Switch failed:', err);
                         }
                       }}
-                      className="absolute top-20 right-4 w-12 h-12 bg-slate-900/80 backdrop-blur-md border-2 border-slate-700 rounded-full flex items-center justify-center text-white hover:bg-slate-800 active:scale-95 transition-all shadow-lg z-10"
+                      className="absolute top-20 right-4 w-12 h-12 bg-slate-900/90 backdrop-blur-md border-2 border-lime-400 rounded-full flex items-center justify-center text-white hover:bg-slate-800 active:scale-95 transition-all shadow-xl z-50"
                     >
                       <RefreshCw size={20} />
                     </motion.button>

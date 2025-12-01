@@ -150,10 +150,12 @@ export const useMediaRecorder = ({
 
             // Start timer - runs regardless of storage
             timerIntervalRef.current = setInterval(() => {
-                setDuration(Math.floor((Date.now() - startTimeRef.current) / 1000));
+                const elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000);
+                console.log('[Timer] Update:', elapsed, 'seconds');
+                setDuration(elapsed);
             }, 1000);
 
-            console.log('✅ Recording started successfully');
+            console.log('✅ Recording started successfully, timer interval set');
 
             // STEP 7: Try to save metadata (NON-CRITICAL - don't block on failure)
             try {
