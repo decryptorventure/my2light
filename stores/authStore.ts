@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { Session } from '@supabase/supabase-js';
 import { User } from '../types';
-import { ApiService } from '../services/api';
+import { authService } from '../src/api'; // NEW API
 import { supabase } from '../lib/supabase';
 
 interface AuthState {
@@ -33,7 +33,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
             if (session) {
                 // Fetch user profile if session exists
-                const response = await ApiService.getCurrentUser();
+                const response = await authService.getCurrentUser();
                 if (response.success) {
                     set({ user: response.data });
                 }
@@ -47,7 +47,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
                     // If user changed or just signed in, fetch profile
                     const currentUser = get().user;
                     if (!currentUser || currentUser.id !== session.user.id) {
-                        const response = await ApiService.getCurrentUser();
+                        const response = await authService.getCurrentUser();
                         if (response.success) {
                             set({ user: response.data });
                         }
@@ -68,7 +68,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         const { session } = get();
         if (!session) return;
 
-        const response = await ApiService.getCurrentUser();
+        const response = await authService.getCurrentUser();
         if (response.success) {
             set({ user: response.data });
         }

@@ -7,7 +7,7 @@ import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 import { useToast } from '../components/ui/Toast';
-import { ApiService } from '../services/api';
+import { courtsService, bookingsService } from '../src/api';
 import { useAuthStore } from '../stores/authStore';
 import { Court, Package } from '../types';
 
@@ -36,8 +36,8 @@ export const Booking: React.FC = () => {
             setLoading(true);
             try {
                 const [courtRes, packagesRes] = await Promise.all([
-                    ApiService.getCourtById(id),
-                    ApiService.getPackages()
+                    courtsService.getCourtById(id),
+                    courtsService.getPackages()
                 ]);
 
                 if (courtRes.success && courtRes.data) setCourt(courtRes.data);
@@ -119,12 +119,12 @@ export const Booking: React.FC = () => {
             // Default duration 1 hour for now
             const durationHours = 1;
 
-            const res = await ApiService.createBooking(
-                court.id,
-                startTime.getTime(),
+            const res = await bookingsService.createBooking({
+                courtId: court.id,
+                startTime: startTime.getTime(),
                 durationHours,
-                selectedPackage || undefined
-            );
+                packageId: selectedPackage || undefined,
+            });
 
             if (res.success) {
                 showToast('Đặt sân thành công! 🎉', 'success');

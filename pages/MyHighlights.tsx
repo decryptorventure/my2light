@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { PageTransition } from '../components/Layout/PageTransition';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 import { Button } from '../components/ui/Button';
-import { ApiService } from '../services/api';
+import { authService, highlightsService } from '../src/api';
 import { Highlight, User } from '../types';
 
 type Tab = 'posts' | 'saved' | 'liked';
@@ -25,12 +25,12 @@ export const MyHighlights: React.FC = () => {
             setLoading(true);
 
             // 1. Get User First
-            const userRes = await ApiService.getCurrentUser();
+            const userRes = await authService.getCurrentUser();
             if (userRes.success && userRes.data) {
                 setUser(userRes.data);
 
                 // 2. Get User's Highlights
-                const highlightsRes = await ApiService.getUserHighlights(userRes.data.id, 50);
+                const highlightsRes = await highlightsService.getUserHighlights(userRes.data.id, 50);
                 if (highlightsRes.success) {
                     setHighlights(highlightsRes.data);
                 }

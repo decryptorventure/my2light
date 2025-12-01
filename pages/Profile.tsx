@@ -7,7 +7,7 @@ import { Modal } from '../components/ui/Modal';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 import { StatCircle } from '../components/ui/CircularProgress';
 import { Badges } from '../components/ui/Badges';
-import { ApiService } from '../services/api';
+import { authService } from '../src/api';
 import { useCurrentUser, useBookingHistory, useUpdateUserProfile } from '../hooks/useApi';
 import { User, Booking } from '../types';
 import { supabase } from '../lib/supabase';
@@ -152,7 +152,7 @@ export const Profile: React.FC = () => {
                                     // const oldAvatar = user.avatar; // Not needed with React Query optimistic updates or just waiting
                                     // setUser(prev => prev ? { ...prev, avatar: 'https://media.tenor.com/On7kvXhzml4AAAAj/loading-gif.gif' } : null);
 
-                                    const res = await ApiService.uploadAvatar(file);
+                                    const res = await authService.uploadAvatar(file);
                                     if (res.success) {
                                         await updateProfileMutation.mutateAsync({ avatar: res.data });
                                         showToast('Upload ảnh thành công!', 'success');

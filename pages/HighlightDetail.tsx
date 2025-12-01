@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ChevronLeft, Heart, MessageCircle, Share2, MoreVertical, List, Play, X, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ApiService } from '../services/api';
+import { highlightsService } from '../src/api';
 import { SocialService } from '../services/social';
 import { Highlight } from '../types';
 import { CommentSection } from '../components/social/CommentSection';
@@ -29,7 +29,7 @@ export const HighlightDetail: React.FC = () => {
 
     const loadHighlight = async () => {
         setLoading(true);
-        const res = await ApiService.getHighlights(100);
+        const res = await highlightsService.getHighlights(100);
         if (res.success) {
             const found = res.data.find(h => h.id === id);
             if (found) {

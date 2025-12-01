@@ -8,7 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { PageTransition } from '../components/Layout/PageTransition';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 import { Button } from '../components/ui/Button';
-import { ApiService } from '../services/api';
+import { highlightsService } from '../src/api';
 import { SocialService } from '../services/social';
 import { Highlight } from '../types';
 import { celebrate } from '../lib/confetti';

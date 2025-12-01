@@ -15,7 +15,7 @@ import {
     ChevronLeft,
     Play
 } from 'lucide-react';
-import { ApiService } from '../services/api';
+import { highlightsService } from '../src/api';
 import { SocialService } from '../services/social';
 import { SocialProfile, Activity } from '../types/social';
 import { Highlight } from '../types';
@@ -58,7 +58,7 @@ export const PlayerProfile: React.FC = () => {
 
     const loadActivities = async () => {
         if (!userId) return;
-        const res = await ApiService.getUserHighlights(userId);
+        const res = await highlightsService.getUserHighlights(userId);
         if (res.success) {
             setHighlights(res.data);
         }

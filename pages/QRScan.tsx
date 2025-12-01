@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
-import { ApiService } from '../services/api';
+import { courtsService, bookingsService } from '../src/api';
 import { Package, Court } from '../types';
 import { QRScanner } from '../components/QRScanner';
 import { useToast } from '../components/ui/Toast';
@@ -21,7 +21,7 @@ export const QRScan: React.FC = () => {
 
   // Load initial data
   useEffect(() => {
-    ApiService.getPackages().then(res => {
+    courtsService.getPackages().then(res => {
       if (res.success) setPackages(res.data);
     });
   }, []);
@@ -38,28 +38,28 @@ export const QRScan: React.FC = () => {
     }
 
     // 1. Try to find court by ID
-    const courtRes = await ApiService.getCourtById(cleanId);
+    const courtRes = await courtsService.getCourtById(cleanId);
 
     if (courtRes.success && courtRes.data) {
       setScannedCourt(courtRes.data);
 
       // 2. Check for active booking (already started)
-      const activeBooking = await ApiService.getActiveBooking();
+      const activeBooking = await bookingsService.getActiveBooking();
       if (activeBooking.success && activeBooking.data && activeBooking.data.courtId === cleanId) {
         // Auto check-in (re-confirm)
-        await ApiService.checkInBooking(activeBooking.data.id);
+        await bookingsService.checkInBooking(activeBooking.data.id);
         showToast('Đã vào lại phiên chơi!', 'success');
         navigate('/active-session');
         return;
       }
 
       // 3. Check for upcoming booking (starting soon)
-      const upcomingBooking = await ApiService.getUpcomingBooking(cleanId);
+      const upcomingBooking = await bookingsService.getUpcomingBooking(cleanId);
       if (upcomingBooking.success && upcomingBooking.data) {
         // Show confirmation before check-in to avoid accidental check-ins
         const confirmCheckIn = window.confirm(`Bạn có lịch đặt sân lúc ${new Date(upcomingBooking.data.startTime).toLocaleTimeString()}. Check-in ngay?`);
         if (confirmCheckIn) {
-          await ApiService.checkInBooking(upcomingBooking.data.id);
+          await bookingsService.checkInBooking(upcomingBooking.data.id);
           showToast(`Check-in thành công! Chúc bạn chơi vui vẻ.`, 'success');
           navigate('/active-session');
         }
@@ -86,12 +86,12 @@ export const QRScan: React.FC = () => {
     try {
       // Create booking with selected package
       // Note: createBooking(courtId, startTime, duration, packageId)
-      const res = await ApiService.createBooking(
-        scannedCourt.id,
-        Date.now(),
-        1, // Default 1 hour for quick scan booking
-        selectedPackage
-      );
+      const res = await bookingsService.createBooking({
+        courtId: scannedCourt.id,
+        startTime: Date.now(),
+        durationHours: 1, // Default 1 hour for quick scan booking
+        packageId: selectedPackage,
+      });
 
       if (res.success) {
         showToast('Đặt sân thành công!', 'success');

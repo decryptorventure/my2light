@@ -7,7 +7,7 @@ import { EmptyState } from '../components/ui/EmptyState';
 import { CancelBookingModal } from '../components/modals/CancelBookingModal';
 import { RescheduleModal } from '../components/modals/RescheduleModal';
 import { useToast } from '../components/ui/Toast';
-import { ApiService } from '../services/api';
+import { bookingsService } from '../src/api';
 import { Booking } from '../types';
 
 type TabType = 'upcoming' | 'past' | 'cancelled';
@@ -32,7 +32,7 @@ export const MyBookings: React.FC = () => {
     useEffect(() => {
         const fetchBookings = async () => {
             setLoading(true);
-            const res = await ApiService.getBookingHistory();
+            const res = await bookingsService.getBookingHistory();
             if (res.success) {
                 setBookings(res.data);
             }
@@ -72,7 +72,7 @@ export const MyBookings: React.FC = () => {
     const handleCancelBooking = async (reason?: string) => {
         if (!cancelModal.booking) return;
 
-        const res = await ApiService.cancelBooking(cancelModal.booking.id, reason);
+        const res = await bookingsService.cancelBooking(cancelModal.booking.id, reason);
         if (res.success) {
             showToast('Đã hủy đặt sân. Tiền sẽ hoàn lại trong 24h', 'success');
             // Update local state
@@ -95,7 +95,7 @@ export const MyBookings: React.FC = () => {
         const startTime = new Date(newDate);
         startTime.setHours(hours, minutes, 0, 0);
 
-        const res = await ApiService.rescheduleBooking(
+        const res = await bookingsService.rescheduleBooking(
             rescheduleModal.booking.id,
             startTime.getTime()
         );

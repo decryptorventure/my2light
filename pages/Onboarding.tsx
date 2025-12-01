@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
-import { ApiService } from '../services/api';
+import { authService } from '../src/api';
 import { celebrate, burst } from '../lib/confetti';
 import {
     ArrowRight, Camera, Check, ChevronLeft, Play,
@@ -36,7 +36,7 @@ export const Onboarding: React.FC = () => {
             burst();
             setLoading(true);
             console.log('📝 Onboarding: Updating profile with name:', name);
-            const result = await ApiService.updateUserProfile({
+            const result = await authService.updateProfile({
                 name,
                 phone,
                 avatar: avatar || 'https://cdn-icons-png.flaticon.com/512/3307/3307873.png',
@@ -53,7 +53,7 @@ export const Onboarding: React.FC = () => {
     };
 
     const handleSkip = async () => {
-        await ApiService.updateUserProfile({ has_onboarded: true });
+        await authService.updateProfile({ has_onboarded: true });
         navigate('/home');
     };
 
@@ -70,7 +70,7 @@ export const Onboarding: React.FC = () => {
             reader.readAsDataURL(file);
 
             // Upload to server
-            const response = await ApiService.uploadAvatar(file);
+            const response = await authService.uploadAvatar(file);
             if (response.success && response.data) {
                 setAvatar(response.data); // Use uploaded URL
                 celebrate({ particleCount: 50 });

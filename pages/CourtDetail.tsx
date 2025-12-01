@@ -10,7 +10,7 @@ import { PageTransition } from '../components/Layout/PageTransition';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
-import { ApiService } from '../services/api';
+import { courtsService } from '../src/api';
 import { Court } from '../types';
 
 export const CourtDetail: React.FC = () => {
@@ -28,7 +28,7 @@ export const CourtDetail: React.FC = () => {
             if (!id) return;
             setLoading(true);
             try {
-                const res = await ApiService.getCourtById(id);
+                const res = await courtsService.getCourtById(id);
                 if (res.success && res.data) {
                     // Merge with some default rich data if missing from DB (for MVP)
                     const richData = {

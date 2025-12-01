@@ -8,7 +8,7 @@ import { SkeletonCourtCard, SkeletonHighlightCard, Skeleton } from '../component
 import { EmptyState } from '../components/ui/EmptyState';
 import { SearchBar } from '../components/features/SearchBar';
 import { FilterPanel, CourtFilters } from '../components/features/FilterPanel';
-import { ApiService } from '../services/api';
+import { authService, courtsService, highlightsService } from '../src/api';
 import { User, Court, Highlight } from '../types';
 import { useNotifications } from '../contexts/NotificationContext';
 
@@ -34,7 +34,7 @@ export const Home: React.FC = () => {
       try {
         setLoading(true);
         // Load user first to ensure auth context
-        const userRes = await ApiService.getCurrentUser();
+        const userRes = await authService.getCurrentUser();
         console.log('🔍 DEBUG getCurrentUser result:', userRes);
         if (userRes.success) {
           console.log('✅ User loaded:', userRes.data);
@@ -45,8 +45,8 @@ export const Home: React.FC = () => {
 
         // Load content
         const [courtsRes, highlightsRes] = await Promise.all([
-          ApiService.getCourts(),
-          ApiService.getHighlights(5)
+          courtsService.getCourts(),
+          highlightsService.getHighlights(5)
         ]);
 
         if (courtsRes.success) setCourts(courtsRes.data);

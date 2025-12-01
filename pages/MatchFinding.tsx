@@ -7,7 +7,7 @@ import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 import { useToast } from '../components/ui/Toast';
-import { ApiService } from '../services/api';
+import { courtsService } from '../src/api';
 import { MatchRequest, Court } from '../types';
 import { useAuthStore } from '../stores/authStore';
 import { supabase } from '../lib/supabase';
@@ -31,7 +31,7 @@ export const MatchFinding: React.FC = () => {
     }, [filterLevel, filterType]);
 
     const fetchCourts = async () => {
-        const res = await ApiService.getCourts();
+        const res = await courtsService.getCourts();
         if (res.success) {
             setCourts(res.data);
         }

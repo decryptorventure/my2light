@@ -8,7 +8,7 @@ import { Card } from '../components/ui/Card';
 import { EmptyState } from '../components/ui/EmptyState';
 import { TopUpModal } from '../components/modals/TopUpModal';
 import { useToast } from '../components/ui/Toast';
-import { ApiService } from '../services/api';
+import { authService, bookingsService } from '../src/api';
 import { PaymentService } from '../services/payment';
 import { User } from '../types';
 
@@ -32,13 +32,13 @@ export const Wallet: React.FC = () => {
     useEffect(() => {
         const fetchData = async () => {
             setLoading(true);
-            const userRes = await ApiService.getCurrentUser();
+            const userRes = await authService.getCurrentUser();
             if (userRes.success) {
                 setUser(userRes.data);
             }
 
             // Fetch real transactions (mapped from bookings)
-            const historyRes = await ApiService.getBookingHistory();
+            const historyRes = await bookingsService.getBookingHistory();
             if (historyRes.success) {
                 const realTransactions: Transaction[] = historyRes.data.map(booking => ({
                     id: booking.id,

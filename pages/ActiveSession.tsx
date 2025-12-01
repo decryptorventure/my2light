@@ -7,7 +7,7 @@ import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 import { TimerCircle } from '../components/ui/CircularProgress';
-import { ApiService } from '../services/api';
+import { bookingsService, highlightsService } from '../src/api';
 import { Booking } from '../types';
 
 export const ActiveSession: React.FC = () => {
@@ -27,7 +27,7 @@ export const ActiveSession: React.FC = () => {
     useEffect(() => {
         const initSession = async () => {
             setLoading(true);
-            const res = await ApiService.getActiveBooking();
+            const res = await bookingsService.getActiveBooking();
 
             if (res.success && res.data) {
                 setBooking(res.data);
@@ -80,7 +80,7 @@ export const ActiveSession: React.FC = () => {
 
         // Background API call
         try {
-            await ApiService.createHighlight(booking.courtId);
+            await highlightsService.createHighlight({ courtId: booking.courtId });
         } catch (e) {
             console.error("Error creating highlight", e);
         }
@@ -96,7 +96,7 @@ export const ActiveSession: React.FC = () => {
     };
 
     const confirmEndSession = async () => {
-        await ApiService.endBooking();
+        await bookingsService.endBooking();
         navigate('/home');
     };
 
