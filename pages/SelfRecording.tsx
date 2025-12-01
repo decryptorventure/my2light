@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import {
   Camera, X, Settings, Mic, Zap, RotateCcw,
   CheckCircle, AlertTriangle, ChevronLeft, RefreshCw,
-  Play, Pause, Download, Upload, Calendar, MapPin
+  Play, Pause, Download, Upload, Calendar, MapPin,
+  Sliders
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PageTransition } from '../components/Layout/PageTransition';
@@ -14,7 +15,7 @@ import { VideoStorage } from '../lib/storage';
 import { supabase } from '../lib/supabase';
 
 // Types
-type RecordingStep = 'ready' | 'recording' | 'preview' | 'upload_form' | 'uploading' | 'done';
+type RecordingStep = 'setup' | 'ready' | 'recording' | 'preview' | 'upload_form' | 'uploading' | 'done';
 
 interface Court {
   id: string;
@@ -23,11 +24,16 @@ interface Court {
 
 export const SelfRecording: React.FC = () => {
   const navigate = useNavigate();
-  const [step, setStep] = useState<RecordingStep>('ready');
+  const [step, setStep] = useState<RecordingStep>('setup');
   const [sessionId, setSessionId] = useState<string>('');
   const [uploadProgress, setUploadProgress] = useState(0);
   const [storageWarning, setStorageWarning] = useState<string | null>(null);
   const [courts, setCourts] = useState<Court[]>([]);
+
+  // Settings State
+  const [voiceEnabled, setVoiceEnabled] = useState(false);
+  const [highlightDuration, setHighlightDuration] = useState(10); // Default 10s
+  const [isRequestingPermissions, setIsRequestingPermissions] = useState(false);
 
   // Form State
   const [title, setTitle] = useState('');
@@ -38,6 +44,9 @@ export const SelfRecording: React.FC = () => {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const previewVideoRef = useRef<HTMLVideoElement>(null);
   const [isPlayingPreview, setIsPlayingPreview] = useState(false);
+
+  // Highlight Feedback State
+  const [showHighlightFlash, setShowHighlightFlash] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -53,7 +62,8 @@ export const SelfRecording: React.FC = () => {
     highlightEvents,
     error,
     facingMode,
-    isMemoryMode
+    isMemoryMode,
+    enableStream
   } = useMediaRecorder({
     onError: (err) => showToast(`Lỗi quay video: ${err.message}`, 'error'),
     onStorageWarning: (msg) => setStorageWarning(msg)
@@ -84,12 +94,24 @@ export const SelfRecording: React.FC = () => {
 
   // Toast helper (simplified)
   const showToast = (message: string, type: 'success' | 'error' = 'success') => {
-    // In a real app, use a toast context
     console.log(`[${type.toUpperCase()}] ${message}`);
-    // You might want to add a local toast state here if needed
+    // In a real app, integrate with toast context
   };
 
   // --- Handlers ---
+
+  const handleSetupComplete = async () => {
+    setIsRequestingPermissions(true);
+    try {
+      await enableStream();
+      setStep('ready');
+    } catch (err) {
+      console.error('Permission denied or error:', err);
+      showToast('Không thể truy cập camera/mic', 'error');
+    } finally {
+      setIsRequestingPermissions(false);
+    }
+  };
 
   const handleStart = async () => {
     const newSessionId = crypto.randomUUID();
@@ -121,13 +143,15 @@ export const SelfRecording: React.FC = () => {
 
   const handleMarkHighlight = () => {
     addHighlight();
+    setShowHighlightFlash(true);
+    setTimeout(() => setShowHighlightFlash(false), 300); // Flash duration
     showToast('Đã đánh dấu highlight!', 'success');
   };
 
   const handleSeekToHighlight = (timestamp: number) => {
     if (previewVideoRef.current) {
-      // Seek to 15 seconds before the highlight (or 0 if less)
-      const seekTime = Math.max(0, timestamp - 15);
+      // Seek to 'highlightDuration' seconds before the highlight (or 0 if less)
+      const seekTime = Math.max(0, timestamp - highlightDuration);
       previewVideoRef.current.currentTime = seekTime;
       previewVideoRef.current.play();
       setIsPlayingPreview(true);
@@ -178,7 +202,103 @@ export const SelfRecording: React.FC = () => {
 
   // --- Render Views ---
 
-  // 1. Uploading View
+  // 1. Setup View (New)
+  if (step === 'setup') {
+    return (
+      <PageTransition>
+        <div className="min-h-screen bg-slate-900 text-white flex flex-col">
+          {/* Header */}
+          <div className="p-4 flex items-center gap-4 border-b border-slate-800">
+            <button onClick={() => navigate(-1)} className="p-2 hover:bg-slate-800 rounded-full">
+              <ChevronLeft size={24} />
+            </button>
+            <h1 className="text-lg font-bold">Cài đặt quay</h1>
+          </div>
+
+          <div className="flex-1 p-6 space-y-8">
+            {/* Voice Command */}
+            <div className="bg-slate-800 rounded-2xl p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-lime-400/20 flex items-center justify-center text-lime-400">
+                    <Mic size={20} />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-lg">Ra lệnh giọng nói</h3>
+                    <p className="text-sm text-slate-400">Nói "Highlight" để đánh dấu</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setVoiceEnabled(!voiceEnabled)}
+                  className={`w-14 h-8 rounded-full transition-colors relative ${voiceEnabled ? 'bg-lime-400' : 'bg-slate-600'
+                    }`}
+                >
+                  <div className={`absolute top-1 w-6 h-6 rounded-full bg-white transition-all shadow-sm ${voiceEnabled ? 'left-7' : 'left-1'
+                    }`} />
+                </button>
+              </div>
+            </div>
+
+            {/* Highlight Duration */}
+            <div className="bg-slate-800 rounded-2xl p-6">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400">
+                  <Sliders size={20} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-lg">Độ dài Highlight</h3>
+                  <p className="text-sm text-slate-400">Thời gian xem lại trước khi đánh dấu</p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex justify-between items-center text-sm font-bold">
+                  <span className="text-slate-400">0s</span>
+                  <span className="text-lime-400 text-2xl">{highlightDuration}s</span>
+                  <span className="text-slate-400">60s</span>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="60"
+                  step="5"
+                  value={highlightDuration}
+                  onChange={(e) => setHighlightDuration(parseInt(e.target.value))}
+                  className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-lime-400"
+                />
+                <p className="text-xs text-slate-500 text-center">
+                  Khi xem lại, video sẽ lùi lại {highlightDuration} giây từ lúc bạn bấm nút.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="p-6 border-t border-slate-800 bg-slate-900/95 backdrop-blur-md">
+            <Button
+              className="w-full bg-lime-400 hover:bg-lime-500 text-slate-900 font-bold py-4 text-lg flex items-center justify-center gap-2"
+              onClick={handleSetupComplete}
+              disabled={isRequestingPermissions}
+            >
+              {isRequestingPermissions ? (
+                <>
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-slate-900"></div>
+                  Đang xin quyền...
+                </>
+              ) : (
+                <>
+                  <Camera size={20} />
+                  Bắt đầu quay
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+      </PageTransition>
+    );
+  }
+
+  // 2. Uploading View
   if (step === 'uploading') {
     return (
       <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-6 text-white">
@@ -193,7 +313,7 @@ export const SelfRecording: React.FC = () => {
     );
   }
 
-  // 2. Done View
+  // 3. Done View
   if (step === 'done') {
     return (
       <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-6 text-white">
@@ -214,7 +334,7 @@ export const SelfRecording: React.FC = () => {
           <Button
             className="flex-1 bg-lime-400 text-slate-900"
             onClick={() => {
-              setStep('ready');
+              setStep('setup'); // Go back to setup
               setSessionId('');
               setPreviewUrl(null);
             }}
@@ -226,7 +346,7 @@ export const SelfRecording: React.FC = () => {
     );
   }
 
-  // 3. Upload Form View
+  // 4. Upload Form View
   if (step === 'upload_form') {
     return (
       <PageTransition>
@@ -312,7 +432,7 @@ export const SelfRecording: React.FC = () => {
     );
   }
 
-  // 4. Preview View
+  // 5. Preview View
   if (step === 'preview') {
     return (
       <PageTransition>
@@ -321,7 +441,7 @@ export const SelfRecording: React.FC = () => {
           <div className="p-4 flex items-center justify-between border-b border-slate-800">
             <button onClick={() => {
               if (confirm('Bạn có chắc muốn bỏ video này và quay lại?')) {
-                setStep('ready');
+                setStep('setup'); // Go back to setup
                 setPreviewUrl(null);
               }
             }} className="p-2 hover:bg-slate-800 rounded-full">
@@ -376,7 +496,7 @@ export const SelfRecording: React.FC = () => {
                       <div className="text-left">
                         <div className="font-bold text-white">Highlight {index + 1}</div>
                         <div className="text-sm text-slate-400">
-                          {formatTime(Math.max(0, event.timestamp - 15))} - {formatTime(event.timestamp)}
+                          {formatTime(Math.max(0, event.timestamp - highlightDuration))} - {formatTime(event.timestamp)}
                         </div>
                       </div>
                     </div>
@@ -404,10 +524,23 @@ export const SelfRecording: React.FC = () => {
     );
   }
 
-  // 5. Recording & Ready View
+  // 6. Recording & Ready View
   return (
     <PageTransition>
       <div className="fixed inset-0 bg-black text-white overflow-hidden">
+        {/* Highlight Flash Effect */}
+        <AnimatePresence>
+          {showHighlightFlash && (
+            <motion.div
+              initial={{ opacity: 0.8 }}
+              animate={{ opacity: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className="absolute inset-0 bg-white z-[100] pointer-events-none"
+            />
+          )}
+        </AnimatePresence>
+
         {/* Storage Warning */}
         <AnimatePresence>
           {storageWarning && (
@@ -437,7 +570,7 @@ export const SelfRecording: React.FC = () => {
         {stream ? (
           <video
             ref={videoRef}
-            className="w-full h-full object-cover"
+            className={`w-full h-full object-cover ${facingMode === 'user' ? 'scale-x-[-1]' : ''}`}
             autoPlay
             playsInline
             muted
@@ -460,7 +593,7 @@ export const SelfRecording: React.FC = () => {
           <div className="flex justify-between items-start">
             {step === 'ready' ? (
               <button
-                onClick={() => navigate(-1)}
+                onClick={() => setStep('setup')}
                 className="w-10 h-10 bg-black/20 backdrop-blur-md rounded-full flex items-center justify-center text-white hover:bg-black/40 transition-colors"
               >
                 <ChevronLeft size={24} />
@@ -473,8 +606,8 @@ export const SelfRecording: React.FC = () => {
               </div>
             )}
 
-            {/* Camera Switch Button - Top Right (Show during recording) */}
-            {step === 'recording' && (
+            {/* Camera Switch Button - Top Right (Show during recording or ready) */}
+            {(step === 'recording' || step === 'ready') && (
               <motion.button
                 key="camera-switch"
                 initial={{ opacity: 0, scale: 0.8 }}
