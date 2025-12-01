@@ -14,6 +14,8 @@ import { UploadService } from '../services/uploadService';
 import { VideoStorage } from '../lib/storage';
 import { supabase } from '../lib/supabase';
 import { fireworks } from '../lib/confetti';
+import { mergeVideos, isFFmpegSupported } from '../lib/ffmpeg-browser';
+import { VideoProcessingProgress } from '../components/VideoProcessingProgress';
 
 // Types
 type RecordingStep = 'setup' | 'ready' | 'recording' | 'preview' | 'upload_form' | 'uploading' | 'done';
@@ -45,6 +47,13 @@ export const SelfRecording: React.FC = () => {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const previewVideoRef = useRef<HTMLVideoElement>(null);
   const [isPlayingPreview, setIsPlayingPreview] = useState(false);
+
+  // Video Processing State (NEW)
+  const [isProcessingVideo, setIsProcessingVideo] = useState(false);
+  const [processingProgress, setProcessingProgress] = useState(0);
+  const [processingStage, setProcessingStage] = useState('');
+  const [processingError, setProcessingError] = useState<string | null>(null);
+  const [mergedVideoBlob, setMergedVideoBlob] = useState<Blob | null>(null);
 
   // Highlight Feedback State
   // const [showHighlightFlash, setShowHighlightFlash] = useState(false); // Removed in favor of fireworks
@@ -199,6 +208,91 @@ export const SelfRecording: React.FC = () => {
       setStep('preview'); // Go back to preview on error
     }
   };
+
+  // NEW: Merge highlights handler
+  const handleMergeHighlights = async () => {
+    if (!sessionId || highlightEvents.length === 0) {
+      showToast('Không có highlight nào để ghép', 'error');
+      return;
+    }
+
+    // Check browser support
+    if (!isFFmpegSupported()) {
+      showToast(
+        'Trình duyệt không hỗ trợ. Vui lòng sử dụng Chrome/Edge mới nhất.',
+        'error'
+      );
+      return;
+    }
+
+    setIsProcessingVideo(true);
+    setProcessingError(null);
+    setProcessingProgress(0);
+
+    try {
+      // Get full session blob
+      const fullBlob = await VideoStorage.getSessionBlob(sessionId);
+      if (!fullBlob) {
+        throw new Error('Không tìm thấy video');
+      }
+
+      // For now, use full video as single segment
+      // TODO: Extract specific highlight segments based on timestamps
+      const segments = [fullBlob];
+
+      setProcessingStage('Đang khởi tạo FFmpeg...');
+
+      // Merge using FFmpeg.wasm
+      const mergedBlob = await mergeVideos(segments, {
+        onProgress: (progress: number, stage: string) => {
+          setProcessingProgress(progress);
+          setProcessingStage(stage);
+        },
+        quality: 'medium',
+        outputFormat: 'mp4',
+      });
+
+      setMergedVideoBlob(mergedBlob);
+
+      // Update preview with merged video
+      const url = URL.createObjectURL(mergedBlob);
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+      setPreviewUrl(url);
+
+      setProcessingProgress(100);
+      setProcessingStage('Hoàn thành!');
+
+      showToast('Đã ghép video thành công!', 'success');
+      fireworks();
+
+      // Auto-hide progress after success
+      setTimeout(() => {
+        setIsProcessingVideo(false);
+      }, 2000);
+
+    } catch (error: any) {
+      console.error('❌ Merge failed:', error);
+      setProcessingError(error.message || 'Không thể ghép video');
+      showToast('Lỗi: ' + error.message, 'error');
+    }
+  };
+
+  // Retry merge
+  const handleRetryMerge = () => {
+    setProcessingError(null);
+    setIsProcessingVideo(false);
+    handleMergeHighlights();
+  };
+
+  // Cancel merge
+  const handleCancelMerge = () => {
+    setIsProcessingVideo(false);
+    setProcessingError(null);
+    setProcessingProgress(0);
+  };
+
 
   // --- Render Views ---
 
@@ -513,7 +607,20 @@ export const SelfRecording: React.FC = () => {
           </div>
 
           {/* Footer Actions */}
-          <div className="p-6 border-t border-slate-800 bg-slate-900/95 backdrop-blur-md">
+          <div className="p-6 border-t border-slate-800 bg-slate-900/95 backdrop-blur-md space-y-3">
+            {/* Merge Highlights Button - NEW */}
+            {highlightEvents.length > 0 && (
+              <Button
+                variant="outline"
+                className="w-full border-blue-500 text-blue-400 hover:bg-blue-500/10 font-bold py-3 text-base flex items-center justify-center gap-2"
+                onClick={handleMergeHighlights}
+                disabled={isProcessingVideo}
+              >
+                <Zap size={18} className="fill-current" />
+                <span>Ghép {highlightEvents.length} Highlights</span>
+              </Button>
+            )}
+
             <Button
               className="w-full bg-lime-400 hover:bg-lime-500 text-slate-900 font-bold py-4 text-lg flex items-center justify-center gap-2"
               onClick={handleProceedToUpload}
@@ -522,6 +629,18 @@ export const SelfRecording: React.FC = () => {
               <span className="truncate">Đăng lên Thư viện</span>
             </Button>
           </div>
+
+          {/* Video Processing Progress Overlay - NEW */}
+          {isProcessingVideo && (
+            <VideoProcessingProgress
+              isProcessing={isProcessingVideo}
+              progress={processingProgress}
+              stage={processingStage}
+              error={processingError}
+              onCancel={handleCancelMerge}
+              onRetry={handleRetryMerge}
+            />
+          )}
         </div>
       </PageTransition>
     );
