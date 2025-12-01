@@ -71,7 +71,7 @@ export const UploadService = {
 
             const { error: dbError } = await supabase.from('highlights').insert({
                 user_id: user.id,
-                court_id: courtId, // Use real ID
+                court_id: courtId || null, // Allow null if no court found
                 title: `Highlight ${new Date().toLocaleString()}`,
                 description: 'Recorded via My2Light App',
                 video_url: videoUrl,

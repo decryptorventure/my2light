@@ -50,10 +50,7 @@ export const SelfRecording: React.FC = () => {
     onStorageWarning: (msg) => setStorageWarning(msg)
   });
 
-  // Enable stream on mount
-  useEffect(() => {
-    enableStream();
-  }, [enableStream]);
+
 
   // Effect to attach stream to video element
   useEffect(() => {
@@ -140,7 +137,7 @@ export const SelfRecording: React.FC = () => {
                 {stream ? (
                   <video
                     ref={videoRef}
-                    className="w-full h-full object-cover scale-x-[-1]"
+                    className="w-full h-full object-cover"
                     autoPlay
                     playsInline
                     muted
@@ -285,8 +282,8 @@ export const SelfRecording: React.FC = () => {
                     </div>
                   )}
 
-                  {/* Camera Switch Button - Top Right */}
-                  {stream && step === 'ready' && (
+                  {/* Camera Switch Button - Top Right (Show during recording) */}
+                  {step === 'recording' && (
                     <motion.button
                       key="camera-switch"
                       initial={{ opacity: 0, scale: 0.8 }}

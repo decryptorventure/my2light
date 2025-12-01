@@ -299,22 +299,15 @@ export const useMediaRecorder = ({
      * Only works when NOT recording
      */
     const switchCamera = useCallback(async () => {
-        if (isRecording) {
-            const err = new Error('Cannot switch camera while recording');
-            setError(err);
-            onError?.(err);
-            return;
-        }
-
         if (!stream) {
             return; // No stream to switch
         }
 
         try {
-            // Stop current stream
+            // 1. Stop current tracks
             stream.getTracks().forEach(track => track.stop());
 
-            // Get new stream with opposite camera
+            // 2. Get new stream with opposite camera
             const newFacingMode = facingMode === 'user' ? 'environment' : 'user';
             const newStream = await navigator.mediaDevices.getUserMedia({
                 video: {
@@ -326,16 +319,60 @@ export const useMediaRecorder = ({
                 audio: true
             });
 
+            // 3. Update state
             setStream(newStream);
             setFacingMode(newFacingMode);
-
             console.log('✅ Camera switched to:', newFacingMode);
+
+            // 4. If recording, we MUST restart the MediaRecorder with the new stream
+            if (isRecording && mediaRecorderRef.current) {
+                console.log('🔄 Restarting recorder for new camera...');
+
+                // Stop old recorder
+                if (mediaRecorderRef.current.state !== 'inactive') {
+                    mediaRecorderRef.current.stop();
+                }
+
+                // Create new recorder
+                let mimeType = mediaRecorderRef.current.mimeType; // Reuse same mimeType
+                const newRecorder = new MediaRecorder(newStream, {
+                    mimeType,
+                    videoBitsPerSecond: 2500000
+                });
+
+                // Attach same data handler
+                newRecorder.ondataavailable = async (event) => {
+                    if (event.data && event.data.size > 0) {
+                        const currentChunkId = chunkIdRef.current++;
+                        try {
+                            await VideoStorage.saveChunk(sessionIdRef.current!, currentChunkId, event.data);
+                            onChunkSaved?.(currentChunkId, event.data.size);
+
+                            // Update metadata
+                            const currentMeta = await VideoStorage.getSessionMetadata(sessionIdRef.current!);
+                            if (currentMeta) {
+                                await VideoStorage.saveSessionMetadata({
+                                    ...currentMeta,
+                                    chunkCount: currentChunkId + 1
+                                });
+                            }
+                        } catch (err) {
+                            console.error('⚠️ Chunk save error:', err);
+                        }
+                    }
+                };
+
+                // Start new recorder
+                newRecorder.start(10000);
+                mediaRecorderRef.current = newRecorder;
+            }
+
         } catch (err) {
             console.error('❌ Camera switch failed:', err);
             setError(err as Error);
             onError?.(err as Error);
         }
-    }, [isRecording, stream, facingMode, onError]);
+    }, [isRecording, stream, facingMode, onError, onChunkSaved]);
 
     return {
         startRecording,
