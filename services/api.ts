@@ -674,7 +674,6 @@ export const ApiService = {
         userName: h.profile?.name || 'Người chơi',
         isLiked: false,
         isPublic: h.is_public !== false,
-        isPublic: h.is_public !== false,
         comments: 0,
         highlightEvents: h.highlight_events || []
       }));
@@ -712,7 +711,6 @@ export const ApiService = {
         userAvatar: h.profile?.name || 'Người chơi',
         userName: h.profile?.name || 'Người chơi',
         isLiked: false,
-        isPublic: h.is_public !== false,
         isPublic: h.is_public !== false,
         comments: 0,
         highlightEvents: h.highlight_events || []
