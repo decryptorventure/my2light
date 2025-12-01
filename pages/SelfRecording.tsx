@@ -302,7 +302,7 @@ export const SelfRecording: React.FC = () => {
                           console.error('[Camera] Switch failed:', err);
                         }
                       }}
-                      className="absolute top-20 right-4 w-12 h-12 bg-slate-900/90 backdrop-blur-md border-2 border-lime-400 rounded-full flex items-center justify-center text-white hover:bg-slate-800 active:scale-95 transition-all shadow-xl z-50"
+                      className="absolute top-24 right-4 w-12 h-12 bg-slate-900/90 backdrop-blur-md border-2 border-lime-400 rounded-full flex items-center justify-center text-white hover:bg-slate-800 active:scale-95 transition-all shadow-xl z-[60]"
                     >
                       <RefreshCw size={20} />
                     </motion.button>

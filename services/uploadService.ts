@@ -4,6 +4,10 @@ import { VideoStorage, VideoChunk, SessionMetadata } from '../lib/storage';
 export const UploadService = {
     async uploadSession(sessionId: string, onProgress?: (progress: number) => void): Promise<string | null> {
         try {
+            // Get current user for RLS compliance
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) throw new Error('User not authenticated');
+
             const metadata = await VideoStorage.getSessionMetadata(sessionId);
             if (!metadata) throw new Error('Session metadata not found');
 
@@ -14,11 +18,12 @@ export const UploadService = {
             let uploadedBytes = 0;
             const totalBytes = chunks.reduce((acc, chunk) => acc + chunk.blob.size, 0);
 
+            // Use userId as root folder to satisfy RLS: videos/{userId}/{sessionId}/...
             const uploadPromises = chunks.map(async (chunk) => {
-                const path = `raw/${sessionId}/${chunk.chunkId}.webm`;
+                const path = `${user.id}/${sessionId}/${chunk.chunkId}.webm`;
 
                 const { error } = await supabase.storage
-                    .from('videos') // Ensure this bucket exists
+                    .from('videos')
                     .upload(path, chunk.blob, {
                         upsert: true,
                     });
@@ -34,7 +39,7 @@ export const UploadService = {
             await Promise.all(uploadPromises);
 
             // 2. Upload Metadata
-            const metadataPath = `raw/${sessionId}/metadata.json`;
+            const metadataPath = `${user.id}/${sessionId}/metadata.json`;
             const { error: metaError } = await supabase.storage
                 .from('videos')
                 .upload(metadataPath, JSON.stringify(metadata), {
@@ -46,10 +51,8 @@ export const UploadService = {
 
             if (onProgress) onProgress(1); // 100%
 
-            // 3. Trigger Processing (Mock for now, or call Edge Function)
-            // In a real app, a Supabase Database Trigger or Webhook would handle this.
-            // For now, we just return the "folder" path.
-            return `raw/${sessionId}`;
+            // Return the folder path
+            return `${user.id}/${sessionId}`;
 
         } catch (error) {
             console.error('Upload failed:', error);

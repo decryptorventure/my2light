@@ -49,11 +49,17 @@ export const useMediaRecorder = ({
             if (stream) {
                 stream.getTracks().forEach(track => track.stop());
             }
+        };
+    }, [stream]);
+
+    // Separate cleanup for timer to prevent it from being cleared when stream changes
+    useEffect(() => {
+        return () => {
             if (timerIntervalRef.current) {
                 clearInterval(timerIntervalRef.current);
             }
         };
-    }, [stream]);
+    }, []);
 
     /**
      * Start recording with fault-tolerant approach
