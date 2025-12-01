@@ -96,6 +96,7 @@ interface VideoCardProps {
 }
 
 const VideoCard: React.FC<VideoCardProps> = ({ highlight, index }) => {
+  const navigate = useNavigate();
   const { showToast } = useToast();
   const [isPlaying, setIsPlaying] = useState(false);
   const [isPreviewMode, setIsPreviewMode] = useState(true);
