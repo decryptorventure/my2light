@@ -19,9 +19,10 @@ export interface VideoChunk {
 export interface SessionMetadata {
     sessionId: string;
     startTime: number;
+    endTime?: number; // Added optional endTime
     status: 'recording' | 'uploading' | 'completed' | 'failed';
     chunkCount: number;
-    highlightEvents: number[];
+    highlightEvents: any[]; // Changed from number[] to support rich event objects
 }
 
 class VideoStorageManager {
@@ -232,6 +233,24 @@ class VideoStorageManager {
             } catch (error) {
                 console.warn('⚠️ IDB clear session failed:', error);
             }
+        }
+    }
+
+    /**
+     * Get full session video as a single Blob
+     */
+    async getSessionBlob(sessionId: string): Promise<Blob | null> {
+        try {
+            const chunks = await this.getAllChunksForSession(sessionId);
+            if (chunks.length === 0) return null;
+
+            const blobs = chunks.map(chunk => chunk.blob);
+            // We default to webm, but practically browsers handle the concatenation fine
+            // even if the mime type varies slightly.
+            return new Blob(blobs, { type: 'video/webm' });
+        } catch (error) {
+            console.error('Failed to assemble session blob:', error);
+            return null;
         }
     }
 
