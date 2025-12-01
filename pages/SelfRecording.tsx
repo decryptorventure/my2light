@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ChevronLeft, Square, Sparkles, Play, Check, Download,
-  RefreshCw, X, Clock, Settings, Pause, Mic, Info, UploadCloud
+  RefreshCw, X, Clock, Settings, Pause, Mic, Info, UploadCloud, AlertCircle
 } from 'lucide-react';
 import { PageTransition } from '../components/Layout/PageTransition';
 import { Button } from '../components/ui/Button';
@@ -28,20 +28,25 @@ export const SelfRecording: React.FC = () => {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [voiceCommandEnabled, setVoiceCommandEnabled] = useState(false);
   const [highlightDuration, setHighlightDuration] = useState(15);
+  const [storageWarning, setStorageWarning] = useState<string | null>(null);
 
   // Recording Hook
   const {
     startRecording,
     stopRecording,
     addHighlight,
+    switchCamera,
     isRecording,
     isPaused,
     duration,
     stream,
     highlightCount,
-    error
+    error,
+    facingMode,
+    isMemoryMode
   } = useMediaRecorder({
-    onError: (err) => showToast(`Recording error: ${err.message}`, 'error')
+    onError: (err) => showToast(`Lỗi quay video: ${err.message}`, 'error'),
+    onStorageWarning: (msg) => setStorageWarning(msg)
   });
 
   // Effect to attach stream to video element
@@ -105,6 +110,31 @@ export const SelfRecording: React.FC = () => {
                 exit={{ opacity: 0 }}
                 className="flex-1 relative bg-black"
               >
+                {/* Storage Warning Banner */}
+                {(storageWarning || isMemoryMode) && (
+                  <motion.div
+                    initial={{ y: -100, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    className="absolute top-0 left-0 right-0 z-50 bg-yellow-500/95 backdrop-blur-md p-4"
+                  >
+                    <div className="flex items-start gap-3 max-w-md mx-auto">
+                      <AlertCircle size={24} className="flex-shrink-0 text-yellow-900" />
+                      <div className="flex-1">
+                        <h3 className="font-bold text-yellow-900 mb-1">Cảnh báo lưu trữ</h3>
+                        <p className="text-sm text-yellow-900">
+                          {storageWarning || 'Đang dùng bộ nhớ tạm. Video sẽ mất nếu đóng ứng dụng. Vui lòng upload ngay sau khi quay!'}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => setStorageWarning(null)}
+                        className="text-yellow-900 hover:text-yellow-950"
+                      >
+                        <X size={20} />
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+
                 {/* Camera Preview */}
                 {stream ? (
                   <video
@@ -252,11 +282,18 @@ export const SelfRecording: React.FC = () => {
                     </div>
                   )}
 
-                  {/* Camera Switch Button - Shows only during recording */}
-                  {step === 'recording' && (
+                  {/* Camera Switch Button - Shows only when READY (not recording) */}
+                  {step === 'ready' && stream && (
                     <button
-                      onClick={() => showToast('Đổi camera đang được phát triển', 'info')}
-                      className="absolute bottom-32 right-6 w-14 h-14 bg-slate-800/80 backdrop-blur-md border-2 border-slate-700 rounded-full flex items-center justify-center text-white hover:bg-slate-700 transition"
+                      onClick={async () => {
+                        try {
+                          await switchCamera();
+                          showToast(`Đã chuyển sang camera ${facingMode === 'user' ? 'sau' : 'trước'}`, 'success');
+                        } catch (err) {
+                          // Error handled by hook
+                        }
+                      }}
+                      className="absolute bottom-32 right-6 w-14 h-14 bg-slate-800/80 backdrop-blur-md border-2 border-slate-700 rounded-full flex items-center justify-center text-white hover:bg-slate-700 active:scale-95 transition-all"
                     >
                       <RefreshCw size={20} />
                     </button>
