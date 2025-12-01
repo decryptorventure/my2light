@@ -674,7 +674,9 @@ export const ApiService = {
         userName: h.profile?.name || 'Người chơi',
         isLiked: false,
         isPublic: h.is_public !== false,
-        comments: 0
+        isPublic: h.is_public !== false,
+        comments: 0,
+        highlightEvents: h.highlight_events || []
       }));
 
       return { success: true, data: highlights };
@@ -711,7 +713,9 @@ export const ApiService = {
         userName: h.profile?.name || 'Người chơi',
         isLiked: false,
         isPublic: h.is_public !== false,
-        comments: 0
+        isPublic: h.is_public !== false,
+        comments: 0,
+        highlightEvents: h.highlight_events || []
       }));
 
       return { success: true, data: highlights };

@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ChevronLeft, Heart, MessageCircle, Share2, MoreVertical } from 'lucide-react';
+import { ChevronLeft, Heart, MessageCircle, Share2, MoreVertical, List, Play, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { ApiService } from '../services/api';
 import { SocialService } from '../services/social';
 import { Highlight } from '../types';
-import { SkeletonHighlightCard } from '../components/ui/Skeleton';
 import { CommentSection } from '../components/social/CommentSection';
 import { LikeAnimation } from '../components/ui/LikeAnimation';
 import { formatDistanceToNow } from 'date-fns';
@@ -17,6 +17,9 @@ export const HighlightDetail: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [showComments, setShowComments] = useState(false);
     const [showLikeAnim, setShowLikeAnim] = useState(false);
+    const [showHighlightList, setShowHighlightList] = useState(false);
+
+    const videoRef = useRef<HTMLVideoElement>(null);
 
     useEffect(() => {
         if (id) {
@@ -62,6 +65,22 @@ export const HighlightDetail: React.FC = () => {
         }
     };
 
+    const handleSeek = (timestamp: number) => {
+        if (videoRef.current) {
+            // Seek to 5 seconds before the highlight to give context
+            videoRef.current.currentTime = Math.max(0, timestamp - 5);
+            videoRef.current.play();
+            // Optional: Close list on mobile, keep open on desktop? 
+            // Let's keep it open for now as user might want to browse.
+        }
+    };
+
+    const formatTime = (seconds: number) => {
+        const mins = Math.floor(seconds / 60);
+        const secs = Math.floor(seconds % 60);
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
+    };
+
     if (loading) {
         return (
             <div className="min-h-screen bg-black flex flex-col">
@@ -85,16 +104,29 @@ export const HighlightDetail: React.FC = () => {
 
     if (!highlight) return <div className="text-center pt-20 text-white">Video không tồn tại</div>;
 
+    const hasHighlights = highlight.highlightEvents && highlight.highlightEvents.length > 0;
+
     return (
-        <div className="min-h-screen bg-black flex flex-col">
+        <div className="min-h-screen bg-black flex flex-col relative overflow-hidden">
             {/* Header */}
-            <div className="absolute top-0 left-0 right-0 z-10 p-4 flex justify-between items-center bg-gradient-to-b from-black/60 to-transparent pointer-events-none">
-                <button onClick={() => navigate(-1)} className="text-white p-2 pointer-events-auto">
+            <div className="absolute top-0 left-0 right-0 z-20 p-4 flex justify-between items-center bg-gradient-to-b from-black/60 to-transparent pointer-events-none">
+                <button onClick={() => navigate(-1)} className="text-white p-2 pointer-events-auto hover:bg-white/10 rounded-full transition-colors">
                     <ChevronLeft size={28} />
                 </button>
-                <button className="text-white p-2 pointer-events-auto">
-                    <MoreVertical size={24} />
-                </button>
+
+                <div className="flex items-center gap-2 pointer-events-auto">
+                    {hasHighlights && (
+                        <button
+                            onClick={() => setShowHighlightList(!showHighlightList)}
+                            className={`p-2 rounded-full transition-colors ${showHighlightList ? 'bg-lime-400 text-slate-900' : 'text-white hover:bg-white/10'}`}
+                        >
+                            <List size={24} />
+                        </button>
+                    )}
+                    <button className="text-white p-2 hover:bg-white/10 rounded-full transition-colors">
+                        <MoreVertical size={24} />
+                    </button>
+                </div>
             </div>
 
             {/* Video Player */}
@@ -103,6 +135,7 @@ export const HighlightDetail: React.FC = () => {
                 onClick={handleDoubleTap}
             >
                 <video
+                    ref={videoRef}
                     src={highlight.videoUrl}
                     className="w-full max-h-screen object-contain"
                     controls
@@ -111,10 +144,51 @@ export const HighlightDetail: React.FC = () => {
                     playsInline
                 />
                 <LikeAnimation isActive={showLikeAnim} onComplete={() => setShowLikeAnim(false)} />
+
+                {/* Highlight List Overlay */}
+                <AnimatePresence>
+                    {showHighlightList && hasHighlights && (
+                        <motion.div
+                            initial={{ x: '100%', opacity: 0 }}
+                            animate={{ x: 0, opacity: 1 }}
+                            exit={{ x: '100%', opacity: 0 }}
+                            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                            className="absolute top-20 right-4 bottom-32 w-64 bg-slate-900/90 backdrop-blur-md rounded-2xl border border-slate-700/50 shadow-2xl overflow-hidden flex flex-col z-30"
+                        >
+                            <div className="p-4 border-b border-slate-800 flex justify-between items-center">
+                                <h3 className="font-bold text-white text-sm">Highlights ({highlight.highlightEvents?.length})</h3>
+                                <button onClick={() => setShowHighlightList(false)} className="text-slate-400 hover:text-white">
+                                    <X size={16} />
+                                </button>
+                            </div>
+                            <div className="flex-1 overflow-y-auto p-2 space-y-2">
+                                {highlight.highlightEvents?.map((event, index) => (
+                                    <button
+                                        key={index}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleSeek(event.timestamp);
+                                        }}
+                                        className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-white/10 transition-colors group text-left"
+                                    >
+                                        <div className="w-8 h-8 rounded-full bg-lime-400/20 text-lime-400 flex items-center justify-center text-xs font-bold group-hover:bg-lime-400 group-hover:text-slate-900 transition-colors">
+                                            {index + 1}
+                                        </div>
+                                        <div>
+                                            <div className="text-sm font-medium text-white">Pha bóng {index + 1}</div>
+                                            <div className="text-xs text-slate-400">{formatTime(event.timestamp)}</div>
+                                        </div>
+                                        <Play size={12} className="ml-auto text-slate-500 group-hover:text-lime-400" />
+                                    </button>
+                                ))}
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </div>
 
             {/* Info & Actions */}
-            <div className="bg-slate-900 p-4 pb-safe border-t border-slate-800">
+            <div className="bg-slate-900 p-4 pb-safe border-t border-slate-800 z-20">
                 <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center gap-3" onClick={() => navigate(`/player/${highlight.userId}`)}>
                         <div className="w-10 h-10 rounded-full bg-slate-800 overflow-hidden border border-slate-700">

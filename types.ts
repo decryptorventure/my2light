@@ -54,6 +54,7 @@ export interface Highlight {
   description?: string; // Video description
   title?: string; // Video title
   comments?: number; // Comment count
+  highlightEvents?: { id: string; timestamp: number }[]; // Highlight timestamps
 }
 
 export interface Package {
