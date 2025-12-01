@@ -279,13 +279,14 @@ export const SelfRecording: React.FC = () => {
                     </div>
                   )}
 
-                  {/* Camera Switch Button - Top Right (Always show when stream ready, before recording) */}
-                  {(step === 'ready' || !isRecording) && stream && (
+                  {/* Camera Switch Button - Top Right (Always show when stream is active and not finished) */}
+                  {stream && step !== 'uploading' && step !== 'done' && !isRecording && (
                     <motion.button
                       key="camera-switch"
                       initial={{ opacity: 0, scale: 0.8 }}
                       animate={{ opacity: 1, scale: 1 }}
-                      onClick={async () => {
+                      onClick={async (e) => {
+                        e.stopPropagation(); // Prevent bubbling
                         try {
                           console.log('[Camera] Switching camera...');
                           await switchCamera();
@@ -294,7 +295,7 @@ export const SelfRecording: React.FC = () => {
                           console.error('[Camera] Switch failed:', err);
                         }
                       }}
-                      className="absolute top-24 right-4 w-12 h-12 bg-slate-900/90 backdrop-blur-md border-2 border-lime-400 rounded-full flex items-center justify-center text-white hover:bg-slate-800 active:scale-95 transition-all shadow-xl z-[60]"
+                      className="absolute top-6 right-4 w-12 h-12 bg-slate-900/50 backdrop-blur-md border border-white/20 rounded-full flex items-center justify-center text-white hover:bg-slate-800 active:scale-95 transition-all shadow-xl z-[100]"
                     >
                       <RefreshCw size={20} />
                     </motion.button>

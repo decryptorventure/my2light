@@ -50,37 +50,22 @@ export const UploadService = {
             if (metaError) throw metaError;
 
             if (onProgress) onProgress(1); // 100%
-
-            // 3. Insert into Database (Highlights table)
-            // Use the first chunk as the video URL for now (or a playlist if supported)
-            const videoUrl = `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/videos/${user.id}/${sessionId}/0.webm`;
-            const thumbnailUrl = `https://images.unsplash.com/photo-1599058945522-28d584b6f0ff?q=80&w=400&h=800&auto=format&fit=crop`; // Placeholder
-
-            const { error: dbError } = await supabase.from('highlights').insert({
-                user_id: user.id,
-                court_id: '00000000-0000-0000-0000-000000000000', // Dummy UUID for now
-                title: `Highlight ${new Date().toLocaleString()}`,
-                description: 'Recorded via My2Light App',
-                video_url: videoUrl,
-                thumbnail_url: thumbnailUrl,
-                duration_sec: metadata.chunkCount * 10, // Approx
-                is_public: true,
-                likes: 0,
+            likes: 0,
                 views: 0
-            });
+        });
 
-            if (dbError) {
-                console.error('Failed to insert highlight record:', dbError);
-            }
-
-            // Return the folder path
-            return `${user.id}/${sessionId}`;
-
-        } catch (error) {
-            console.error('Upload failed:', error);
-            throw error;
+        if (dbError) {
+            console.error('Failed to insert highlight record:', dbError);
         }
-    },
+
+        // Return the folder path
+        return `${user.id}/${sessionId}`;
+
+    } catch(error) {
+        console.error('Upload failed:', error);
+        throw error;
+    }
+},
 
     async clearLocalSession(sessionId: string) {
         await VideoStorage.clearSessionChunks(sessionId);
