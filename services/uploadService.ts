@@ -84,6 +84,9 @@ export const UploadService = {
 
             if (dbError) {
                 console.error('Failed to insert highlight record:', dbError);
+                throw dbError; // Throw so we know it failed
+            } else {
+                console.log('✅ Highlight inserted successfully into DB');
             }
 
             // Return the folder path

@@ -23,16 +23,19 @@ export const MyHighlights: React.FC = () => {
     useEffect(() => {
         const fetchData = async () => {
             setLoading(true);
-            const [userRes, highlightsRes] = await Promise.all([
-                ApiService.getCurrentUser(),
-                ApiService.getHighlights(50)
-            ]);
 
-            if (userRes.success) setUser(userRes.data);
-            if (highlightsRes.success) {
-                const myHighlights = highlightsRes.data.filter(h => h.userId === userRes.data?.id);
-                setHighlights(myHighlights);
+            // 1. Get User First
+            const userRes = await ApiService.getCurrentUser();
+            if (userRes.success && userRes.data) {
+                setUser(userRes.data);
+
+                // 2. Get User's Highlights
+                const highlightsRes = await ApiService.getUserHighlights(userRes.data.id, 50);
+                if (highlightsRes.success) {
+                    setHighlights(highlightsRes.data);
+                }
             }
+
             setLoading(false);
         };
         fetchData();
