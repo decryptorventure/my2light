@@ -12,7 +12,6 @@ import {
     Grid,
     BarChart2,
     Award,
-    Award,
     ChevronLeft,
     Play
 } from 'lucide-react';
