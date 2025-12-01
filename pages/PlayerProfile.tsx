@@ -16,6 +16,7 @@ import {
     Play
 } from 'lucide-react';
 import { ApiService } from '../services/api';
+import { SocialService } from '../services/social';
 import { SocialProfile, Activity } from '../types/social';
 import { Highlight } from '../types';
 import { SkeletonProfileHeader, SkeletonCard } from '../components/ui/Skeleton';
