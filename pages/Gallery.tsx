@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
+  Heart, Share2, Download, MessageCircle, ChevronLeft,
   Eye, TrendingUp, Users, Bookmark, MoreVertical, X, List, Play
 } from 'lucide-react';
 import { motion, AnimatePresence, useMotionValue, useTransform } from 'framer-motion';
