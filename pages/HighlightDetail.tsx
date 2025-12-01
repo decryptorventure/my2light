@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ChevronLeft, Heart, MessageCircle, Share2, MoreVertical, List, Play, X } from 'lucide-react';
+import { ChevronLeft, Heart, MessageCircle, Share2, MoreVertical, List, Play, X, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ApiService } from '../services/api';
 import { SocialService } from '../services/social';
@@ -118,9 +118,9 @@ export const HighlightDetail: React.FC = () => {
                     {hasHighlights && (
                         <button
                             onClick={() => setShowHighlightList(!showHighlightList)}
-                            className={`p-2 rounded-full transition-colors ${showHighlightList ? 'bg-lime-400 text-slate-900' : 'text-white hover:bg-white/10'}`}
+                            className={`p-2 rounded-full transition-colors ${showHighlightList ? 'bg-orange-500 text-white' : 'text-white hover:bg-white/10'}`}
                         >
-                            <List size={24} />
+                            <Zap size={24} className={showHighlightList ? 'fill-white' : ''} />
                         </button>
                     )}
                     <button className="text-white p-2 hover:bg-white/10 rounded-full transition-colors">

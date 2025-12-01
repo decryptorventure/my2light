@@ -184,7 +184,7 @@ export const MyHighlights: React.FC = () => {
                                 <motion.div
                                     key={highlight.id}
                                     layoutId={highlight.id}
-                                    onClick={() => navigate(`/highlight/${highlight.id}`)}
+                                    onClick={() => navigate('/gallery')}
                                     className="relative aspect-[3/4] bg-slate-800 cursor-pointer group overflow-hidden"
                                 >
                                     <img

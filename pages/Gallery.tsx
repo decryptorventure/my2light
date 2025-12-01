@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   Heart, Share2, Download, MessageCircle, ChevronLeft,
-  Eye, TrendingUp, Users, Bookmark, MoreVertical, X, List, Play
+  Eye, TrendingUp, Users, Bookmark, MoreVertical, X, List, Play, Zap
 } from 'lucide-react';
 import { motion, AnimatePresence, useMotionValue, useTransform } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -258,10 +258,10 @@ const VideoCard: React.FC<VideoCardProps> = ({ highlight, index }) => {
               e.stopPropagation();
               setShowHighlightList(!showHighlightList);
             }}
-            className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors shadow-lg backdrop-blur-md ${showHighlightList ? 'bg-lime-400 text-slate-900' : 'bg-black/40 text-white hover:bg-white/20'}`}
+            className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors shadow-lg backdrop-blur-md ${showHighlightList ? 'bg-orange-500 text-white' : 'bg-black/40 text-white hover:bg-white/20'}`}
           >
             <div className="relative">
-              <List size={20} />
+              <Zap size={20} className={showHighlightList ? 'fill-white' : ''} />
               <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border border-black" />
             </div>
           </button>
