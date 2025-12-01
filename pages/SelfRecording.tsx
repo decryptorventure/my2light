@@ -43,11 +43,17 @@ export const SelfRecording: React.FC = () => {
     highlightCount,
     error,
     facingMode,
-    isMemoryMode
+    isMemoryMode,
+    enableStream
   } = useMediaRecorder({
     onError: (err) => showToast(`Lỗi quay video: ${err.message}`, 'error'),
     onStorageWarning: (msg) => setStorageWarning(msg)
   });
+
+  // Enable stream on mount
+  useEffect(() => {
+    enableStream();
+  }, [enableStream]);
 
   // Effect to attach stream to video element
   useEffect(() => {

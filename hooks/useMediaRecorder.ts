@@ -12,6 +12,7 @@ interface UseMediaRecorderReturn {
     stopRecording: () => Promise<void>;
     addHighlight: () => void;
     switchCamera: () => Promise<void>;
+    enableStream: () => Promise<void>;
     isRecording: boolean;
     isPaused: boolean;
     duration: number;
@@ -62,14 +63,12 @@ export const useMediaRecorder = ({
     }, []);
 
     /**
-     * Start recording with fault-tolerant approach
-     * Timer and recording work even if storage fails
+     * Enable camera stream without recording
      */
-    const startRecording = useCallback(async (sessionId: string) => {
+    const enableStream = useCallback(async () => {
         try {
-            setError(null);
+            if (stream) return; // Already active
 
-            // STEP 1: Get media stream (CRITICAL - must succeed)
             const mediaStream = await navigator.mediaDevices.getUserMedia({
                 video: {
                     facingMode,
@@ -79,9 +78,36 @@ export const useMediaRecorder = ({
                 },
                 audio: true
             });
-
-            // STEP 2: Set stream immediately
             setStream(mediaStream);
+        } catch (err) {
+            console.error('❌ Failed to enable stream:', err);
+            setError(err as Error);
+            onError?.(err as Error);
+        }
+    }, [facingMode, stream, onError]);
+
+    /**
+     * Start recording with fault-tolerant approach
+     */
+    const startRecording = useCallback(async (sessionId: string) => {
+        try {
+            setError(null);
+
+            // STEP 1: Get media stream (Use existing or get new)
+            let mediaStream = stream;
+            if (!mediaStream) {
+                mediaStream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        facingMode,
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 },
+                        frameRate: { ideal: 30 }
+                    },
+                    audio: true
+                });
+                setStream(mediaStream);
+            }
+
             sessionIdRef.current = sessionId;
             chunkIdRef.current = 0;
             highlightEventsRef.current = [];
@@ -110,7 +136,7 @@ export const useMediaRecorder = ({
                 throw new Error('Thiết bị không hỗ trợ ghi video. Vui lòng dùng trình duyệt khác.');
             }
 
-            const recorder = new MediaRecorder(mediaStream, {
+            const recorder = new MediaRecorder(mediaStream!, {
                 mimeType,
                 videoBitsPerSecond: 2500000
             });
@@ -316,6 +342,7 @@ export const useMediaRecorder = ({
         stopRecording,
         addHighlight,
         switchCamera,
+        enableStream,
         isRecording,
         isPaused,
         duration,
