@@ -6,7 +6,6 @@ import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 import { StatCircle } from '../components/ui/CircularProgress';
-import { Stories } from '../components/ui/Stories';
 import { Badges } from '../components/ui/Badges';
 import { ApiService } from '../services/api';
 import { useCurrentUser, useBookingHistory, useUpdateUserProfile } from '../hooks/useApi';
@@ -178,21 +177,6 @@ export const Profile: React.FC = () => {
                         </p>
                     )}
 
-                    <div className="flex items-center gap-6 text-sm mb-2">
-                        <button onClick={() => navigate('/social/connections?tab=followers')} className="flex flex-col items-center">
-                            <span className="font-bold text-white text-lg">{user.followersCount || 0}</span>
-                            <span className="text-slate-500 text-xs">Người theo dõi</span>
-                        </button>
-                        <button onClick={() => navigate('/social/connections?tab=following')} className="flex flex-col items-center">
-                            <span className="font-bold text-white text-lg">{user.followingCount || 0}</span>
-                            <span className="text-slate-500 text-xs">Đang theo dõi</span>
-                        </button>
-                    </div>
-                </div>
-
-                {/* Stories Section - New Creative Feature */}
-                <div className="mb-6">
-                    <Stories />
                 </div>
 
                 {/* Badges Section - Gamification */}
@@ -319,6 +303,14 @@ export const Profile: React.FC = () => {
                                 >
                                     <span>Ví My2Light</span>
                                     <Wallet size={16} className="text-slate-500" />
+                                </Button>
+                                <Button
+                                    variant="secondary"
+                                    className="w-full justify-between bg-slate-800/50 border-slate-700"
+                                    onClick={() => navigate('/my-bookings')}
+                                >
+                                    <span>Lịch sử đặt sân</span>
+                                    <Calendar size={16} className="text-slate-500" />
                                 </Button>
                                 <Button variant="secondary" className="w-full justify-between bg-slate-800/50 border-slate-700">
                                     <span>Liên kết ngân hàng</span>

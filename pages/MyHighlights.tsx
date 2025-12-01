@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
     ChevronLeft, Play, Globe, Lock, Trash2, Share2, Download,
     Edit3, MoreVertical, Grid3x3, List, SlidersHorizontal,
-    TrendingUp, Clock, Heart, Eye, Plus, Camera, MessageCircle
+    TrendingUp, Clock, Heart, Eye, Plus, Camera, MessageCircle, Users, UserPlus
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PageTransition } from '../components/Layout/PageTransition';
@@ -152,6 +152,36 @@ export const MyHighlights: React.FC = () => {
                             color="success"
                             size={80}
                         />
+                    </div>
+
+                    {/* Follower/Following Stats */}
+                    <div className="flex items-center gap-4 mt-4 justify-center">
+                        <button
+                            onClick={() => navigate('/social/connections?tab=followers')}
+                            className="flex flex-col items-center"
+                        >
+                            <StatCircle
+                                icon={<Users size={16} />}
+                                label="Followers"
+                                value={user?.followersCount || 0}
+                                max={1000}
+                                color="warning"
+                                size={80}
+                            />
+                        </button>
+                        <button
+                            onClick={() => navigate('/social/connections?tab=following')}
+                            className="flex flex-col items-center"
+                        >
+                            <StatCircle
+                                icon={<UserPlus size={16} />}
+                                label="Following"
+                                value={user?.followingCount || 0}
+                                max={500}
+                                color="info"
+                                size={80}
+                            />
+                        </button>
                     </div>
                 </div>
 
