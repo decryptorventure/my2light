@@ -227,6 +227,10 @@ const VideoCard: React.FC<VideoCardProps> = ({ highlight, index }) => {
     showToast(saved ? 'Đã bỏ lưu' : 'Đã lưu highlight', 'success');
   };
 
+  useEffect(() => {
+    console.log('Highlight Data:', highlight);
+  }, [highlight]);
+
   return (
     <motion.div
       className="h-screen snap-start flex items-center justify-center relative bg-black"
@@ -325,7 +329,7 @@ const VideoCard: React.FC<VideoCardProps> = ({ highlight, index }) => {
       )}
 
       {/* Bottom gradient overlay */}
-      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/80 to-transparent p-6 pb-8 pointer-events-none">
+      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/80 to-transparent p-6 pb-8 pointer-events-none z-10">
         <div className="flex items-end gap-4 pointer-events-auto">
           {/* Info */}
           <div className="flex-1">
