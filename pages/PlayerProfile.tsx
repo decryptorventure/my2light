@@ -12,10 +12,13 @@ import {
     Grid,
     BarChart2,
     Award,
-    ChevronLeft
+    Award,
+    ChevronLeft,
+    Play
 } from 'lucide-react';
-import { SocialService } from '../services/social';
+import { ApiService } from '../services/api';
 import { SocialProfile, Activity } from '../types/social';
+import { Highlight } from '../types';
 import { SkeletonProfileHeader, SkeletonCard } from '../components/ui/Skeleton';
 import { Button } from '../components/ui/Button';
 import { useToast } from '../components/ui/Toast';
@@ -30,7 +33,7 @@ export const PlayerProfile: React.FC = () => {
     const [profile, setProfile] = useState<SocialProfile | null>(null);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<'highlights' | 'stats' | 'badges'>('highlights');
-    const [activities, setActivities] = useState<Activity[]>([]);
+    const [highlights, setHighlights] = useState<Highlight[]>([]);
 
     useEffect(() => {
         if (userId) {
@@ -53,9 +56,11 @@ export const PlayerProfile: React.FC = () => {
     };
 
     const loadActivities = async () => {
-        // In a real app, we would have a specific endpoint for user's highlights/activities
-        // For now, we'll just use the feed endpoint and filter (mock behavior)
-        // or just show empty state if not implemented
+        if (!userId) return;
+        const res = await ApiService.getUserHighlights(userId);
+        if (res.success) {
+            setHighlights(res.data);
+        }
     };
 
     const handleFollow = async () => {
@@ -234,18 +239,31 @@ export const PlayerProfile: React.FC = () => {
                 <div className="min-h-[200px]">
                     {activeTab === 'highlights' && (
                         <div className="grid grid-cols-3 gap-1">
-                            {/* Mock Grid */}
-                            {[1, 2, 3, 4, 5].map((i) => (
-                                <div key={i} className="aspect-[4/5] bg-slate-800 rounded relative overflow-hidden group">
-                                    <div className="absolute inset-0 flex items-center justify-center text-slate-600">
-                                        <ActivityIcon size={24} />
-                                    </div>
-                                    <div className="absolute bottom-1 right-1 flex items-center gap-1 text-[10px] text-white drop-shadow-md">
-                                        <Trophy size={10} className="text-lime-400" />
-                                        <span>1.2k</span>
-                                    </div>
+                            {highlights.length === 0 ? (
+                                <div className="col-span-3 text-center py-12 text-slate-500">
+                                    <ActivityIcon size={48} className="mx-auto mb-4 opacity-20" />
+                                    <p>Chưa có highlight nào.</p>
                                 </div>
-                            ))}
+                            ) : (
+                                highlights.map((highlight) => (
+                                    <div
+                                        key={highlight.id}
+                                        onClick={() => navigate(`/highlight/${highlight.id}`)}
+                                        className="aspect-[3/4] bg-slate-800 relative cursor-pointer group overflow-hidden"
+                                    >
+                                        <img
+                                            src={highlight.thumbnailUrl}
+                                            alt=""
+                                            className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                                        />
+                                        <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors" />
+                                        <div className="absolute bottom-2 left-2 flex items-center gap-1 text-white text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <Play size={12} className="fill-white" />
+                                            {highlight.views}
+                                        </div>
+                                    </div>
+                                ))
+                            )}
                         </div>
                     )}
 

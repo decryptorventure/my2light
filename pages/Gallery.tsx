@@ -105,6 +105,8 @@ const VideoCard: React.FC<VideoCardProps> = ({ highlight, index }) => {
   const [showComments, setShowComments] = useState(false);
   const [showShare, setShowShare] = useState(false);
   const [showLikeAnim, setShowLikeAnim] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const [showHighlightList, setShowHighlightList] = useState(false);
@@ -141,10 +143,15 @@ const VideoCard: React.FC<VideoCardProps> = ({ highlight, index }) => {
   }, []);
 
   const handleTimeUpdate = () => {
-    if (videoRef.current && isPreviewMode) {
-      if (videoRef.current.currentTime >= 5) {
-        videoRef.current.currentTime = 0;
-        videoRef.current.play();
+    if (videoRef.current) {
+      setCurrentTime(videoRef.current.currentTime);
+      setDuration(videoRef.current.duration || 0);
+
+      if (isPreviewMode) {
+        if (videoRef.current.currentTime >= 5) {
+          videoRef.current.currentTime = 0;
+          videoRef.current.play();
+        }
       }
     }
   };
@@ -329,23 +336,6 @@ const VideoCard: React.FC<VideoCardProps> = ({ highlight, index }) => {
                 loading="lazy"
                 className="w-10 h-10 rounded-full border-2 border-white/30"
               />
-              <div>
-                <h3 className="font-bold text-white text-sm leading-tight">
-                  {highlight.userName || 'Unknown'}
-                </h3>
-                <p className="text-xs text-slate-300">{highlight.courtName}</p>
-              </div>
-            </div>
-            <p className="text-sm text-white/90 mb-2 line-clamp-2">
-              {highlight.description || `Highlight ${index + 1}`}
-            </p>
-            <div className="flex items-center gap-3 text-xs text-slate-400">
-              <span className="flex items-center gap-1">
-                <Eye size={14} />
-                {(highlight.views || Math.floor(Math.random() * 1000))} views
-              </span>
-              <span>•</span>
-              <span>00:{highlight.durationSec}s</span>
             </div>
           </div>
 
@@ -367,7 +357,7 @@ const VideoCard: React.FC<VideoCardProps> = ({ highlight, index }) => {
                     <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border border-black" />
                   </div>
                 </div>
-                <span className="text-xs text-white font-bold">List</span>
+                <span className="text-xs text-white font-bold">Highlight</span>
               </motion.button>
             )}
 

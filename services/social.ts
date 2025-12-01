@@ -168,39 +168,48 @@ export const SocialService = {
     async getFeed(page: number = 1, limit: number = 10): Promise<ApiResponse<Activity[]>> {
         try {
             const { data: { user } } = await supabase.auth.getUser();
-            if (!user) throw new Error('Not authenticated');
-
-            // Get list of followed users
-            const { data: connections } = await supabase
-                .from('player_connections')
-                .select('requester_id, receiver_id')
-                .or(`requester_id.eq.${user.id},receiver_id.eq.${user.id}`)
-                .eq('status', 'accepted');
-
-            const friendIds = connections?.map(c =>
-                c.requester_id === user.id ? c.receiver_id : c.requester_id
-            ) || [];
-
-            // Include self
-            friendIds.push(user.id);
+            // Allow public feed even if not logged in? For now assume logged in as per app structure
 
             const from = (page - 1) * limit;
             const to = from + limit - 1;
 
-            // Get activities from friends
+            // Fetch public highlights from everyone (Community Feed)
             const { data, error } = await supabase
-                .from('player_activities')
+                .from('highlights')
                 .select(`
                     *,
-                    user:profiles!user_id(id, full_name, avatar_url)
+                    user:profiles!user_id(id, full_name, avatar_url, skill_level)
                 `)
-                .in('user_id', friendIds)
+                .eq('is_public', true)
                 .order('created_at', { ascending: false })
                 .range(from, to);
 
             if (error) throw error;
 
-            return { success: true, data: data as Activity[] };
+            // Map highlights to Activity format
+            const activities: Activity[] = data.map(h => ({
+                id: h.id, // Use highlight ID as activity ID for simplicity in this view
+                user_id: h.user_id,
+                activity_type: 'highlight_post',
+                content: h.description || h.title,
+                created_at: h.created_at,
+                metadata: {
+                    highlight_id: h.id,
+                    thumbnail_url: h.thumbnail_url,
+                    video_url: h.video_url,
+                    duration: h.duration_sec,
+                    likes_count: h.likes,
+                    views_count: h.views,
+                    is_liked: false // TODO: Check if current user liked
+                },
+                user: {
+                    id: h.user.id,
+                    full_name: h.user.full_name,
+                    avatar_url: h.user.avatar_url
+                }
+            }));
+
+            return { success: true, data: activities };
         } catch (error: any) {
             return { success: false, error: error.message };
         }
