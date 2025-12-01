@@ -266,7 +266,6 @@ export const PlayerProfile: React.FC = () => {
             </div>
         )}
     </div>
-        </div >
-        </div >
+
     );
 };
