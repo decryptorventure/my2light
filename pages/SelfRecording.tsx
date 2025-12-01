@@ -14,7 +14,7 @@ import { UploadService } from '../services/uploadService';
 import { Modal } from '../components/ui/Modal';
 import { VideoStorage } from '../lib/storage';
 
-type RecordingStep = 'ready' | 'recording' | 'uploading' | 'done';
+type RecordingStep = 'ready' | 'recording' | 'preview' | 'uploading' | 'done';
 
 export const SelfRecording: React.FC = () => {
   const navigate = useNavigate();
@@ -26,6 +26,8 @@ export const SelfRecording: React.FC = () => {
   const [sessionId] = useState(() => crypto.randomUUID());
   const [showSettings, setShowSettings] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [voiceCommandEnabled, setVoiceCommandEnabled] = useState(false);
+  const [highlightDuration, setHighlightDuration] = useState(15);
 
   // Recording Hook
   const {
@@ -60,7 +62,7 @@ export const SelfRecording: React.FC = () => {
 
   const handleStop = async () => {
     await stopRecording();
-    setStep('uploading');
+    setStep('preview'); // Go to preview first
   };
 
   const handleMarkHighlight = () => {
@@ -107,14 +109,75 @@ export const SelfRecording: React.FC = () => {
                 {stream ? (
                   <video
                     ref={videoRef}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover scale-x-[-1]"
                     autoPlay
                     playsInline
                     muted
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-slate-900">
-                    {step === 'ready' && <div className="text-slate-500">Camera ready...</div>}
+                  <div className="w-full h-full flex flex-col items-center justify-center bg-slate-900 px-6">
+                    {step === 'ready' && (
+                      <>
+                        <h2 className="text-xl font-bold text-white mb-6">Cài đặt quay</h2>
+
+                        {/* Voice Command Toggle */}
+                        <div className="w-full max-w-md mb-6">
+                          <div className="flex items-center justify-between p-4 bg-slate-800 rounded-xl">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <Mic size={18} className="text-lime-400" />
+                                <span className="font-bold text-white">Nhận diện giọng nói</span>
+                              </div>
+                              <p className="text-xs text-slate-400">
+                                Nói "Highlight" để đánh dấu tự động
+                              </p>
+                            </div>
+                            <button
+                              onClick={() => setVoiceCommandEnabled(!voiceCommandEnabled)}
+                              className={`w-12 h-6 rounded-full transition-colors relative ${voiceCommandEnabled ? 'bg-lime-400' : 'bg-slate-700'
+                                }`}
+                            >
+                              <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${voiceCommandEnabled ? 'left-7' : 'left-1'
+                                }`} />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Highlight Duration Slider */}
+                        <div className="w-full max-w-md mb-8">
+                          <div className="p-4 bg-slate-800 rounded-xl">
+                            <div className="flex items-center justify-between mb-3">
+                              <div className="flex items-center gap-2">
+                                <Clock size={18} className="text-lime-400" />
+                                <span className="font-bold text-white">Thời gian rollback</span>
+                              </div>
+                              <span className="text-lime-400 font-bold">{highlightDuration}s</span>
+                            </div>
+                            <input
+                              type="range"
+                              min="5"
+                              max="60"
+                              step="5"
+                              value={highlightDuration}
+                              onChange={(e) => setHighlightDuration(Number(e.target.value))}
+                              className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer"
+                              style={{
+                                background: `linear-gradient(to right, #a3e635 0%, #a3e635 ${((highlightDuration - 5) / 55) * 100}%, #334155 ${((highlightDuration - 5) / 55) * 100}%, #334155 100%)`
+                              }}
+                            />
+                            <div className="flex justify-between text-xs text-slate-500 mt-2">
+                              <span>5s</span>
+                              <span>30s</span>
+                              <span>60s</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <p className="text-center text-slate-400 text-sm">
+                          Điều chỉnh cài đặt trước khi bắt đầu quay
+                        </p>
+                      </>
+                    )}
                   </div>
                 )}
 
@@ -192,6 +255,16 @@ export const SelfRecording: React.FC = () => {
               </motion.div>
             )}
 
+            {/* PREVIEW STATE */}
+            {step === 'preview' && (
+              <PreviewStep
+                sessionId={sessionId}
+                highlightCount={highlightCount}
+                onConfirm={() => setStep('uploading')}
+                onRetake={() => setStep('ready')}
+              />
+            )}
+
             {/* UPLOADING STATE */}
             {step === 'uploading' && (
               <UploadStep
@@ -239,6 +312,61 @@ const formatTime = (seconds: number) => {
   const mins = Math.floor(seconds / 60);
   const secs = seconds % 60;
   return `${mins}:${secs.toString().padStart(2, '0')}`;
+};
+
+const PreviewStep: React.FC<{
+  sessionId: string;
+  highlightCount: number;
+  onConfirm: () => void;
+  onRetake: () => void;
+}> = ({ sessionId, highlightCount, onConfirm, onRetake }) => {
+  return (
+    <motion.div
+      key="preview"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="flex-1 flex flex-col bg-slate-900"
+    >
+      {/* Preview Content */}
+      <div className="flex-1 flex items-center justify-center p-6">
+        <div className="text-center">
+          <div className="w-32 h-32 mx-auto mb-6 bg-lime-400/20 rounded-full flex items-center justify-center">
+            <Sparkles size={64} className="text-lime-400" />
+          </div>
+          <h2 className="text-2xl font-bold text-white mb-2">
+            Quay xong!
+          </h2>
+          <p className="text-slate-400 mb-2">
+            Đã ghi {highlightCount} highlights
+          </p>
+          <p className="text-sm text-slate-500">
+            Session ID: {sessionId.slice(0, 8)}...
+          </p>
+        </div>
+      </div>
+
+      {/* Actions */}
+      <div className="p-6 pb-safe-bottom space-y-3">
+        <Button
+          onClick={onConfirm}
+          size="xl"
+          className="w-full"
+          icon={<UploadCloud size={24} />}
+        >
+          Lưu và Upload
+        </Button>
+        <Button
+          onClick={onRetake}
+          variant="outline"
+          size="xl"
+          className="w-full"
+          icon={<RefreshCw size={20} />}
+        >
+          Quay lại
+        </Button>
+      </div>
+    </motion.div>
+  );
 };
 
 const UploadStep: React.FC<{
