@@ -250,23 +250,7 @@ const VideoCard: React.FC<VideoCardProps> = ({ highlight, index }) => {
 
       <LikeAnimation isActive={showLikeAnim} onComplete={() => setShowLikeAnim(false)} />
 
-      {/* Highlight List Button (Top Right) */}
-      {hasHighlights && (
-        <div className="absolute top-24 right-4 z-20">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setShowHighlightList(!showHighlightList);
-            }}
-            className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors shadow-lg backdrop-blur-md ${showHighlightList ? 'bg-orange-500 text-white' : 'bg-black/40 text-white hover:bg-white/20'}`}
-          >
-            <div className="relative">
-              <Zap size={20} className={showHighlightList ? 'fill-white' : ''} />
-              <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border border-black" />
-            </div>
-          </button>
-        </div>
-      )}
+
 
       {/* Highlight List Overlay */}
       <AnimatePresence>
@@ -367,6 +351,26 @@ const VideoCard: React.FC<VideoCardProps> = ({ highlight, index }) => {
 
           {/* Actions */}
           <div className="flex flex-col items-center gap-4">
+            {/* Highlight List Button */}
+            {hasHighlights && (
+              <motion.button
+                whileTap={{ scale: 0.9 }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowHighlightList(!showHighlightList);
+                }}
+                className="flex flex-col items-center gap-1"
+              >
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors shadow-lg backdrop-blur-md ${showHighlightList ? 'bg-orange-500 text-white' : 'bg-white/20 backdrop-blur-md'}`}>
+                  <div className="relative">
+                    <Zap size={20} className={showHighlightList ? 'fill-white' : 'text-white'} />
+                    <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border border-black" />
+                  </div>
+                </div>
+                <span className="text-xs text-white font-bold">List</span>
+              </motion.button>
+            )}
+
             {/* Like */}
             <motion.button
               whileTap={{ scale: 0.9 }}
