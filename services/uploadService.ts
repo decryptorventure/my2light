@@ -130,7 +130,6 @@ export const UploadService = {
                 video_url: videoUrl,
                 thumbnail_url: thumbnailUrl,
                 duration_sec: metadata?.duration || sessionMeta.chunkCount * 10,
-                duration: metadata?.duration || sessionMeta.chunkCount * 10, // For the new column
                 title: metadata?.title || `Highlight ${new Date().toLocaleString()}`,
                 description: metadata?.description || 'Recorded via My2Light App',
                 highlight_events: metadata?.highlightEvents || sessionMeta.highlightEvents || [],
