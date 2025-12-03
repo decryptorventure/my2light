@@ -164,6 +164,19 @@ export const VideoFeedItem: React.FC<VideoFeedItemProps> = ({ highlight, isActiv
                 preload="metadata"
                 onClick={togglePlay}
                 onTimeUpdate={handleTimeUpdate}
+                onError={(e) => {
+                    console.error('❌ Video playback failed');
+                    console.log('🎥 Video URL:', highlight.videoUrl);
+                    console.log('📱 User Agent:', navigator.userAgent);
+                    console.log('🖼️ Thumbnail URL:', highlight.thumbnailUrl);
+                    console.log('⚠️ Error:', e);
+                    // Check video format
+                    const ext = highlight.videoUrl.split('.').pop()?.split('?')[0];
+                    console.log('📄 Video format:', ext);
+                    if (ext === 'webm') {
+                        console.log('⚠️ WebM detected - iOS Safari cannot play webm videos!');
+                    }
+                }}
             />
 
             <LikeAnimation isActive={showLikeAnim} onComplete={() => setShowLikeAnim(false)} />

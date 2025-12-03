@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase';
 import { VideoStorage, VideoChunk, SessionMetadata } from '../lib/storage';
+import { isIOSSafari } from '../lib/browserDetect';
 
 export const UploadService = {
     async uploadSession(
@@ -240,43 +241,101 @@ export const UploadService = {
         }
     },
 
+    /**
+     * Generate video thumbnail from blob
+     * iOS Safari compatible with shorter timeout
+     */
     async generateThumbnail(videoBlob: Blob): Promise<Blob | null> {
         return new Promise((resolve) => {
+            // iOS Safari may fail with webm - use shorter timeout
+            const TIMEOUT_MS = isIOSSafari() ? 3000 : 10000;
+            let resolved = false;
+            let timeoutId: NodeJS.Timeout;
+
             const video = document.createElement('video');
             video.preload = 'metadata';
-            video.src = URL.createObjectURL(videoBlob);
             video.muted = true;
             video.playsInline = true;
+            video.crossOrigin = 'anonymous'; // iOS compatibility
+
+            const videoUrl = URL.createObjectURL(videoBlob);
+            video.src = videoUrl;
+
+            const cleanup = () => {
+                if (timeoutId) clearTimeout(timeoutId);
+                URL.revokeObjectURL(videoUrl);
+            };
 
             video.onloadedmetadata = () => {
+                if (resolved) return;
+
                 // Seek to 1 second or 10% of duration
-                video.currentTime = Math.min(1, video.duration * 0.1);
+                const seekTime = Math.min(1, video.duration * 0.1);
+
+                // Check if duration is valid
+                if (!isFinite(video.duration) || video.duration === 0) {
+                    console.warn('⚠️ Invalid video duration, using placeholder');
+                    resolved = true;
+                    cleanup();
+                    resolve(null);
+                    return;
+                }
+
+                console.log('📹 Video duration:', video.duration, 'seconds, seeking to', seekTime);
+                video.currentTime = seekTime;
             };
 
             video.onseeked = () => {
+                if (resolved) return;
+                resolved = true;
+                clearTimeout(timeoutId);
+
                 try {
                     const canvas = document.createElement('canvas');
-                    canvas.width = video.videoWidth;
-                    canvas.height = video.videoHeight;
+                    canvas.width = video.videoWidth || 640;
+                    canvas.height = video.videoHeight || 480;
+
                     const ctx = canvas.getContext('2d');
-                    if (ctx) {
-                        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-                        canvas.toBlob((blob) => {
-                            URL.revokeObjectURL(video.src);
-                            resolve(blob);
-                        }, 'image/jpeg', 0.8);
-                    } else {
+                    if (!ctx) {
+                        console.error('❌ Canvas context unavailable');
+                        cleanup();
                         resolve(null);
+                        return;
                     }
+
+                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                    canvas.toBlob((blob) => {
+                        cleanup();
+                        if (blob) {
+                            console.log('✅ Thumbnail generated:', (blob.size / 1024).toFixed(2), 'KB');
+                        }
+                        resolve(blob);
+                    }, 'image/jpeg', 0.8);
                 } catch (e) {
-                    console.error('Canvas error:', e);
+                    console.error('❌ Canvas drawing error:', e);
+                    cleanup();
                     resolve(null);
                 }
             };
 
-            video.onerror = () => {
+            video.onerror = (e) => {
+                if (resolved) return;
+                resolved = true;
+                console.error('❌ Video load failed for thumbnail (iOS Safari + webm issue?):', e);
+                cleanup();
                 resolve(null);
             };
+
+            // iOS-specific timeout
+            timeoutId = setTimeout(() => {
+                if (!resolved) {
+                    resolved = true;
+                    console.warn(`⏱️ Thumbnail generation timeout after ${TIMEOUT_MS}ms (${isIOSSafari() ? 'iOS Safari' : 'Desktop'})`);
+                    cleanup();
+                    resolve(null);
+                }
+            }, TIMEOUT_MS);
         });
     },
 
@@ -284,4 +343,4 @@ export const UploadService = {
         await VideoStorage.clearSessionChunks(sessionId);
         await VideoStorage.deleteSessionMetadata(sessionId);
     }
-};
+}

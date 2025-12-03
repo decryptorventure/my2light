@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { VideoStorage, SessionMetadata } from '../lib/storage';
+import { isIOSSafari, getBrowserInfo } from '../lib/browserDetect';
 
 interface UseMediaRecorderProps {
     onChunkSaved?: (chunkId: number, size: number) => void;
@@ -117,20 +118,37 @@ export const useMediaRecorder = ({
             setHighlightEvents([]);
 
             // STEP 3: Create MediaRecorder (CRITICAL - must succeed)
-            // Fallback chain for cross-browser/device support
+            // IMPORTANT: iOS Safari MUST use MP4!
+            // Safari can RECORD webm but CANNOT PLAY it back
+            const browserInfo = getBrowserInfo();
+            console.log('🌐 Browser detected:', browserInfo.name, 'on', browserInfo.os);
+
             let mimeType = '';
-            const supportedTypes = [
-                'video/webm;codecs=vp9,opus',    // Chrome/Firefox/Edge - best quality
-                'video/webm;codecs=vp8,opus',    // Older Chrome/Firefox
-                'video/webm',                     // Basic WebM
-                'video/mp4;codecs=h264,aac',     // Safari iOS/macOS
-                'video/mp4',                      // Fallback MP4
-            ];
+            const isAppleDevice = isIOSSafari();
+
+            // Different codec priority for iOS vs Desktop
+            const supportedTypes = isAppleDevice
+                ? [
+                    'video/mp4;codecs=h264,aac',     // ✅ iOS Safari - MUST use MP4
+                    'video/mp4',
+                    'video/webm;codecs=vp8,opus',    // Fallback (will record but can't play)
+                    'video/webm'
+                ]
+                : [
+                    'video/webm;codecs=vp9,opus',    // 🖥️ Desktop - prefer webm (better quality)
+                    'video/webm;codecs=vp8,opus',
+                    'video/webm',
+                    'video/mp4;codecs=h264,aac',
+                    'video/mp4',
+                ];
 
             for (const type of supportedTypes) {
                 if (MediaRecorder.isTypeSupported(type)) {
                     mimeType = type;
                     console.log('✅ Using MediaRecorder mimeType:', type);
+                    if (isAppleDevice && type.startsWith('video/mp4')) {
+                        console.log('🍎 iOS Safari detected - using MP4 for playback compatibility');
+                    }
                     break;
                 }
             }

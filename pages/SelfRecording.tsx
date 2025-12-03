@@ -573,6 +573,9 @@ export const SelfRecording: React.FC = () => {
                 onPause={() => setIsPlayingPreview(false)}
                 onError={(e) => {
                   console.error('❌ Video playback error:', e);
+                  console.log('📱 User Agent:', navigator.userAgent);
+                  console.log('🎥 Preview URL:', previewUrl);
+                  console.log('💾 Blob type:', previewUrl.startsWith('blob:') ? 'Blob URL' : 'Regular URL');
                   showToast('Không thể phát video preview', 'error');
                 }}
               />
