@@ -16,6 +16,7 @@ import { supabase } from '../lib/supabase';
 import { fireworks } from '../lib/confetti';
 import { mergeVideos, isFFmpegSupported } from '../lib/ffmpeg-browser';
 import { VideoProcessingProgress } from '../components/VideoProcessingProgress';
+import { isIOSSafari } from '../lib/browserDetect'; // Added import
 
 // Types
 type RecordingStep = 'setup' | 'ready' | 'recording' | 'preview' | 'upload_form' | 'uploading' | 'done';
@@ -54,6 +55,9 @@ export const SelfRecording: React.FC = () => {
   const [processingStage, setProcessingStage] = useState('');
   const [processingError, setProcessingError] = useState<string | null>(null);
   const [mergedVideoBlob, setMergedVideoBlob] = useState<Blob | null>(null);
+
+  // Safari warning state
+  const [showSafariWarning, setShowSafariWarning] = useState(false); // Added state
 
   // Highlight Feedback State
   // const [showHighlightFlash, setShowHighlightFlash] = useState(false); // Removed in favor of fireworks
@@ -313,12 +317,44 @@ export const SelfRecording: React.FC = () => {
       <PageTransition>
         <div className="min-h-screen bg-slate-900 text-white flex flex-col">
           {/* Header */}
-          <div className="p-4 flex items-center gap-4 border-b border-slate-800">
+          <div className="p-4 flex items-center justify-between border-b border-slate-800">
             <button onClick={() => navigate(-1)} className="p-2 hover:bg-slate-800 rounded-full">
-              <ChevronLeft size={24} />
+              <X size={24} />
             </button>
-            <h1 className="text-lg font-bold">Cài đặt quay</h1>
+            <h1 className="text-lg font-bold">Tự Quay</h1>
+            <div className="w-10" />
           </div>
+
+          {/* iOS Safari Warning Banner */}
+          {showSafariWarning && (
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mx-4 mt-4 bg-orange-500/10 border-2 border-orange-500/30 rounded-xl p-4"
+            >
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="text-orange-400 flex-shrink-0 mt-1" size={24} />
+                <div className="flex-1">
+                  <h3 className="font-bold text-orange-400 mb-2">⚠️ Lưu Ý Cho Safari Users</h3>
+                  <p className="text-sm text-slate-300 mb-3">
+                    Safari trên iPhone có hạn chế về video. Video sẽ được lưu nhưng <strong>không xem được ngay</strong> sau khi upload.
+                  </p>
+                  <div className="flex items-center gap-2 bg-slate-800/50 p-3 rounded-lg">
+                    <Chrome className="text-blue-400 flex-shrink-0" size={20} />
+                    <p className="text-sm text-slate-300">
+                      <strong className="text-blue-400">Khuyến nghị:</strong> Dùng <strong>Chrome</strong> trên iPhone để xem video ngay lập tức!
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setShowSafariWarning(false)}
+                    className="mt-3 text-xs text-slate-400 hover:text-white underline"
+                  >
+                    Tôi hiểu rồi, đóng thông báo này
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          )}
 
           <div className="flex-1 p-6 space-y-8">
             {/* Voice Command */}

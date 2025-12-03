@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
-    Heart, Share2, MessageCircle, Bookmark, X, Play, Zap
+    Heart, Share2, MessageCircle, Bookmark, X, Play, Zap, AlertTriangle
 } from 'lucide-react';
 import { motion, AnimatePresence, useMotionValue, useTransform } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -170,14 +170,39 @@ export const VideoFeedItem: React.FC<VideoFeedItemProps> = ({ highlight, isActiv
                     console.log('📱 User Agent:', navigator.userAgent);
                     console.log('🖼️ Thumbnail URL:', highlight.thumbnailUrl);
                     console.log('⚠️ Error:', e);
+
                     // Check video format
                     const ext = highlight.videoUrl.split('.').pop()?.split('?')[0];
                     console.log('📄 Video format:', ext);
-                    if (ext === 'webm') {
-                        console.log('⚠️ WebM detected - iOS Safari cannot play webm videos!');
+
+                    // Show user-friendly message for webm on iOS Safari
+                    if (ext === 'webm' && /iPhone|iPad|iPod/.test(navigator.userAgent) && /Safari/.test(navigator.userAgent)) {
+                        console.log('⚠️ WebM detected on iOS Safari - showing compatibility message');
+                        // You could show a toast or overlay here
+                        alert('⚠️ Video này không tương thích với Safari trên iPhone.\n\n💡 Vui lòng dùng Chrome hoặc xem trên máy tính!');
                     }
                 }}
             />
+
+            {/* Safari Compatibility Overlay - Show when video fails on iOS Safari */}
+            {highlight.videoUrl.includes('.webm') && typeof window !== 'undefined' && /iPhone|iPad|iPod/.test(navigator.userAgent) && /Safari/.test(navigator.userAgent) && !(/CriOS|Chrome/.test(navigator.userAgent)) && (
+                <div className="absolute inset-0 bg-black/80 flex items-center justify-center p-6 text-center">
+                    <div className="max-w-sm">
+                        <AlertTriangle className="text-orange-400 mx-auto mb-4" size={48} />
+                        <h4 className="font-bold text-white mb-2">Video Không Tương Thích</h4>
+                        <p className="text-sm text-slate-300 mb-4">
+                            Safari trên iPhone không hỗ trợ định dạng video này.
+                        </p>
+                        <div className="bg-blue-500/20 border border-blue-500/30 rounded-lg p-3">
+                            <p className="text-xs text-slate-200">
+                                💡 <strong>Giải pháp:</strong><br />
+                                Dùng <strong>Chrome</strong> trên iPhone<br />
+                                hoặc xem trên máy tính
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <LikeAnimation isActive={showLikeAnim} onComplete={() => setShowLikeAnim(false)} />
 
