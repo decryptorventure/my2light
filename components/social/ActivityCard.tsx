@@ -9,9 +9,10 @@ interface ActivityCardProps {
     onLike: (id: string) => void;
     onComment: (id: string) => void;
     onShare: (id: string) => void;
+    onPress?: (id: string) => void;
 }
 
-export const ActivityCard: React.FC<ActivityCardProps> = ({ activity, onLike, onComment, onShare }) => {
+export const ActivityCard: React.FC<ActivityCardProps> = ({ activity, onLike, onComment, onShare, onPress }) => {
     const { user, activity_type, metadata, created_at } = activity;
 
     const renderContent = () => {
@@ -21,7 +22,10 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({ activity, onLike, on
                     <div className="mt-3">
                         <p className="text-slate-300 text-sm mb-3">{metadata.caption}</p>
                         {metadata.thumbnail_url && (
-                            <div className="relative aspect-video rounded-xl overflow-hidden bg-slate-900">
+                            <div
+                                className="relative aspect-video rounded-xl overflow-hidden bg-slate-900 cursor-pointer active:scale-95 transition-transform"
+                                onClick={() => onPress && onPress(activity.id)}
+                            >
                                 <img
                                     src={metadata.thumbnail_url}
                                     alt="Highlight"

@@ -1,4 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Virtuoso } from 'react-virtuoso';
 import { ActivityCard } from '../../components/social/ActivityCard';
 import { SocialService } from '../../services/social';
 import { Activity } from '../../types/social';
@@ -9,6 +11,7 @@ import { CommentSection } from '../../components/social/CommentSection';
 import { PullToRefresh } from '../../components/ui/PullToRefresh';
 
 export const Feed: React.FC = () => {
+    const navigate = useNavigate();
     const { showToast } = useToast();
     const [activities, setActivities] = useState<Activity[]>([]);
     const [loading, setLoading] = useState(true);
@@ -89,6 +92,13 @@ export const Feed: React.FC = () => {
         showToast('Tính năng chia sẻ đang phát triển', 'info');
     };
 
+    const handlePress = (id: string) => {
+        const activity = activities.find(a => a.id === id);
+        if (activity?.activity_type === 'highlight_post' && activity.metadata.highlight_id) {
+            navigate(`/highlight/${activity.metadata.highlight_id}`);
+        }
+    };
+
     if (loading) {
         return (
             <div className="space-y-4 p-4 pb-20">
@@ -100,7 +110,7 @@ export const Feed: React.FC = () => {
     }
 
     return (
-        <div className="pb-20">
+        <div className="h-screen pb-20 flex flex-col">
             <PullToRefresh onRefresh={loadFeed}>
                 {activities.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-20 px-4 text-center min-h-[50vh]">
@@ -113,32 +123,34 @@ export const Feed: React.FC = () => {
                         </p>
                     </div>
                 ) : (
-                    <div className="divide-y divide-slate-800">
-                        {activities.map(activity => (
-                            <ActivityCard
-                                key={activity.id}
-                                activity={activity}
-                                onLike={handleLike}
-                                onComment={handleComment}
-                                onShare={handleShare}
-                            />
-                        ))}
-                    </div>
-                )}
-
-                {hasMore && (
-                    <div className="p-4 flex justify-center">
-                        <button
-                            onClick={loadMore}
-                            disabled={loadingMore}
-                            className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors disabled:opacity-50"
-                        >
-                            {loadingMore ? (
-                                <Loader2 size={20} className="animate-spin" />
-                            ) : (
-                                <span className="text-sm font-medium">Xem thêm</span>
+                    <div className="flex-1 h-[calc(100vh-80px)]">
+                        <Virtuoso
+                            style={{ height: '100%' }}
+                            data={activities}
+                            endReached={() => {
+                                if (hasMore && !loadingMore) {
+                                    loadMore();
+                                }
+                            }}
+                            itemContent={(index, activity) => (
+                                <div className="pb-4">
+                                    <ActivityCard
+                                        activity={activity}
+                                        onLike={handleLike}
+                                        onComment={handleComment}
+                                        onShare={handleShare}
+                                        onPress={handlePress}
+                                    />
+                                </div>
                             )}
-                        </button>
+                            components={{
+                                Footer: () => loadingMore ? (
+                                    <div className="flex justify-center py-4">
+                                        <Loader2 size={24} className="animate-spin text-lime-400" />
+                                    </div>
+                                ) : null
+                            }}
+                        />
                     </div>
                 )}
             </PullToRefresh>

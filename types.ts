@@ -36,6 +36,11 @@ export interface Court {
   features?: string[];
 }
 
+export interface HighlightEvent {
+  timestamp: number;
+  description?: string;
+}
+
 export interface Highlight {
   id: string;
   userId: string;

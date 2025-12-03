@@ -2,15 +2,26 @@ import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Zap } from 'lucide-react';
+import { apiClient } from '../src/api/core/client';
 
 export const Splash: React.FC = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      navigate('/welcome');
-    }, 2500);
-    return () => clearTimeout(timer);
+    const checkAuth = async () => {
+      // Check if we have a session
+      const { data: { session } } = await apiClient.supabase.auth.getSession();
+
+      setTimeout(() => {
+        if (session) {
+          navigate('/home');
+        } else {
+          navigate('/welcome');
+        }
+      }, 2500);
+    };
+
+    checkAuth();
   }, [navigate]);
 
   return (

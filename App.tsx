@@ -89,6 +89,7 @@ const AnimatedRoutes = () => {
           <Route path="/my-bookings" element={<MyBookings />} />
           <Route path="/wallet" element={<Wallet />} />
           <Route path="/payment-callback" element={<PaymentCallback />} />
+          <Route path="/notifications" element={<Notifications />} />
           <Route path="/become-court-owner" element={<BecomeCourtOwner />} />
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<Navigate to="dashboard" replace />} />

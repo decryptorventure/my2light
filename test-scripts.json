@@ -1,0 +1,11 @@
+{
+    "scripts": {
+        "test": "playwright test",
+        "test:ui": "playwright test --ui",
+        "test:headed": "playwright test --headed",
+        "test:debug": "playwright test --debug",
+        "test:report": "playwright show-report",
+        "test:auth": "playwright test tests/e2e/auth.spec.ts",
+        "test:video": "playwright test tests/e2e/video-processing.spec.ts"
+    }
+}

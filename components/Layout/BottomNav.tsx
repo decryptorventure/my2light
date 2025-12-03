@@ -46,6 +46,7 @@ export const BottomNav: React.FC = () => {
   const isHidden = hiddenPaths.includes(location.pathname) ||
     !!matchPath('/court/:id', location.pathname) ||
     !!matchPath('/booking/:id', location.pathname) ||
+    !!matchPath('/highlight/:id', location.pathname) ||
     location.pathname.startsWith('/booking') ||
     location.pathname.includes('/booking') ||
     location.pathname.startsWith('/admin');

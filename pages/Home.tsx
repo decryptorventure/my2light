@@ -207,21 +207,56 @@ export const Home: React.FC = () => {
               {highlights.map((highlight) => (
                 <Card
                   key={highlight.id}
-                  className="w-[280px] aspect-video relative group cursor-pointer flex-shrink-0"
-                  onClick={() => navigate('/gallery')}
+                  className="w-[200px] aspect-[9/16] relative group cursor-pointer flex-shrink-0 overflow-hidden border-0 rounded-xl shadow-lg"
+                  onClick={() => navigate(`/highlight/${highlight.id}`)}
                 >
-                  <img src={highlight.thumbnailUrl} alt="Highlight" className="w-full h-full object-cover transition-transform group-hover:scale-105 duration-500" />
-                  <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/80" />
-                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    <div className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center">
-                      <Play size={16} className="fill-white text-white ml-0.5" />
+                  {highlight.thumbnailUrl ? (
+                    <img
+                      src={highlight.thumbnailUrl}
+                      alt="Highlight"
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none';
+                      }}
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center">
+                      <Play size={48} className="text-slate-700" />
+                    </div>
+                  )}
+
+                  {/* Gradient Overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-80 group-hover:opacity-90 transition-opacity" />
+
+                  {/* Play Button Overlay */}
+                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 scale-50 group-hover:scale-100">
+                    <div className="w-12 h-12 bg-lime-400/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-xl">
+                      <Play size={20} className="fill-slate-900 text-slate-900 ml-1" />
                     </div>
                   </div>
-                  <div className="absolute bottom-3 left-3 right-3">
-                    <span className="text-xs font-medium text-slate-300 block mb-1 truncate">{highlight.courtName}</span>
-                    <div className="flex justify-between items-center">
-                      <span className="text-white font-bold text-lg">00:{highlight.durationSec}</span>
-                      <span className="text-xs bg-lime-400 text-slate-900 px-1.5 py-0.5 rounded font-bold">HD</span>
+
+                  {/* Content */}
+                  <div className="absolute bottom-0 left-0 right-0 p-4 transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-6 h-6 rounded-full border border-white/50 overflow-hidden">
+                        <img src={highlight.userAvatar || 'https://cdn-icons-png.flaticon.com/512/3307/3307873.png'} className="w-full h-full object-cover" />
+                      </div>
+                      <span className="text-xs font-bold text-white truncate shadow-black drop-shadow-md">{highlight.userName}</span>
+                    </div>
+
+                    <h4 className="text-white font-bold text-sm leading-tight mb-1 line-clamp-2 drop-shadow-md">
+                      {highlight.title || 'Highlight tại ' + (highlight.courtName || 'My2Light')}
+                    </h4>
+
+                    <div className="flex justify-between items-center mt-2">
+                      <span className="text-xs text-slate-300 flex items-center gap-1">
+                        <Play size={10} /> {highlight.views}
+                      </span>
+                      <span className="text-xs font-mono font-bold text-lime-400 bg-lime-400/10 px-2 py-0.5 rounded-full border border-lime-400/20">
+                        {highlight.durationSec ?
+                          `${Math.floor(highlight.durationSec / 60)}:${(highlight.durationSec % 60).toString().padStart(2, '0')}`
+                          : '--:--'}
+                      </span>
                     </div>
                   </div>
                 </Card>

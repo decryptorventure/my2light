@@ -252,11 +252,21 @@ export const PlayerProfile: React.FC = () => {
                                         onClick={() => navigate(`/highlight/${highlight.id}`)}
                                         className="aspect-[3/4] bg-slate-800 relative cursor-pointer group overflow-hidden"
                                     >
-                                        <img
-                                            src={highlight.thumbnailUrl}
-                                            alt=""
-                                            className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                                        />
+                                        {highlight.thumbnailUrl ? (
+                                            <img
+                                                src={highlight.thumbnailUrl}
+                                                alt=""
+                                                className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                                                onError={(e) => {
+                                                    // Hide image on error, show fallback
+                                                    (e.target as HTMLImageElement).style.display = 'none';
+                                                }}
+                                            />
+                                        ) : (
+                                            <div className="w-full h-full bg-gradient-to-br from-slate-700 to-slate-900 flex items-center justify-center">
+                                                <Play size={32} className="text-slate-600" />
+                                            </div>
+                                        )}
                                         <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors" />
                                         <div className="absolute bottom-2 left-2 flex items-center gap-1 text-white text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity">
                                             <Play size={12} className="fill-white" />

@@ -92,14 +92,84 @@ export const UploadService = {
             if (onProgress) onProgress(1); // 100%
 
             // 4. Insert into Database (Highlights table)
-            // Generate thumbnail from the full video blob if possible
-            let thumbnailUrl = 'https://images.unsplash.com/photo-1599058945522-28d584b6f0ff?q=80&w=400&h=800&auto=format&fit=crop'; // Fallback
+            // Generate thumbnail from the full video blob
+            let thumbnailUrl = '';
+            let actualDuration = metadata?.duration || 0;
+
+            console.log('🎬 Starting thumbnail generation...');
 
             if (fullBlob) {
                 try {
+                    console.log('📹 Video blob size:', (fullBlob.size / 1024 / 1024).toFixed(2), 'MB');
+
+                    // IMPORTANT: Create video element and wait for FULL metadata load
+                    console.log('⏳ Loading video metadata...');
+                    const video = document.createElement('video');
+                    video.muted = true;
+                    video.playsInline = true;
+                    video.preload = 'metadata';
+
+                    const videoUrl = URL.createObjectURL(fullBlob);
+                    video.src = videoUrl;
+
+                    // Wait for metadata to load COMPLETELY
+                    await new Promise<void>((resolve, reject) => {
+                        let resolved = false;
+
+                        video.onloadedmetadata = () => {
+                            // Sometimes duration is still Infinity on first load
+                            // Force load by seeking
+                            if (!isFinite(video.duration)) {
+                                console.warn('⚠️ Duration is Infinity, forcing load...');
+                                video.currentTime = 0.1; // Trigger seek
+                            } else {
+                                actualDuration = Math.floor(video.duration);
+                                console.log('⏱️ Video duration:', actualDuration, 'seconds');
+                                resolved = true;
+                                resolve();
+                            }
+                        };
+
+                        video.onseeked = () => {
+                            if (!resolved && isFinite(video.duration)) {
+                                actualDuration = Math.floor(video.duration);
+                                console.log('⏱️ Video duration (after seek):', actualDuration, 'seconds');
+                                resolved = true;
+                                resolve();
+                            }
+                        };
+
+                        video.onerror = (e) => {
+                            console.error('❌ Video metadata load failed:', e);
+                            URL.revokeObjectURL(videoUrl);
+                            reject(new Error('Video load failed'));
+                        };
+
+                        // Timeout after 15 seconds
+                        setTimeout(() => {
+                            if (!resolved) {
+                                // Use estimate if we can't get exact duration
+                                if (fullBlob.size > 0) {
+                                    actualDuration = Math.floor(fullBlob.size / (1024 * 1024 * 0.5)); // Rough estimate
+                                    console.warn('⚠️ Using estimated duration:', actualDuration);
+                                    resolved = true;
+                                    resolve();
+                                } else {
+                                    URL.revokeObjectURL(videoUrl);
+                                    reject(new Error('Video metadata timeout'));
+                                }
+                            }
+                        }, 15000);
+                    });
+
+                    console.log('🖼️ Generating thumbnail...');
+                    // Generate thumbnail
                     const thumbBlob = await this.generateThumbnail(fullBlob);
                     if (thumbBlob) {
+                        console.log('✅ Thumbnail generated, size:', (thumbBlob.size / 1024).toFixed(2), 'KB');
                         const thumbPath = `${user.id}/${sessionId}/thumbnail.jpg`;
+
+                        console.log('📤 Uploading thumbnail to:', thumbPath);
                         const { error: thumbError } = await supabase.storage
                             .from('videos')
                             .upload(thumbPath, thumbBlob, { upsert: true, contentType: 'image/jpeg' });
@@ -107,11 +177,18 @@ export const UploadService = {
                         if (!thumbError) {
                             const { data } = supabase.storage.from('videos').getPublicUrl(thumbPath);
                             thumbnailUrl = data.publicUrl;
+                            console.log('🎉 Thumbnail uploaded successfully:', thumbnailUrl);
+                        } else {
+                            console.error('❌ Thumbnail upload failed:', thumbError);
                         }
+                    } else {
+                        console.warn('⚠️ Thumbnail generation returned null');
                     }
                 } catch (err) {
-                    console.error('Failed to generate thumbnail:', err);
+                    console.error('💥 Failed to generate thumbnail/duration:', err);
                 }
+            } else {
+                console.warn('⚠️ No video blob available for thumbnail generation');
             }
 
             // Ensure we have a valid court_id (optional)
@@ -128,8 +205,8 @@ export const UploadService = {
                 user_id: user.id,
                 court_id: finalCourtId || null,
                 video_url: videoUrl,
-                thumbnail_url: thumbnailUrl,
-                duration_sec: metadata?.duration || sessionMeta.chunkCount * 10,
+                thumbnail_url: thumbnailUrl || null,  // Allow null if generation failed
+                duration_sec: actualDuration,
                 title: metadata?.title || `Highlight ${new Date().toLocaleString()}`,
                 description: metadata?.description || 'Recorded via My2Light App',
                 highlight_events: metadata?.highlightEvents || sessionMeta.highlightEvents || [],

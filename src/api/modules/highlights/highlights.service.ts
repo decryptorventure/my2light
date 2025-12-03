@@ -14,22 +14,120 @@ class HighlightsService {
         try {
             const { data, error } = await apiClient.supabase
                 .from('highlights')
-                .select('*, profiles(name, avatar), courts(name)')
+                .select(`
+                    id,
+                    user_id,
+                    court_id,
+                    video_url,
+                    thumbnail_url,
+                    duration_sec,
+                    title,
+                    description,
+                    created_at,
+                    likes,
+                    views,
+                    is_public,
+                    highlight_events,
+                    profiles(name, avatar),
+                    courts(name)
+                `)
                 .eq('is_public', true)
                 .order('created_at', { ascending: false })
                 .limit(limit);
 
             if (error) throw error;
 
+            // Transform snake_case to camelCase
+            const highlights = (data || []).map((h: any) => ({
+                id: h.id,
+                userId: h.user_id,
+                courtId: h.court_id,
+                videoUrl: h.video_url,
+                thumbnailUrl: h.thumbnail_url,
+                durationSec: h.duration_sec,
+                title: h.title,
+                description: h.description,
+                createdAt: h.created_at,
+                likes: h.likes,
+                views: h.views,
+                isPublic: h.is_public,
+                highlightEvents: h.highlight_events || [],
+                // Nested data
+                userName: h.profiles?.name || h.profiles?.full_name || h.profiles?.username || 'Unknown',
+                userAvatar: h.profiles?.avatar || h.profiles?.avatar_url || '',
+                courtName: h.courts?.name || 'My2Light',
+            }));
+
             return {
                 success: true,
-                data: data || [],
+                data: highlights,
             };
         } catch (error: any) {
             return {
                 success: false,
                 data: [],
                 error: error.message || 'Không thể lấy highlights',
+            };
+        }
+    }
+
+    async getHighlightById(id: string): Promise<ApiResponse<Highlight>> {
+        try {
+            const { data, error } = await apiClient.supabase
+                .from('highlights')
+                .select(`
+                    id,
+                    user_id,
+                    court_id,
+                    video_url,
+                    thumbnail_url,
+                    duration_sec,
+                    title,
+                    description,
+                    created_at,
+                    likes,
+                    views,
+                    is_public,
+                    highlight_events,
+                    profiles(name, avatar),
+                    courts(name)
+                `)
+                .eq('id', id)
+                .single();
+
+            if (error) throw error;
+
+            // Transform snake_case to camelCase
+            const h = data as any;
+            const highlight: Highlight = {
+                id: h.id,
+                userId: h.user_id,
+                courtId: h.court_id,
+                videoUrl: h.video_url,
+                thumbnailUrl: h.thumbnail_url,
+                durationSec: h.duration_sec,
+                title: h.title,
+                description: h.description,
+                createdAt: h.created_at,
+                likes: h.likes,
+                views: h.views,
+                isPublic: h.is_public,
+                highlightEvents: h.highlight_events || [],
+                // Nested data - single object for single result
+                // Handle different possible profile field names
+                userName: h.profiles?.name || h.profiles?.full_name || h.profiles?.username || 'Unknown',
+                userAvatar: h.profiles?.avatar || h.profiles?.avatar_url || '',
+                courtName: h.courts?.name || 'My2Light',
+            };
+            return {
+                success: true,
+                data: highlight,
+            };
+        } catch (error: any) {
+            return {
+                success: false,
+                data: null as any,
+                error: error.message || 'Không thể lấy highlight',
             };
         }
     }
@@ -38,16 +136,47 @@ class HighlightsService {
         try {
             const { data, error } = await apiClient.supabase
                 .from('highlights')
-                .select('*')
+                .select(`
+                    id,
+                    user_id,
+                    court_id,
+                    video_url,
+                    thumbnail_url,
+                    duration_sec,
+                    title,
+                    description,
+                    created_at,
+                    likes,
+                    views,
+                    is_public,
+                    highlight_events
+                `)
                 .eq('user_id', userId)
                 .order('created_at', { ascending: false })
                 .limit(limit);
 
             if (error) throw error;
 
+            // Transform snake_case to camelCase
+            const highlights = (data || []).map((h: any) => ({
+                id: h.id,
+                userId: h.user_id,
+                courtId: h.court_id,
+                videoUrl: h.video_url,
+                thumbnailUrl: h.thumbnail_url,
+                durationSec: h.duration_sec,
+                title: h.title,
+                description: h.description,
+                createdAt: h.created_at,
+                likes: h.likes,
+                views: h.views,
+                isPublic: h.is_public,
+                highlightEvents: h.highlight_events || [],
+            }));
+
             return {
                 success: true,
-                data: data || [],
+                data: highlights,
             };
         } catch (error: any) {
             return {
@@ -58,17 +187,32 @@ class HighlightsService {
         }
     }
 
-    async uploadVideo(file: Blob): Promise<ApiResponse<string>> {
+    async uploadVideo(file: Blob, compress = true): Promise<ApiResponse<string>> {
         try {
             const { data: { user }, error: authError } = await apiClient.supabase.auth.getUser();
             if (authError || !user) {
                 throw createApiError(ErrorCode.AUTH_UNAUTHORIZED);
             }
 
-            const fileName = `highlights/${user.id}/${Date.now()}.webm`;
+            let fileToUpload = file;
+            let fileExtension = 'webm';
+
+            if (compress) {
+                try {
+                    // Dynamic import to avoid loading FFmpeg on initial bundle
+                    const { compressVideo } = await import('../../../utils/videoCompressor');
+                    const compressedBlob = await compressVideo(file);
+                    fileToUpload = compressedBlob;
+                    fileExtension = 'mp4'; // Compressor outputs mp4
+                } catch (e) {
+                    console.warn('Compression failed, uploading original file', e);
+                }
+            }
+
+            const fileName = `highlights/${user.id}/${Date.now()}.${fileExtension}`;
             const { data, error } = await apiClient.supabase.storage
                 .from('videos')
-                .upload(fileName, file);
+                .upload(fileName, fileToUpload);
 
             if (error) throw error;
 

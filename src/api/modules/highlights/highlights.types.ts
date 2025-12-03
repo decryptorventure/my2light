@@ -16,6 +16,7 @@ export interface Highlight {
     description?: string;
     title?: string;
     comments?: number;
+    highlightEvents?: any[];
 }
 
 export interface CreateHighlightData {

@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { PageTransition } from '../components/Layout/PageTransition';
+import { apiClient } from '../src/api/core/client';
 
 export const Welcome: React.FC = () => {
     const navigate = useNavigate();
@@ -37,11 +38,19 @@ export const Welcome: React.FC = () => {
     ];
 
     useEffect(() => {
+        const checkAuth = async () => {
+            const { data: { session } } = await apiClient.supabase.auth.getSession();
+            if (session) {
+                navigate('/home');
+            }
+        };
+        checkAuth();
+
         const timer = setInterval(() => {
             setCurrentSlide((prev) => (prev + 1) % slides.length);
         }, 4000);
         return () => clearInterval(timer);
-    }, []);
+    }, [navigate]);
 
     const currentSlideData = slides[currentSlide];
     const Icon = currentSlideData.icon;
@@ -142,8 +151,8 @@ export const Welcome: React.FC = () => {
                                 key={index}
                                 onClick={() => setCurrentSlide(index)}
                                 className={`h-2 rounded-full transition-all ${index === currentSlide
-                                        ? 'w-8 bg-lime-400'
-                                        : 'w-2 bg-slate-700'
+                                    ? 'w-8 bg-lime-400'
+                                    : 'w-2 bg-slate-700'
                                     }`}
                             />
                         ))}
