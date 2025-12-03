@@ -4,7 +4,7 @@ import {
   Camera, X, Settings, Mic, Zap, RotateCcw,
   CheckCircle, AlertTriangle, ChevronLeft, RefreshCw,
   Play, Pause, Download, Upload, Calendar, MapPin,
-  Sliders, Square
+  Sliders, Square, Chrome
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PageTransition } from '../components/Layout/PageTransition';
@@ -57,12 +57,20 @@ export const SelfRecording: React.FC = () => {
   const [mergedVideoBlob, setMergedVideoBlob] = useState<Blob | null>(null);
 
   // Safari warning state
-  const [showSafariWarning, setShowSafariWarning] = useState(false); // Added state
+  const [showSafariWarning, setShowSafariWarning] = useState(false);
 
   // Highlight Feedback State
   // const [showHighlightFlash, setShowHighlightFlash] = useState(false); // Removed in favor of fireworks
 
+  // Video reference
   const videoRef = useRef<HTMLVideoElement>(null);
+
+  // Check for iOS Safari on mount
+  useEffect(() => {
+    if (isIOSSafari()) {
+      setShowSafariWarning(true);
+    }
+  }, []);
 
   const {
     startRecording,
