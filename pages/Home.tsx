@@ -43,10 +43,10 @@ export const Home: React.FC = () => {
           console.error('❌ Failed to load user:', userRes.error);
         }
 
-        // Load content
+        // Load content (reduced highlights to 3 for faster mobile loading)
         const [courtsRes, highlightsRes] = await Promise.all([
           courtsService.getCourts(),
-          highlightsService.getHighlights(5)
+          highlightsService.getHighlights(3)
         ]);
 
         if (courtsRes.success) setCourts(courtsRes.data);
@@ -214,6 +214,7 @@ export const Home: React.FC = () => {
                     <img
                       src={highlight.thumbnailUrl}
                       alt="Highlight"
+                      loading="lazy"
                       className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                       onError={(e) => {
                         (e.target as HTMLImageElement).style.display = 'none';
@@ -239,7 +240,7 @@ export const Home: React.FC = () => {
                   <div className="absolute bottom-0 left-0 right-0 p-4 transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
                     <div className="flex items-center gap-2 mb-2">
                       <div className="w-6 h-6 rounded-full border border-white/50 overflow-hidden">
-                        <img src={highlight.userAvatar || 'https://cdn-icons-png.flaticon.com/512/3307/3307873.png'} className="w-full h-full object-cover" />
+                        <img src={highlight.userAvatar || 'https://cdn-icons-png.flaticon.com/512/3307/3307873.png'} loading="lazy" className="w-full h-full object-cover" />
                       </div>
                       <span className="text-xs font-bold text-white truncate shadow-black drop-shadow-md">{highlight.userName}</span>
                     </div>
@@ -351,7 +352,7 @@ export const Home: React.FC = () => {
                   onClick={() => navigate(`/court/${court.id}`)}
                 >
                   <div className="w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 bg-slate-800 relative">
-                    <img src={court.thumbnailUrl} alt={court.name} className="w-full h-full object-cover" />
+                    <img src={court.thumbnailUrl} alt={court.name} loading="lazy" className="w-full h-full object-cover" />
                     {court.status === 'live' && (
                       <div className="absolute top-1 left-1 w-2 h-2 bg-red-500 rounded-full animate-pulse shadow-[0_0_8px_red]" />
                     )}

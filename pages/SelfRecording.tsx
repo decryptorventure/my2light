@@ -139,13 +139,24 @@ export const SelfRecording: React.FC = () => {
 
     // Generate preview URL from stored chunks
     try {
+      console.log('🎬 Generating video preview...');
       const blob = await VideoStorage.getSessionBlob(sessionId);
       if (blob) {
+        console.log('✅ Video blob retrieved, size:', (blob.size / 1024 / 1024).toFixed(2), 'MB');
+
+        // Create preview URL
         const url = URL.createObjectURL(blob);
         setPreviewUrl(url);
+        console.log('✅ Preview URL created successfully');
+      } else {
+        console.warn('⚠️ No video blob found for session:', sessionId);
+        // Don't fail - user can still upload without preview
+        showToast('Video đã được lưu, nhưng preview không khả dụng', 'success');
       }
     } catch (err) {
-      console.error('Failed to generate preview:', err);
+      console.error('❌ Failed to generate preview:', err);
+      // Don't fail the entire flow - video is still saved
+      showToast('Video đã được lưu thành công', 'success');
     }
 
     setStep('preview');
@@ -560,10 +571,20 @@ export const SelfRecording: React.FC = () => {
                 controls
                 onPlay={() => setIsPlayingPreview(true)}
                 onPause={() => setIsPlayingPreview(false)}
+                onError={(e) => {
+                  console.error('❌ Video playback error:', e);
+                  showToast('Không thể phát video preview', 'error');
+                }}
               />
             ) : (
-              <div className="w-full h-full flex items-center justify-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+              <div className="w-full h-full flex flex-col items-center justify-center text-white gap-4 p-6">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
+                <div className="text-center">
+                  <p className="text-lg font-medium mb-2">Đang tải preview...</p>
+                  <p className="text-sm text-slate-400">
+                    Nếu preview không hiển thị, bạn vẫn có thể đăng video bình thường
+                  </p>
+                </div>
               </div>
             )}
           </div>

@@ -161,6 +161,7 @@ export const VideoFeedItem: React.FC<VideoFeedItemProps> = ({ highlight, isActiv
                 loop={!isPreviewMode}
                 playsInline
                 muted={isPreviewMode}
+                preload="metadata"
                 onClick={togglePlay}
                 onTimeUpdate={handleTimeUpdate}
             />

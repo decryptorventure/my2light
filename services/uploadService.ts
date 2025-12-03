@@ -201,11 +201,18 @@ export const UploadService = {
                 }
             }
 
+            // IMPORTANT: Use placeholder if thumbnail generation failed (especially on mobile browsers)
+            // This ensures all videos have a valid thumbnail for display
+            const PLACEHOLDER_THUMBNAIL_URL = 'https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=400&h=600&fit=crop';
+            const finalThumbnailUrl = thumbnailUrl || PLACEHOLDER_THUMBNAIL_URL;
+
+            console.log('📸 Final thumbnail URL:', finalThumbnailUrl === PLACEHOLDER_THUMBNAIL_URL ? 'Using placeholder' : 'Using generated thumbnail');
+
             const { error: dbError } = await supabase.from('highlights').insert({
                 user_id: user.id,
                 court_id: finalCourtId || null,
                 video_url: videoUrl,
-                thumbnail_url: thumbnailUrl || null,  // Allow null if generation failed
+                thumbnail_url: finalThumbnailUrl,  // Always provide a thumbnail (placeholder if generation failed)
                 duration_sec: actualDuration,
                 title: metadata?.title || `Highlight ${new Date().toLocaleString()}`,
                 description: metadata?.description || 'Recorded via My2Light App',
@@ -216,12 +223,13 @@ export const UploadService = {
             });
 
             if (dbError) {
-                console.error('Failed to insert highlight record:', dbError);
-                // We don't throw here to avoid "failing" the upload if just the DB insert failed
-                // But in a real app we might want to retry or alert.
-            } else {
-                console.log('✅ Highlight inserted successfully into DB');
+                console.error('❌ Failed to insert highlight record:', dbError);
+                // CRITICAL: Throw error instead of silent failure
+                // This ensures the user knows their upload failed
+                throw new Error(`Database insert failed: ${dbError.message || 'Unknown error'}`);
             }
+
+            console.log('✅ Highlight inserted successfully into DB');
 
             // Return the folder path
             return `${user.id}/${sessionId}`;
