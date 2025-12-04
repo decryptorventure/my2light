@@ -1,23 +1,41 @@
 import { supabase } from '../lib/supabase';
-import { VideoStorage, VideoChunk, SessionMetadata } from '../lib/storage';
+import { VideoStorage } from '../lib/storage';
 import { isIOSSafari } from '../lib/browserDetect';
+import CryptoJS from 'crypto-js';
 
 // Cloudinary configuration
 const CLOUDINARY_CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
-const CLOUDINARY_UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
+const CLOUDINARY_API_KEY = import.meta.env.VITE_CLOUDINARY_API_KEY;
+const CLOUDINARY_API_SECRET = import.meta.env.VITE_CLOUDINARY_API_SECRET;
 const CLOUDINARY_UPLOAD_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/video/upload`;
 
 console.log('🔧 Cloudinary Config:', {
     cloudName: CLOUDINARY_CLOUD_NAME,
-    uploadPreset: CLOUDINARY_UPLOAD_PRESET,
+    apiKey: CLOUDINARY_API_KEY,
+    hasSecret: !!CLOUDINARY_API_SECRET,
     uploadUrl: CLOUDINARY_UPLOAD_URL
 });
 
 const PLACEHOLDER_THUMBNAIL_URL = 'https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=400&h=300&fit=crop';
 
+/**
+ * Generate Cloudinary signature for signed uploads
+ */
+function generateSignature(paramsToSign: Record<string, any>): string {
+    // Sort parameters alphabetically
+    const sortedParams = Object.keys(paramsToSign)
+        .sort()
+        .map(key => `${key}=${paramsToSign[key]}`)
+        .join('&');
+
+    // Create signature using SHA-1
+    const signature = CryptoJS.SHA1(sortedParams + CLOUDINARY_API_SECRET).toString();
+    return signature;
+}
+
 export const UploadService = {
     /**
-     * Upload video session to Cloudinary (handles webm → mp4 conversion automatically)
+     * Upload video session to Cloudinary with SIGNED upload
      */
     async uploadSession(
         sessionId: string,
@@ -35,7 +53,7 @@ export const UploadService = {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) throw new Error('User not authenticated');
 
-            console.log('📹 Starting Cloudinary upload for session:', sessionId);
+            console.log('📹 Starting Cloudinary SIGNED upload for session:', sessionId);
 
             // Get full video blob from IndexedDB
             const fullBlob = await VideoStorage.getSessionBlob(sessionId);
@@ -45,17 +63,36 @@ export const UploadService = {
 
             console.log(`📦 Video blob size: ${(fullBlob.size / 1024 / 1024).toFixed(2)} MB`);
 
-            // Upload to Cloudinary
-            if (onProgress) onProgress(0.1); // Starting upload
+            // Upload to Cloudinary with SIGNED request
+            if (onProgress) onProgress(0.1);
 
+            const timestamp = Math.floor(Date.now() / 1000);
+            const folder = `my2light/videos/${user.id}`;
+            const publicId = sessionId;
+
+            // Parameters to sign
+            const paramsToSign = {
+                timestamp,
+                folder,
+                public_id: publicId,
+            };
+
+            // Generate signature
+            const signature = generateSignature(paramsToSign);
+
+            console.log('🔐 Generated signature for signed upload');
+
+            // Build form data with signature
             const formData = new FormData();
             formData.append('file', fullBlob);
-            formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
-            formData.append('folder', `my2light/videos/${user.id}`);
+            formData.append('api_key', CLOUDINARY_API_KEY);
+            formData.append('timestamp', timestamp.toString());
+            formData.append('signature', signature);
+            formData.append('folder', folder);
+            formData.append('public_id', publicId);
             formData.append('resource_type', 'video');
-            formData.append('public_id', sessionId); // Use sessionId as filename
 
-            console.log('☁️ Uploading to Cloudinary...');
+            console.log('☁️ Uploading to Cloudinary (signed)...');
 
             const uploadResponse = await fetch(CLOUDINARY_UPLOAD_URL, {
                 method: 'POST',
@@ -64,23 +101,23 @@ export const UploadService = {
 
             if (!uploadResponse.ok) {
                 const errorText = await uploadResponse.text();
-                console.error('Cloudinary upload failed:', errorText);
+                console.error('❌ Cloudinary upload failed:', errorText);
                 throw new Error(`Cloudinary upload failed: ${uploadResponse.statusText}`);
             }
 
             const cloudinaryData = await uploadResponse.json();
             console.log('✅ Cloudinary upload successful:', cloudinaryData);
 
-            if (onProgress) onProgress(0.7); // Upload complete, processing
+            if (onProgress) onProgress(0.7);
 
             // Cloudinary URLs (automatically converted to MP4!)
-            const videoUrl = cloudinaryData.secure_url; // MP4 URL
-            const thumbnailUrl = cloudinaryData.secure_url.replace(/\.(mp4|webm|mov)$/, '.jpg'); // Auto-generated thumbnail
+            const videoUrl = cloudinaryData.secure_url;
+            const thumbnailUrl = cloudinaryData.secure_url.replace(/\.(mp4|webm|mov)$/, '.jpg');
 
             console.log('🎥 Video URL (MP4):', videoUrl);
             console.log('🖼️ Thumbnail URL:', thumbnailUrl);
 
-            if (onProgress) onProgress(0.9); // Saving to database
+            if (onProgress) onProgress(0.9);
 
             // Save to Supabase database
             const { data: highlight, error: insertError } = await supabase
@@ -105,7 +142,7 @@ export const UploadService = {
 
             console.log('✅ Highlight saved to database:', highlight.id);
 
-            if (onProgress) onProgress(1.0); // Complete!
+            if (onProgress) onProgress(1.0);
 
             // Clean up local storage
             await this.clearLocalSession(sessionId);
@@ -119,8 +156,7 @@ export const UploadService = {
     },
 
     /**
-     * Generate video thumbnail from blob (FALLBACK - Cloudinary auto-generates)
-     * Keep this for backwards compatibility
+     * Generate video thumbnail from blob (FALLBACK)
      */
     async generateThumbnail(videoBlob: Blob): Promise<Blob | null> {
         return new Promise((resolve) => {
@@ -145,7 +181,7 @@ export const UploadService = {
                 if (resolved) return;
 
                 if (!isFinite(video.duration) || video.duration === 0) {
-                    console.warn('⚠️ Invalid video duration, using placeholder');
+                    console.warn('⚠️ Invalid video duration');
                     resolved = true;
                     cleanup();
                     resolve(null);
@@ -165,9 +201,7 @@ export const UploadService = {
                     canvas.height = 360;
                     const ctx = canvas.getContext('2d');
 
-                    if (!ctx) {
-                        throw new Error('Failed to get canvas context');
-                    }
+                    if (!ctx) throw new Error('Failed to get canvas context');
 
                     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
@@ -175,13 +209,7 @@ export const UploadService = {
                         (blob) => {
                             resolved = true;
                             cleanup();
-                            if (blob) {
-                                console.log(`✅ Thumbnail generated: ${(blob.size / 1024).toFixed(2)} KB`);
-                                resolve(blob);
-                            } else {
-                                console.warn('⚠️ Failed to create thumbnail blob');
-                                resolve(null);
-                            }
+                            resolve(blob);
                         },
                         'image/jpeg',
                         0.85
@@ -194,17 +222,18 @@ export const UploadService = {
                 }
             };
 
-            video.onerror = (e) => {
-                if (resolved) return;
-                console.error('❌ Video load failed (iOS Safari + webm issue?):', e);
-                resolved = true;
-                cleanup();
-                resolve(null);
+            video.onerror = () => {
+                if (!resolved) {
+                    console.error('❌ Video load failed');
+                    resolved = true;
+                    cleanup();
+                    resolve(null);
+                }
             };
 
             timeoutId = setTimeout(() => {
                 if (!resolved) {
-                    console.warn(`⏱️ Thumbnail generation timeout after ${TIMEOUT_MS}ms`);
+                    console.warn(`⏱️ Thumbnail timeout after ${TIMEOUT_MS}ms`);
                     resolved = true;
                     cleanup();
                     resolve(null);
